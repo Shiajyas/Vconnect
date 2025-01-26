@@ -102,13 +102,25 @@ export const authService = {
       "Failed to fetch admin"
     ),
 
-  getAllUsers: () =>
+  // getAllUsers: () =>
+  //   fetchData(
+  //     "/admin/users",
+  //     {
+  //       method: "GET",
+  //       isAuthRequired: true,
+  //       tokenKey: "adminToken",
+  //     },
+  //     "Failed to fetch users"
+  //   ),
+
+  getAllUsers: (page: number = 1, limit: number = 10) =>
     fetchData(
       "/admin/users",
       {
         method: "GET",
         isAuthRequired: true,
         tokenKey: "adminToken",
+        params: { page, limit }, 
       },
       "Failed to fetch users"
     ),
@@ -130,6 +142,7 @@ export const authService = {
           method: "POST", 
         },
         "logout failed"
-      )
+      ),
 
+   
 };

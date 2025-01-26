@@ -28,6 +28,7 @@ const AdminLoginPage: React.FC = () => {
       forgotPasswordLink="/admin/forgot-password"
       onSubmit={handleSubmit}
       isLoading={isLoading}
+      onGoogleLogin={() => {}}
     />
   );
 };

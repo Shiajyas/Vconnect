@@ -32,6 +32,9 @@ export const UserLoginPage: React.FC = () => {
       forgotPasswordLink="/forgot-password"
       onSubmit={handleSubmit}
       isLoading={isLoading}
+      onGoogleLogin={() => {
+        // Handle Google login here
+      }}
     />
   );
 };

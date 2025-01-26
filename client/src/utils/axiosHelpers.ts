@@ -57,6 +57,7 @@ export const refreshAccessToken = async () => {
 };
 
 // Utility function for handling API requests
+// fetchData utility
 export const fetchData = async (
   endpoint: string,
   options: {
@@ -64,11 +65,12 @@ export const fetchData = async (
     data?: any;
     isAuthRequired?: boolean;
     tokenKey?: string;
+    params?: Record<string, any>; 
   },
   errorMessage: string
 ) => {
   try {
-    const { method, data, isAuthRequired, tokenKey } = options;
+    const { method, data, isAuthRequired, tokenKey, params } = options;
 
     // Check if the token needs to be refreshed
     if (isAuthRequired && tokenKey) {
@@ -91,6 +93,7 @@ export const fetchData = async (
       url: endpoint,
       method,
       data,
+      params, 
       headers: getDefaultHeaders(isAuthRequired, tokenKey),
     });
 
