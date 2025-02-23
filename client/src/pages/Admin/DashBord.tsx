@@ -1,6 +1,6 @@
 import React from 'react';
 // import Main from '../components/adminDashboard/main/Main';
-import Sidebar from '../../components/adminDashbord/sidebar/Sidebar';
+import Sidebar from '../../customeComponents/adminDashbord/sidebar/Sidebar';
 
 
 

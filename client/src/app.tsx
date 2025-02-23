@@ -1,24 +1,30 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import RegisterPage from "./components/auth/RegisterPage";
-import OtpVerification from "./components/auth/VerifyOtpPage";
+import RegisterPage from "./customeComponents/auth/RegisterPage";
+import OtpVerification from "./customeComponents/auth/VerifyOtpPage";
 import Home from "./pages/User/Home";
 import { ToastContainer } from "react-toastify";
 import { useAuthContext } from "./context/AuthContext";
-import ForgotPasswordPage from "./components/ForgetPwd";
+import ForgotPasswordPage from "./customeComponents/ForgetPwd";
 import { UserLoginPage } from "./pages/User/UserLoginPage";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage";
 import AdminDashBord from "./pages/Admin/DashBord";
-import ProUserPage from "./pages/proUser/ProUserPage";
 import UserPrivateRoute from "./routes/UserPrivateRoute";
 import AdminPrivateRoute from "./routes/AdminPrivateRoute";
-import ProUserPrivateRoute from "./routes/ProUserPrivateRoute";
+import { SocketProvider } from "./features/SocketProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+
 
 const App = () => {
   const { isAdminAuthenticated, isUserAuthenticated, userRole } = useAuthContext();
+  const queryClient = new QueryClient();
 
   return (
-    <>
+    <div className=" bg-white">
+      
+    <QueryClientProvider client={queryClient}>
+    <SocketProvider>
       <ToastContainer />
       <Routes>
         {/* Public Routes */}
@@ -41,15 +47,9 @@ const App = () => {
         <Route
           path="/home"
           element={
-            <UserPrivateRoute>
-              {userRole === "proUser" ? (
-                <ProUserPrivateRoute>
-                  <ProUserPage />
-                </ProUserPrivateRoute>
-              ) : (
-                <Home />
-              )}
-            </UserPrivateRoute>
+           
+              <Home />
+            
           }
         />
         <Route
@@ -61,26 +61,17 @@ const App = () => {
           }
         />
 
-        {/* Default Route */}
+        {/* Default Route (catch-all) */}
         <Route
           path="*"
           element={
-            <Navigate
-              to={
-                isUserAuthenticated
-                  ? userRole === "proUser"
-                    ? "/home"
-                    : "/home"
-                  : isAdminAuthenticated
-                  ? "/admin/dashboard"
-                  : "/login"
-              }
-              replace
-            />
+            isUserAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
           }
         />
       </Routes>
-    </>
+      </SocketProvider>
+      </QueryClientProvider>
+    </div>
   );
 };
 

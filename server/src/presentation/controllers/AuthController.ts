@@ -1,10 +1,17 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { IUser } from "../../core/domain/interfaces/IUser";
-import { IAuthService } from "../../core/useCase/interfaces/IAuthService";
+
+declare module "express-session" {
+    interface Session {
+        user?: IUser;
+    }
+}
 import { getErrorMessage } from "../../infrastructure/utils/errorHelper";
-import { IUserRepository } from "../../core/domain/interfaces/IUserRepository";
 import { setCookie } from "../../infrastructure/utils/setCookie";
+import { IAuthService } from "../../useCase/interfaces/IAuthService";
+import { IUserRepository } from "../../data/interfaces/IUserRepository";
+import session from "express-session";
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -21,17 +28,17 @@ export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
             const { email, password, role } = req.body;
-            // console.log(req.body,"><><><><");
-
+       
             const loginResult = await this.userService.login(email, password, role);
-            console.log(loginResult, "login result");
-
+        
             if (!loginResult) {
                 res.status(400).json({ message: "Login failed." });
                 return;
             }
 
-            const { token, refreshToken, user } = loginResult;
+            req.session.user = loginResult.user;
+
+            const { token, refreshToken, user, } = loginResult;
 
             // Check if the user is a Mongoose document, and convert to plain object if so
             const userObject: IUser = user instanceof mongoose.Document ? user.toObject() : user;
@@ -64,8 +71,7 @@ export class AuthController {
 
     async register(req: Request, res: Response): Promise<void> {
         try {
-            console.log(req.body);
-
+        
             await this.userService.register(req.body);
             res.status(201).json({ message: "OTP sent successfully.", email: req.body.email });
         } catch (error) {
@@ -99,9 +105,7 @@ export class AuthController {
 
             let userId = (req as AuthenticatedRequest).user?.id
 
-            // console.log(userId, ">>>>>>>>>>>>>>>>>>>>>>>>1234");
-
-
+         
             if (!userId) {
                 res.status(400).json({ message: "Invalid request: User information is missing." });
                 return;
@@ -122,7 +126,6 @@ export class AuthController {
             res.status(500).json({ message: getErrorMessage(error) });
         }
     }
-
     async verify_Otp(req: Request, res: Response): Promise<void> {
         try {
             const { email, enterdOtp } = req.body;
@@ -134,10 +137,8 @@ export class AuthController {
         } catch (error) {
             res.status(400).json({ msg: getErrorMessage(error) });
         }
-
     }
-
-
+    
     async resendOtp(req: Request, res: Response): Promise<void> {
         try {
             const { email } = req.body;
@@ -153,9 +154,8 @@ export class AuthController {
         } catch (error) {
             res.status(400).json({ msg: getErrorMessage(error) });
         }
-
     }
-
+    
     async resetPassword(req: Request, res: Response): Promise<void> {
         try {
             const { email, password } = req.body;
@@ -175,26 +175,36 @@ export class AuthController {
 
     async getAllUser(req: Request, res: Response): Promise<void> {
         try {
-            // console.log("hit getAllUsers");
+           
+            const page = parseInt(req.query.page as string) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit as string) || 10; // Default to 10 items per page
 
-            const users = await this.userService.getAllUser({});
-            // console.log(users);
+           
+            const { users, totalUsers, totalPages } = await this.userService.getAllUser(
+                page,
+                limit
+            );
 
-            if (!users) throw new Error("Userlist featching failed")
-            res.status(200).json(users);
+            if (!users) throw new Error("User list fetching failed");
+
+            
+            res.status(200).json({
+                users,
+                totalUsers,
+                totalPages,
+                currentPage: page,
+            });
         } catch (error) {
             console.error(error);
             res.status(400).json({ message: getErrorMessage(error) });
         }
     }
-
     async googleAuth(req: Request, res: Response): Promise<void> {
         try {
             const { idToken } = req.body
 
             const { user, token, refreshToken } = await this.userService.googleAuth(idToken) as { user: IUser; token: string; refreshToken: string };
-            // console.log(user,token,">>>>>>>>>");  
-
+          
             setCookie(res, "refreshToken", refreshToken);
 
             if (!user) throw new Error("Google login faild")
@@ -232,11 +242,68 @@ export class AuthController {
                 expires: new Date(0), // Expire immediately
                 path: '/', 
               });
-            res.status(200).json({ message: "Logged out successfully.", ok : true });
+              req.session.destroy((err) => {
+                if (err) {  
+                  console.error(err);}
+                res.status(200).json({ message: "Logged out successfully.", ok : true });
+              });
         } catch (error) {
             console.error(error);
             res.status(400).json({ message: getErrorMessage(error) });
+        }
     }
 
-}
+    async blockUser(req: Request, res: Response): Promise<void> {
+        try {
+            const { id: userId } = req.params; // Get userId from URL params
+    
+            if (!userId) {
+                res.status(400).json({ message: "User ID is required to block a user." });
+                return;
+            }
+    
+            const blockedUser = await this.userService.blockUser(userId);
+    
+            if (!blockedUser) {
+                res.status(400).json({ message: "Failed to block user." });
+                return;
+            }
+    
+            res.status(200).json({
+                message: "User blocked successfully.",
+                user: blockedUser,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(400).json({ message: getErrorMessage(error) });
+        }
+    }
+    
+    // Unblock a user
+    async unblockUser(req: Request, res: Response): Promise<void> {
+        try {
+            const { id: userId } = req.params; // Get userId from URL params
+    
+            if (!userId) {
+                res.status(400).json({ message: "User ID is required to unblock a user." });
+                return;
+            }
+    
+            const unblockedUser = await this.userService.unblockUser(userId);
+    
+            if (!unblockedUser) {
+                res.status(400).json({ message: "Failed to unblock user." });
+                return;
+            }
+    
+            res.status(200).json({
+                message: "User unblocked successfully.",
+                user: unblockedUser,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(400).json({ message: getErrorMessage(error) });
+        }
+    }
+    
 }

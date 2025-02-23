@@ -16,25 +16,23 @@ export class OtpService implements IOtpService {
 
   verifyOtp(email: string, enterdOtp: string): { valid: boolean, expired: boolean } {
     const storedData = tempStorage[email];
-
-    // console.log(enterdOtp,"Enterd Otp");
-    
+    const otpExpiryDuration = 90 * 1000; 
 
     if (!storedData) {
-      return { valid: false, expired: false };  
+        return { valid: false, expired: false };
     }
 
     const { otp, generatedAt } = storedData;
     const currentTime = Date.now();
-    const isExpired = currentTime - generatedAt > 90 * 1000;
+    const isExpired = currentTime - generatedAt > otpExpiryDuration;
 
     if (isExpired) {
-      delete tempStorage[email]; 
-      return { valid: false, expired: true };  
+        delete tempStorage[email]; 
+        return { valid: false, expired: true };
     }
 
-    return { valid: enterdOtp === otp, expired: false }; 
-  }
+    return { valid: enterdOtp === otp, expired: false };
+}
 
   async sendOtpEmail(email: string, otp: string): Promise<boolean> {
     try {

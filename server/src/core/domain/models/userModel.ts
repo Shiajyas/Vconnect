@@ -89,11 +89,27 @@ const userSchema = new Schema<IUser>(
         ref: "user",
       },
     ],
+    isBlocked: {
+      type: Boolean,
+      default: false, // Default value is false, meaning not blocked
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Function to block a user
+userSchema.methods.block = function () {
+  this.isBlocked = true;
+  return this.save();
+};
+
+// Function to unblock a user
+userSchema.methods.unblock = function () {
+  this.isBlocked = false;
+  return this.save();
+};
 
 const User: Model<IUser> = mongoose.model<IUser>("user", userSchema);
 

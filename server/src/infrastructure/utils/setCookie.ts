@@ -15,6 +15,6 @@ export const setCookie = (
     httpOnly: options.httpOnly ?? true,
     secure: options.secure ?? process.env.NODE_ENV === "production",
     sameSite: options.sameSite ?? "strict",
-    maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, // Default to 7 days
+    maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, 
   });
 };

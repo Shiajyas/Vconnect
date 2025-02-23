@@ -102,17 +102,6 @@ export const authService = {
       "Failed to fetch admin"
     ),
 
-  // getAllUsers: () =>
-  //   fetchData(
-  //     "/admin/users",
-  //     {
-  //       method: "GET",
-  //       isAuthRequired: true,
-  //       tokenKey: "adminToken",
-  //     },
-  //     "Failed to fetch users"
-  //   ),
-
   getAllUsers: (page: number = 1, limit: number = 10) =>
     fetchData(
       "/admin/users",
@@ -120,7 +109,7 @@ export const authService = {
         method: "GET",
         isAuthRequired: true,
         tokenKey: "adminToken",
-        params: { page, limit }, 
+        params: { page, limit },
       },
       "Failed to fetch users"
     ),
@@ -134,15 +123,37 @@ export const authService = {
       },
       "Google authentication failed"
     ),
- 
-    logout: () =>
-      fetchData(
-        "/logout",
-        {
-          method: "POST", 
-        },
-        "logout failed"
-      ),
 
-   
+  logout: () =>
+    fetchData(
+      "/logout",
+      {
+        method: "POST",
+      },
+      "logout failed"
+    ),
+
+  // Block user by ID
+  blockUser: (userId: string) =>
+    fetchData(
+      `/admin/users/${userId}/block`,
+      {
+        method: "POST",
+        isAuthRequired: true,
+        tokenKey: "adminToken",
+      },
+      "Failed to block user"
+    ),
+
+  // Unblock user by ID
+  unblockUser: (userId: string) =>
+    fetchData(
+      `/admin/users/${userId}/unblock`,
+      {
+        method: "POST",
+        isAuthRequired: true,
+        tokenKey: "adminToken",
+      },
+      "Failed to unblock user"
+    ),
 };

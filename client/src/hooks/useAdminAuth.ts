@@ -5,80 +5,74 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthContext } from "../context/AuthContext";
 
-
 const handleMutationError = (error: any, message: string) => {
   console.error(error);
   toast.error(message || "An error occurred.");
 };
 
-
-const handleMutationSuccess = (
+const handleMutationSuccess = async (
   data: any,
   queryClient: any,
-  navigate: any,
-  setAdminAuthenticated: any
+
+  setAdmin: any,
+
 ) => {
   const { token, user } = data;
-  queryClient.setQueryData(["admin"], user);
-  setAdminAuthenticated(true);
+  console.log(data,token,">>>>>123");
+  
   localStorage.setItem("adminToken", token);
-  navigate("/admin/dashboard");
+
+  queryClient.setQueryData(["admin"], user);
+
+  
+  setAdmin(user, token);
+
+  await queryClient.invalidateQueries({ queryKey: ["admin"] });
+  await queryClient.refetchQueries({ queryKey: ["admin"] });
+
+
 };
 
 export const useAdminAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setAdminAuthenticated,setUserRole } = useAuthContext();
+  const { setAdminAuthenticated, setAdmin } = useAuthContext();
 
-  // Query to get the admin details if authenticated
   const { data: admin, isLoading, isError } = useQuery({
     queryKey: ["admin"],
     queryFn: authService.getAdmin,
-    enabled: !!localStorage.getItem("adminToken"),
-    initialData: () => {
-      const adminToken = localStorage.getItem("adminToken");
-      return adminToken ? { token: adminToken } : null;
-    },
+    enabled: !!localStorage.getItem("adminToken"), // Ensures query runs only if token exists
+    staleTime: 0, // Forces a fresh data fetch on every login
+  
+    retry: false, // Avoids unnecessary retries
   });
 
-  // Login Mutation for admin authentication
+  // Login Mutation for Admin Authentication
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       const response = await authService.login(email, password, "admin");
       return response;
     },
     onSuccess: (data) => {
-      handleMutationSuccess(data, queryClient, navigate, setAdminAuthenticated);
+      setAdminAuthenticated(true);
+      handleMutationSuccess(data, queryClient, setAdmin,);
     },
     onError: (error) => {
+      setAdminAuthenticated(false);
       handleMutationError(error, "Invalid email or password.");
     },
   });
 
-  // OTP Verification Mutation
-  const verifyOtpMutation = useMutation({
-    mutationFn: async ({ email, enterdOtp }: { email: string; enterdOtp: string }) => {
-      const response = await authService.verifyOtp(email, enterdOtp);
-      return response;
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("userToken", data.token);
-      toast.success("User verified");
-      queryClient.setQueryData(["user"], data.user);
-      navigate("/home");
-    },
-    onError: (error) => {
-      handleMutationError(error, "Invalid OTP. Please try again.");
-    },
-    retry: false,
-  });
-
-  // Logout function for admin
+  
   const logout = async () => {
     localStorage.removeItem("adminToken");
     queryClient.setQueryData(["admin"], null);
-    setUserRole(null);
+
+    // ✅ Reset Auth Context
+    setAdmin(null, null);
     setAdminAuthenticated(false);
+
+   
     navigate("/admin/login");
 
     authService.logout().catch((error) => {
@@ -86,29 +80,35 @@ export const useAdminAuth = () => {
     });
   };
 
-  // Other mutations for OTP, password reset, etc.
+  // Other auth operations (OTP, password reset)
   const requestOtpMutation = useMutation({
-    mutationFn: async ({ email }: { email: string }) => {
-      return authService.requestOtp(email);
+    mutationFn: async ({ email }: { email: string }) => authService.requestOtp(email),
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: async ({ email, enterdOtp }: { email: string; enterdOtp: string }) =>
+      authService.verifyOtp(email, enterdOtp),
+    onSuccess: (data) => {
+      localStorage.setItem("adminToken", data.token);
+      toast.success("Admin verified");
+      queryClient.setQueryData(["admin"], data.user);
+      navigate("/admin/dashboard");
     },
+    onError: (error) => handleMutationError(error, "Invalid OTP. Please try again."),
   });
 
   const verifyOtpfMutation = useMutation({
-    mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
-      return authService.verifyOtpf(email, otp);
-    },
+    mutationFn: async ({ email, otp }: { email: string; otp: string }) =>
+      authService.verifyOtpf(email, otp),
   });
 
   const resetPasswordMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      return authService.resetPassword(email, password);
-    },
+    mutationFn: async ({ email, password }: { email: string; password: string }) =>
+      authService.resetPassword(email, password),
   });
 
   const resendOtpMutation = useMutation({
-    mutationFn: async ({ email }: { email: string }) => {
-      return authService.resendOtp(email);
-    },
+    mutationFn: async ({ email }: { email: string }) => authService.resendOtp(email),
   });
 
   return {

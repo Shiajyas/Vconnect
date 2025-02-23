@@ -4,11 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthContext } from "../context/AuthContext";
-
+import { socket } from "@/utils/Socket";
 
 const handleMutationError = (error: any, message: string) => {
   console.error(error);
-  toast.error(message || "An error occurred.");
+  if( error.msg == 'Too many login attempts from this IP, please try again later.'){
+    toast.error(error.msg);
+  }else{
+    toast.error(message || "An error occurred.");
+  }
+  
 };
 
 // Default function to manage success for mutations
@@ -16,20 +21,22 @@ const handleMutationSuccess = (
   data: any,
   queryClient: any,
   navigate: any,
-  setUserAuthenticated: any
+  setUserAuthenticated: any,
+  setUser: any
 ) => {
   const { token, user } = data;
   queryClient.setQueryData(["user"], user);
   setUserAuthenticated(true);
+
+  setUser(user,token); // Setting user in context
   localStorage.setItem("userToken", token);
   navigate("/home");
 };
 
-
 export const useUserAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setUserAuthenticated,setUserRole } = useAuthContext();
+  const { setUserAuthenticated,setUser } = useAuthContext();
 
   // Query to get user details if authenticated
   const { data: user, isLoading, isError } = useQuery({
@@ -42,22 +49,30 @@ export const useUserAuth = () => {
     },
   });
 
+  // Handle loading state
+
+
   // Mutation for user login
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       const response = await authService.login(email, password, "user");
-      return response; 
+      return response;
     },
-    onSuccess: (data) => handleMutationSuccess(data, queryClient, navigate, setUserAuthenticated),
-    onError: (error) => handleMutationError(error, "Invalid email or password."),
+    onSuccess: (data) => {
+      console.log("Login successful, navigating to /home");
+      handleMutationSuccess(data, queryClient, navigate, setUserAuthenticated,setUser);
+      queryClient.invalidateQueries({ queryKey: ["user"] }); // Invalidate user query to ensure it's up-to-date
+    },
+    onError: (error) => handleMutationError(error, error.message),
   });
 
   // Logout function
-  const logout =  () => {
+  const logout = () => {
     localStorage.removeItem("userToken");
     queryClient.setQueryData(["user"], null);
-    setUserRole(null);
-    setUserAuthenticated(false); 
+    
+    setUser(null,null);
+    setUserAuthenticated(false);
     navigate("/login");
     authService.logout().catch((error) => {
       console.error("Logout error (background):", error);
@@ -73,6 +88,8 @@ export const useUserAuth = () => {
     onSuccess: async (data) => {
       queryClient.setQueryData(["user"], data.user);
       setUserAuthenticated(true);
+     
+      setUser(data.user,data.token); // Save user
       localStorage.setItem("userToken", data.token);
       toast.success("User verified");
       navigate("/home");
@@ -87,8 +104,6 @@ export const useUserAuth = () => {
       return authService.requestOtp(email);
     },
   });
-
-
 
   const verifyOtpfMutation = useMutation({
     mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
@@ -129,31 +144,28 @@ export const useUserAuth = () => {
       handleMutationError(error, "An error occurred during registration.");
     },
   });
+
   const googleAuthMutation = useMutation({
     mutationFn: async (userData: any) => {
       const response = await authService.googleAuth(userData);
       console.log("Response from backend:", response); // Log the response to check the structure
-      return response
+      return response;
     },
     onSuccess: (data) => {
-      console.log(data, ">>>>>>>>>>>>>>>");
-      queryClient.setQueryData(["user"], data.user);
-      setUserAuthenticated(true);
-      localStorage.setItem("userToken", data.token);
+      // console.log(data.user._id, ">>>>>>>>>>>>>>>");
+      socket.emit("joinUser", data.user._id);
+      handleMutationSuccess(data, queryClient, navigate, setUserAuthenticated, setUser);
       toast.success("User verified");
-      navigate("/home");
     },
     onError: (error) => {
       console.log(error);
-      
       toast.error("Google login failed");
     },
   });
-  
+
   const { isPending: isRegisterLoading } = registerMutation;
   const { isPending: isOtpLoading } = verifyOtpMutation;
 
- 
   return {
     user,
     isLoading,
@@ -168,7 +180,6 @@ export const useUserAuth = () => {
     requestOtpMutation,
     registerMutation,
     isOtpLoading,
-    googleAuthMutation
-  
+    googleAuthMutation,
   };
 };
