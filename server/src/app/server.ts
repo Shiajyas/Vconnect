@@ -10,6 +10,9 @@ import postRoutes from "../presentation/routes/users/postRoutes";
 import {userRoutes} from "../presentation/routes/users/userRoutes"; 
 import http from "http"; 
 import {initializeSocket} from "../infrastructure/socket/SocketServer";
+import cookieParser from "cookie-parser";
+
+
 
 class App {
   public app: Application;
@@ -34,17 +37,24 @@ class App {
       next();
     });
 
-    this.app.use(
-      session({
-        secret: "its n)jnjcemckemcenjncjebhbhj",
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false }, 
-      })
-    );
-
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
+    this.app.use(cookieParser()); 
+
+    // Express-Session Setup
+    this.app.use(
+      session({
+        secret: process.env.SESSION_SECRET || "your-secure-random-secret",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production", // Secure only in production
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", 
+          maxAge: 24 * 60 * 60 * 1000, // 1-day expiration
+        },
+      })
+    );
 
     this.app.use((req, res, next) => {
       next();

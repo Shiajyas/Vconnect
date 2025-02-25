@@ -23,4 +23,8 @@ export interface IUser extends Document {
     endDate: Date | null;
   };
   isBlocked: boolean
+
+  findFollowers(userId: string): Promise<IUser[]>;
+  findFollowing(userId: string): Promise<IUser[]>;
+
 }

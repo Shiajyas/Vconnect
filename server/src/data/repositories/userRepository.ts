@@ -112,4 +112,15 @@ async updateById(id: string, update: Partial<IUser>): Promise<IUser | null> {
   return await User.findByIdAndUpdate(id, update, { new: true }).select("-password");
 }
 
+
+  async findFollowers(userId: string): Promise<IUser[]> {
+    const user = await User.findById(userId).populate('followers', '-password');
+    return user ? (user.followers as unknown as IUser[]) : [];
+  }
+  
+  async findFollowing(userId: string): Promise<IUser[]> {
+    const user = await User.findById(userId).populate('following', '-password');
+    return user ? (user.following as unknown as IUser[]) : [];
+  }
+
 }

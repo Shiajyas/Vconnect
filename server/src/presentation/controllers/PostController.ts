@@ -22,7 +22,7 @@ export class PostController {
           
               let { title, description } = req.body as unknown as { title: string; description: string };
 
-            console.log(title, description,">>>>321");
+            // console.log(title, description,">>>>321");
 
             
             if (!req.user) {
@@ -42,24 +42,31 @@ export class PostController {
         }
     }
 
-    async getPosts(req:  AuthenticatedRequest, res: Response): Promise<void> {
+    async getPosts(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const page = parseInt((req as unknown as Request).query.page as string) || 1;
             const limit = parseInt((req as unknown as Request).query.limit as string) || 10;
-
+            
             const userId = req.user?.id as string;
+    // 
+            console.log(userId, ">>>>userId 1*"); 
             if (!userId) {
                 res.status(401).json({ message: "Unauthorized access." });
                 return;
             }
-            const posts = await this.postService.getPosts(userId, page, limit);
-            res.status(200).json({ message: "Success", posts });
+    
+            const {posts,nextPage } = await this.postService.getPosts(userId, page, limit);
+            // console.log(posts, ">>>>posts 1*");
 
+            res.status(200).json({ message: "Success", posts, nextPage });
+    
         } catch (error) {
+            console.error(error, ">>>>Error in getPosts Controller"); 
+
             res.status(500).json({ message: getErrorMessage(error) });
         }
     }
-
+    
     async getPost(req:  AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const post = await this.postService.getPost((req as unknown as Request).params.id);

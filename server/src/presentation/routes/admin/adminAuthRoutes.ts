@@ -6,7 +6,7 @@ import { UserRepository } from "../../../data/repositories/userRepository";
 import { IUserRepository } from "../../../data/interfaces/IUserRepository";
 import { AuthService } from "../../../useCase/authOperations";
 import { IAuthService} from "../../../useCase/interfaces/IAuthService";
-import AuthMiddleware from "../../middleware/authMiddleware";
+import adminAuthMiddleware from "../../middleware/userAuthMiddleware";
 
 const router = Router();
 
@@ -19,10 +19,11 @@ const userService : IAuthService = new AuthService(userRepository, otpService);
 const authController = new AuthController(userService);
 
 router.post("/login", authController.login.bind(authController));
-router.get("/users",AuthMiddleware.authenticate, authController.getAllUser.bind(authController));
+router.get("/users",adminAuthMiddleware.authenticate, authController.getAllUser.bind(authController));
 
 router.post("/users/:id/block", authController.blockUser.bind(authController));
 router.post("/users/:id/unblock", authController.unblockUser.bind(authController));
+router.post("/logout",authController.adminLogout.bind(authController))
 
 
 

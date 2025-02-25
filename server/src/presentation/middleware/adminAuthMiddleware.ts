@@ -8,12 +8,14 @@ interface DecodedToken {
   role: string;
 }
 
-export class AuthMiddleware {
+export class adminAuthMiddleware{
   static async authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Extract token from Authorization header
-      const token = req.header("Authorization")?.replace("Bearer ", "");
-      // console.log("🔹 Received Token:", token);
+      const token =  req.cookies.userToken;
+      console.log("🔹 Received Token:", token);
+      console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
+
 
       if (!token) {
         res.status(401).json({ msg: "Token is missing" });
@@ -52,4 +54,4 @@ export class AuthMiddleware {
   }
 }
 
-export default AuthMiddleware;
+export default adminAuthMiddleware

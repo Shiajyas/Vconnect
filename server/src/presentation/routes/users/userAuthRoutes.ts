@@ -6,7 +6,7 @@ import { UserRepository } from "../../../data/repositories/userRepository";
 import { IUserRepository } from "../../../data/interfaces/IUserRepository";
 import { AuthService } from "../../../useCase/authOperations";
 import { IAuthService } from "../../../useCase/interfaces/IAuthService";
-import AuthMiddleware from "../../middleware/authMiddleware";
+import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { loginRateLimiter } from "../../middleware/rateLimitMiddleware";
 
 const router = Router();
@@ -21,7 +21,7 @@ const authController = new AuthController(userService);
 
 router.post("/register", authController.register.bind(authController));
 router.post("/verify_otp", authController.verifyOtp.bind(authController));
-router.get("/user",AuthMiddleware.authenticate,authController.getUser.bind(authController))  
+router.get("/user",userAuthMiddleware.authenticate,authController.getUser.bind(authController))  
 router.post("/login",loginRateLimiter, authController.login.bind(authController));
 router.post("/request_otp", authController.requestOtp.bind(authController))
 router.post("/verify_otpf", authController.verify_Otp.bind(authController))

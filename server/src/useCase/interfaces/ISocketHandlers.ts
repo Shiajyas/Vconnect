@@ -15,4 +15,6 @@ export interface ISocketHandlers {
 
 
   logActiveUsers(): { userId: string; socketId: string }[];
+
+  likePost(socket: Socket, userId: string, postId: string, type: string): Promise<void>;
 }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import AuthMiddleware from "../../middleware/authMiddleware";
+import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { UserRepository } from "../../../data/repositories/userRepository";
 import { NotificationRepo } from "../../../data/repositories/notificationRepo";
 import { NotificationController } from "../../controllers/notificationController";
@@ -12,22 +12,22 @@ const notificationRepository = new NotificationRepo();
 const notificationController = new NotificationController(userRepository, notificationRepository);
 
 // Fetch unread notification count
-router.get("/unreadcount/:id", AuthMiddleware.authenticate, (req, res) =>
+router.get("/unreadcount/:id", userAuthMiddleware.authenticate, (req, res) =>
     notificationController.getUnreadCount(req, res)
 );
 
 // Mark notifications as read
-router.post("/mark-as-read/:id", AuthMiddleware.authenticate, (req, res) =>
+router.post("/mark-as-read/:id", userAuthMiddleware.authenticate, (req, res) =>
     notificationController.markNotificationsAsRead(req, res)
 );
 
 // Fetch paginated notifications
-router.get("/", AuthMiddleware.authenticate, async (req, res) => {
+router.get("/", userAuthMiddleware.authenticate, async (req, res) => {
     await notificationController.getNotifications(req, res);
 });
 
 // Delete a notification
-router.delete("/:notificationId", AuthMiddleware.authenticate, async (req, res) => {
+router.delete("/:notificationId", userAuthMiddleware.authenticate, async (req, res) => {
     await notificationController.deleteNotification(req, res);
 });
 

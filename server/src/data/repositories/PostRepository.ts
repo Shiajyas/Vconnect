@@ -8,12 +8,23 @@ export class PostRepository implements IPostRepository {
         return await newPost.save();
     }
 
-    async getPosts(userId: string, page: number, limit: number): Promise<IPost[]> {
-        return await Post.find({ userId })
+    async getPosts(userId: string, page: number, limit: number): Promise<{posts : IPost[]; nextPage: number | null}> {
+        console.log(userId, page, limit, ">>>>userId 3*"); 
+        let posts = await Post.find({})
+            .populate("userId", "fullname avatar username") // Fetch user details
             .sort({ createdAt: -1 }) // Sort by newest first
             .skip((page - 1) * limit)
             .limit(limit);
+
+            const totalPosts = await Post.countDocuments({  });
+            const totalPages = Math.ceil(totalPosts / limit);
+            const nextPage = page < totalPages ? page + 1 : null; 
+    
+        
+        // console.log(posts, ">>>>posts");
+        return {posts,nextPage}; ;
     }
+    
 
     async getPost(postId: string): Promise<IPost | null> {
         return await Post.findById(postId);

@@ -1,6 +1,6 @@
 import express from "express";
 import { UserController } from "../../controllers/UserController";
-import AuthMiddleware from "../../middleware/authMiddleware";
+import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { UserService } from "../../../useCase/UserService";
 import { Server } from "socket.io";
 import { SUserRepositoryImpl } from "../../../data/repositories/SUserRepositoryImpl";
@@ -19,7 +19,7 @@ export function userRoutes() {
        const userServiceInstance = new UserService(userRepositoryInstance);
     const userController = new UserController(userServiceInstance);
 
-    router.get("/suggestions", AuthMiddleware.authenticate, userController.getSuggestions.bind(userController));
+    router.get("/suggestions", userAuthMiddleware.authenticate, userController.getSuggestions.bind(userController));
 
 
     return router;

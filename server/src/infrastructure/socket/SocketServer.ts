@@ -4,12 +4,13 @@ import { SUserRepositoryImpl } from "../../data/repositories/SUserRepositoryImpl
 import { NotificationServiceImpl } from "../services/NotificationServiceImpl";
 import { UserRepository } from "../../data/repositories/userRepository";
 import { createServer } from "http";
+import { PostRepository } from "../../data/repositories/PostRepository";
 
 // Instantiate repositories and services
 const userRepository = new SUserRepositoryImpl();
 const notificationService = new NotificationServiceImpl();
 const mainUserRepository = new UserRepository();
-
+const MainPostRepository = new PostRepository();
 let io: Server | null = null; // Ensure it's initialized properly
 
 /**
@@ -29,7 +30,7 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
     },
   });
 
-  const socketHandlers = new SocketHandlers(io, userRepository, mainUserRepository, notificationService);
+  const socketHandlers = new SocketHandlers(io, userRepository, mainUserRepository, notificationService,MainPostRepository);
 
   io.on("connection", (socket: Socket) => {
     console.log(`[${new Date().toISOString()}] 🔌 New client connected: ${socket.id}`);
@@ -42,7 +43,17 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
     socket.on("follow", (data) => socketHandlers.followUser(socket, data));
     socket.on("unfollow", (data) => socketHandlers.unfollowUser(socket, data));
 
-    socket.on("postUploaded", (data) => socketHandlers.postUploaded(socket, userId,PostId));
+    socket.on("postUploaded", (data) => {
+      const { userId, postId} = data;
+      // console.log(`[${new Date().toISOString()}] 📸 Post uploaded by ${JSON.stringify(data, null, 2)}>>>456`);
+
+      socketHandlers.postUploaded(socket, userId, postId);
+    });
+
+    socket.on("like_post",(data) => {
+      const { userId, postId, type } = data;
+      socketHandlers.likePost(socket, userId, postId, type);
+    })
 
     socket.on("disconnect", () => {
       console.log(`[${new Date().toISOString()}] ❌ Client disconnected: ${socket.id}`);

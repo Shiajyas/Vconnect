@@ -17,21 +17,20 @@ export class PostService implements IPostService {
     async createPost(userId: string, title: string,description:string, mediaUrls: string[]): Promise<IPost> {
         const newPost = await this.postRepository.createPost(userId, title,description, mediaUrls);
         
-        const notificationMessage = NotificationHelper.createNotification(
-            userId,
-            userId,
-            "A new post was created",
-            "post",
-            newPost._id as string
-        );
-
+    
         return newPost;
     }
 
-    // Retrieve paginated posts
-    async getPosts(userId: string, page: number, limit: number): Promise<IPost[]> {
-        return await this.postRepository.getPosts(userId, page, limit);
+    async getPosts(userId: string, page: number, limit: number):  Promise<{posts : IPost[]; nextPage: number | null}> {
+        // console.log(userId, page, limit, ">>>>userId 2*");
+
+        let {posts,nextPage } = await this.postRepository.getPosts(userId, page, limit);
+        
+        // console.log(posts, ">>>>posts 2*"); 
+        
+        return {posts,nextPage};
     }
+    
 
     // Retrieve a single post by ID
     async getPost(postId: string): Promise<IPost | null> {
@@ -45,14 +44,6 @@ export class PostService implements IPostService {
             throw new Error('Post not found or could not be updated');
         }
 
-        const notificationMessage = NotificationHelper.createNotification(
-            updatedPost.user.toString(),
-            userId,
-            "Your post was updated",
-            "post_update",
-            postId
-        );
-
         return updatedPost;
     }
 
@@ -60,13 +51,6 @@ export class PostService implements IPostService {
     async deletePost(userId: string, postId: string): Promise<void> {
         await this.postRepository.deletePost(userId, postId);
 
-        const notificationMessage = NotificationHelper.createNotification(
-            userId,
-            "System",
-            "Your post was deleted",
-            "post_delete",
-            postId
-        );
 
     }
 
@@ -74,22 +58,19 @@ export class PostService implements IPostService {
     async likePost(userId: string, postId: string): Promise<void> {
         await this.postRepository.likePost(userId, postId);
         const post = await this.postRepository.getPost(postId);
-        
+        console.log("likre >>>")
         if (!post) throw new Error("Post not found");
 
-        const notificationMessage = NotificationHelper.createNotification(
-            post.user._id.toString(),
-            userId,
-            `Your post was liked by ${userId}`,
-            "like",
-            postId
-        );
+   
 
     }
 
     // Unlike a post
     async unlikePost(userId: string, postId: string): Promise<void> {
         await this.postRepository.unlikePost(userId, postId);
+        const post = await this.postRepository.getPost(postId);
+        console.log("unlikre >>>")
+        if (!post) throw new Error("Post not found");
     }
 
     // Get posts by a specific user
@@ -101,13 +82,7 @@ export class PostService implements IPostService {
     async reportPost(userId: string, postId: string): Promise<void> {
         await this.postRepository.reportPost(userId, postId);
 
-        const notificationMessage = NotificationHelper.createNotification(
-            "admin",
-            userId,
-            `Post ${postId} was reported by user ${userId}`,
-            "report",
-            postId
-        );
+
 
     }
 }

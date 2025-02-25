@@ -14,7 +14,7 @@ export const setCookie = (
   res.cookie(name, value, {
     httpOnly: options.httpOnly ?? true,
     secure: options.secure ?? process.env.NODE_ENV === "production",
-    sameSite: options.sameSite ?? "strict",
-    maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, 
+    sameSite: options.sameSite ?? (process.env.NODE_ENV === "production" ? "none" : "lax"), 
+    maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, // 1 week expiration
   });
 };

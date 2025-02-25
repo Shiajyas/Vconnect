@@ -32,4 +32,8 @@ export interface IUserRepository {
   update(query: object, update: object): Promise<void>;
 
   updateById(id: string, update: Partial<IUser>): Promise<IUser | null> 
+
+  findFollowers(userId: string): Promise<IUser[]>;  // Fetch followers
+  
+  findFollowing(userId: string): Promise<IUser[]>;
 }
