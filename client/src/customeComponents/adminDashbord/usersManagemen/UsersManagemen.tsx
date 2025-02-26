@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../../../services/authService";
 import Spinner from "../../common/Spinner";
 import { toast } from "react-toastify";
+import { useAuthStore } from "@/context/AuthContext";
 
 interface User {
   _id: string;
@@ -24,13 +25,13 @@ const UsersManagement = () => {
   });
 
   const queryClient = useQueryClient();
-  const adminToken = localStorage.getItem("adminToken");
+  const {isAdminAuthenticated} = useAuthStore()
 
   // Fetch all users once
   const { data: allUsersData, isLoading, isError } = useQuery({
     queryKey: ["allUsers"],
     queryFn: () => authService.getAllUsers(1,1000),
-    enabled: !!adminToken,
+    enabled: !!isAdminAuthenticated,
   });
 
   const blockUserMutation = useMutation({

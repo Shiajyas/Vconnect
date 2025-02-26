@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { jwtDecode, JwtPayload } from "jwt-decode";
+import Cookies from "js-cookie"; // Install using: npm install js-cookie
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -9,34 +10,12 @@ export const axiosInstance: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
+  withCredentials: true, // Ensures cookies are included in requests
 });
 
 // Function to get default headers with Authorization
-export const getDefaultHeaders = async (isAuthRequired: boolean = false, tokenKey: string = "userToken") => {
+export const getDefaultHeaders = async () => {
   const headers: Record<string, string> = {};
-
-  if (isAuthRequired) {
-    let token = localStorage.getItem(tokenKey);
-    
-    if (token) {
-      const expiryTime = getTokenExpiry(token);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      if (expiryTime && expiryTime - currentTime <= 300) {
-        console.warn("🔄 Token is about to expire. Refreshing...");
-        token = await refreshAccessToken();
-      }
-    }
-
-    if (!token) {
-      console.error("🚨 Access token is missing.");
-      throw new Error("Access token is missing.");
-    }
-
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   return headers;
 };
 
@@ -54,19 +33,12 @@ export const getTokenExpiry = (token: string): number | null => {
 // Refresh access token
 export const refreshAccessToken = async (): Promise<string> => {
   try {
-    const response = await axiosInstance.post("/refresh-token");
-    const { accessToken, role } = response.data;
+    const response = await axiosInstance.post("/refresh-token"); // Refresh token from backend
+    const { accessToken } = response.data;
 
     console.log("🔄 New Access Token Received");
 
-    // Ensure token is saved correctly
-    if (role === "admin") {
-      localStorage.setItem("adminToken", accessToken);
-    } else {
-      localStorage.setItem("userToken", accessToken);
-    }
-
-    return accessToken;
+    return accessToken; // Token is already stored in HTTP-only cookies, no need for manual storage
   } catch (error) {
     console.error("❌ Failed to refresh access token:", error);
     throw new Error("Session expired. Please log in again.");
@@ -79,18 +51,14 @@ export const fetchData = async (
   options: {
     method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
     data?: any;
-    isAuthRequired?: boolean;
-    tokenKey?: string;
     params?: Record<string, any>;
     headers?: Record<string, string>;
   },
   errorMessage: string
 ) => {
   try {
-    const { method, data, isAuthRequired, tokenKey } = options;
-    const headers = await getDefaultHeaders(isAuthRequired, tokenKey || "userToken");
-
-    // console.log(`📡 Request to: ${endpoint}`, { method, headers, data });
+    const { method, data, } = options; // Default to userToken
+    const headers = await getDefaultHeaders();
 
     const response = await axiosInstance.request({
       url: endpoint,
@@ -107,3 +75,4 @@ export const fetchData = async (
     throw new Error(errorData.msg || errorData.message);
   }
 };
+

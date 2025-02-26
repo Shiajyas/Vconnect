@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAdminAuth } from "../../hooks/useAdminAuth";
+import { useAuthStore } from "@/context/AuthContext";
 
 const Header = () => {
-  const { admin, logout } = useAdminAuth();
+  const { admin, logout } = useAuthStore()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const toggleDropdown = () => {
@@ -25,14 +26,14 @@ const Header = () => {
         >
           {/* Profile Picture */}
           <img
-            src={admin?.user?.avatar || "https://via.placeholder.com/40"} // Fallback image
+            src={admin?.avatar || "https://via.placeholder.com/40"} // Fallback image
             alt="Profile"
             className="w-8 h-8 md:w-10 md:h-10 rounded-full"
           />
 
           {/* Admin Name */}
           <span className="ml-2 text-gray-800 text-sm md:text-base">
-            {admin?.user?.username}
+            {admin?.username}
           </span>
 
           {/* Dropdown Icon */}
@@ -66,7 +67,7 @@ const Header = () => {
               </li>
               <li>
                 <button
-                  onClick={logout}
+                  onClick={() => logout("admin")}
                   className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                 >
                   Logout

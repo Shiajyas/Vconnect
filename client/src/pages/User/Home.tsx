@@ -1,11 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useGetPosts } from "../../hooks/usePost";
-import Posts from "@/customeComponents/home/Posts";
 import Status from "@/customeComponents/home/Status";
 import RightSideBar from "@/customeComponents/home/RightSideBar";
 import LeftSideBar from "@/customeComponents/home/LeftSideBar";
-import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -13,12 +10,14 @@ import Notification from "@/customeComponents/home/Notification";
 import useNotificationStore from "@/store/notificationStore";
 import { userService } from "@/services/userService";
 import { socket } from "@/utils/Socket";
-import PostUpload from "@/customeComponents/createPost/postUploadComponent";
+import PostUpload from "@/customeComponents/post/postUploadComponent";
+import PostList from "@/customeComponents/post/PostList";
+import { useAuthStore } from "@/context/AuthContext";
 
 const Home: React.FC = () => {
   const { unreadCount, setUnreadCount, resetUnreadCount } = useNotificationStore();
   const [selectedItem, setSelectedItem] = useState("Home");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+ const {user} = useAuthStore()
   const userId = user?._id || null;
 
   // Handle user joining and leaving socket
@@ -44,10 +43,6 @@ const Home: React.FC = () => {
     enabled: !!userId,
     staleTime: 60000,
   });
-
-  // Fetch posts
-  const { data, isLoading } = useGetPosts(localStorage.getItem("userToken") || "");
-  const homePosts = data?.pages?.flatMap((page) => page) || [];
 
   // Update unread count when new data arrives
   useEffect(() => {
@@ -80,37 +75,42 @@ const Home: React.FC = () => {
 
         {/* Main Content */}
         <Card className="h-[calc(100vh-4rem)]">
-<CardContent className="p-0 h-full">
-  <ScrollArea className="h-full">
-    <div className="p-6 space-y-6">
-      {selectedItem === "Create" && (
-        <>
-          <PostUpload userId={userId} />
-          <Separator />
-        </>
-      )}
-      {selectedItem === "Home" && (
-        <>
-          <Status />
-          <Separator />
-          {isLoading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          ) : homePosts.length > 0 ? (
-            <Posts posts={homePosts} />
-          ) : (
-            <p className="text-center text-gray-500">No posts available</p>
-          )}
-        </>
-      )}
-      {selectedItem === "Notifications" && (
-        <div className="flex flex-col flex-grow h-full">
-          <Notification />
-        </div>
-      )}
-    </div>
-  </ScrollArea>
-</CardContent>
+          <CardContent className="p-0 h-full flex flex-col">
+            {/* Fixed Status Component */}
+            {selectedItem === "Home" && (
+              <div className="sticky top-0 bg-white z-10 p-4 border-b">
+                <Status />
+                <Separator />
+              </div>
+            )}
 
+            {/* Scrollable Posts Section */}
+            <ScrollArea className="flex-1 overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {selectedItem === "Create" && (
+                  <>
+                    <PostUpload userId={userId} token={localStorage.getItem("userToken") || ""} />
+                    <Separator />
+                  </>
+                )}
+
+                {selectedItem === "Home" && <PostList />}
+              </div>
+            </ScrollArea>
+
+            <ScrollArea >
+              <div >
+                {selectedItem === "Notifications" && (
+                  <>
+                    <Notification  />
+                    <Separator />
+                  </>
+                )}
+
+                {selectedItem === "Home" && <PostList />}
+              </div>
+            </ScrollArea>
+          </CardContent>
         </Card>
 
         {/* Right Sidebar (Sticky) */}

@@ -44,9 +44,11 @@ const PostUpload = ({ userId, token }: { userId: string; token: string }) => {
     uploadPost(formData, {
       onSuccess: (data) => {
         console.log(data.post._id,">>>321");
+
+        let postId = data.post._id
         
-        alert("Post uploaded successfully!");
-        socket.emit("postUploaded", { userId,postId: data.post._id });
+        alert("Post uploaded successfully!"); 
+        socket.emit("postUploaded", { userId,postId });
 
         // ✅ Reset form fields after successful upload
         handleRemoveMedia();

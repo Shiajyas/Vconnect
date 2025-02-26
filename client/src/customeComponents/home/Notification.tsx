@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import useNotificationStore from "@/store/notificationStore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuthStore } from "@/context/AuthContext";
 
 interface Notification {
   _id: string;
@@ -22,10 +23,10 @@ const Notification: React.FC = () => {
 
   const queryClient = useQueryClient();
   const { unreadCount, setUnreadCount } = useNotificationStore();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const {user} = useAuthStore()
   const userId = user?._id || null;
 
-  console.log("User ID:", userId);
+  // console.log("User ID:", userId);
 
   // Fetch notifications with infinite scrolling
   const {
@@ -61,16 +62,16 @@ useEffect(() => {
     console.error("Error fetching notifications:", error);
   }
 
-  console.log("Fetched notifications data:", data);
+  // console.log("Fetched notifications data:", data);
 
   // Delete a notification
   const deleteMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      console.log(`Deleting notification: ${notificationId}`);
+      // console.log(`Deleting notification: ${notificationId}`);
       return await userService.deleteNotification(notificationId);
     },
     onSuccess: (_, notificationId) => {
-      console.log(`Successfully deleted notification: ${notificationId}`);
+      // console.log(`Successfully deleted notification: ${notificationId}`);
 
       queryClient.setQueryData(["notifications", userId], (oldData: any) => {
         if (!oldData) return oldData;
@@ -100,7 +101,7 @@ useEffect(() => {
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasNextPage) {
-          console.log("Fetching next page of notifications...");
+          // console.log("Fetching next page of notifications...");
           fetchNextPage();
         }
       });

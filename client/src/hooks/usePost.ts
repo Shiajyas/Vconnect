@@ -1,6 +1,4 @@
 import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import useNotificationStore from "../store/notificationStore";
-import { socket } from "../utils/Socket";
 import { postService } from "../services/postService";
 import { imageUpload } from "../features/imageUpload";
 
@@ -9,7 +7,8 @@ export const useGetPosts = (token: string) => {
   return useInfiniteQuery({
     queryKey: ["posts", token], 
     queryFn: async ({ pageParam = 1 }) => {
-      return await postService.getPosts(pageParam as number, 10, token);
+      const { posts, nextPage } = await postService.getPosts(pageParam as number, 10);
+      return posts;
     },
     getNextPageParam: (lastPage: any[], pages) =>
       lastPage.length > 0 ? pages.length + 1 : undefined,
@@ -25,13 +24,10 @@ export const useUploadPost = (token: string) => {
 
   return useMutation<any, Error, FormData>({
     mutationFn: async (formData: FormData): Promise<any> => {
-      return postService.createPost(formData, token);
+      return postService.createPost(formData,);
     },
     onSuccess: (_, variables) => {
-      alert("Post uploaded successfully!");
-      socket.emit("postUploaded", { userId: variables.get("userId"), message: "New post uploaded!" });
-
-      // ✅ Refetch posts after upload
+  
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
     onError: () => {
@@ -51,7 +47,7 @@ export const useUpdatePost = () => {
         media = await imageUpload(images, auth.token);
       }
 
-      const updatedPost = await postService.updatePost(postId, content, media, auth.token);
+      const updatedPost = await postService.updatePost(postId, content, media);
 
       // ✅ Correct cache update
       queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -67,7 +63,7 @@ export const useDeletePost = () => {
 
   return useMutation<string, Error, { postId: string; auth: any }>({
     mutationFn: async ({ postId, auth }: { postId: string; auth: any }) => {
-      await postService.deletePost(postId, auth.token);
+      await postService.deletePost(postId,);
 
       // ✅ Correct cache update
       queryClient.invalidateQueries({ queryKey: ["posts"] });

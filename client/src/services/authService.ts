@@ -85,19 +85,15 @@ export const authService = {
       "/user",
       {
         method: "GET",
-        isAuthRequired: true,
-        tokenKey: "userToken",
       },
       "Failed to fetch user"
     ),
 
   getAdmin: () =>
     fetchData(
-      "/user",
+      "/admin/user",
       {
         method: "GET",
-        isAuthRequired: true,
-        tokenKey: "adminToken",
       },
       "Failed to fetch admin"
     ),
@@ -107,8 +103,6 @@ export const authService = {
       "/admin/users",
       {
         method: "GET",
-        isAuthRequired: true,
-        tokenKey: "adminToken",
         params: { page, limit },
       },
       "Failed to fetch users"
@@ -139,8 +133,6 @@ export const authService = {
       `/admin/users/${userId}/block`,
       {
         method: "POST",
-        isAuthRequired: true,
-        tokenKey: "adminToken",
       },
       "Failed to block user"
     ),
@@ -151,8 +143,6 @@ export const authService = {
       `/admin/users/${userId}/unblock`,
       {
         method: "POST",
-        isAuthRequired: true,
-        tokenKey: "adminToken",
       },
       "Failed to unblock user"
     ),

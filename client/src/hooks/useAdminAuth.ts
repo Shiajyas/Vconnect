@@ -3,7 +3,7 @@ import { authService } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthStore } from "@/context/AuthContext";
 
 const handleMutationError = (error: any, message: string) => {
   console.error(error);
@@ -17,15 +17,13 @@ const handleMutationSuccess = async (
   setAdmin: any,
 
 ) => {
-  const { token, user } = data;
-  console.log(data,token,">>>>>123");
+  const { user } = data;
+  console.log(data,">>>>>123");
   
-  localStorage.setItem("adminToken", token);
-
   queryClient.setQueryData(["admin"], user);
 
   
-  setAdmin(user, token);
+  setAdmin(user);
 
   await queryClient.invalidateQueries({ queryKey: ["admin"] });
   await queryClient.refetchQueries({ queryKey: ["admin"] });
@@ -36,12 +34,12 @@ const handleMutationSuccess = async (
 export const useAdminAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setAdminAuthenticated, setAdmin } = useAuthContext();
+  const {  setAdmin ,isAdminAuthenticated} = useAuthStore();
 
   const { data: admin, isLoading, isError } = useQuery({
     queryKey: ["admin"],
     queryFn: authService.getAdmin,
-    enabled: !!localStorage.getItem("adminToken"), // Ensures query runs only if token exists
+    enabled: !!isAdminAuthenticated,  
     staleTime: 0, // Forces a fresh data fetch on every login
   
     retry: false, // Avoids unnecessary retries
@@ -54,23 +52,22 @@ export const useAdminAuth = () => {
       return response;
     },
     onSuccess: (data) => {
-      setAdminAuthenticated(true);
+     
       handleMutationSuccess(data, queryClient, setAdmin,);
     },
     onError: (error) => {
-      setAdminAuthenticated(false);
+     
       handleMutationError(error, "Invalid email or password.");
     },
   });
 
   
   const logout = async () => {
-    localStorage.removeItem("adminToken");
+   
     queryClient.setQueryData(["admin"], null);
 
     // ✅ Reset Auth Context
-    setAdmin(null, null);
-    setAdminAuthenticated(false);
+    setAdmin(null);
 
    
     navigate("/admin/login");
@@ -89,7 +86,6 @@ export const useAdminAuth = () => {
     mutationFn: async ({ email, enterdOtp }: { email: string; enterdOtp: string }) =>
       authService.verifyOtp(email, enterdOtp),
     onSuccess: (data) => {
-      localStorage.setItem("adminToken", data.token);
       toast.success("Admin verified");
       queryClient.setQueryData(["admin"], data.user);
       navigate("/admin/dashboard");

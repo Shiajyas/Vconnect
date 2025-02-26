@@ -5,7 +5,7 @@ import { useInView } from "react-intersection-observer";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { LoaderIcon } from "lucide-react";
-import { useAuthContext } from "@/context/AuthContext";
+import { useAuthStore } from "@/context/AuthContext";
 import { userService } from "@/services/userService";
 import FollowBtn from "../FollowBtn";
 import { IUser } from "@/types/userTypes";
@@ -13,8 +13,10 @@ import { motion } from "framer-motion";
 
 
 const RightSideBar = () => {
-  const { user, token } = useAuthContext();
+  const { user,isUserAuthenticated } = useAuthStore();
   // console.log(user,"3214");
+  let isUser = JSON.parse(localStorage.getItem("isUser") || "{}");
+  // console.log(isUser,"3214");  
   
   const navigate = useNavigate();
   const { ref, inView } = useInView();
@@ -25,15 +27,15 @@ const RightSideBar = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["suggestions", token],
+    queryKey: ["suggestions", isUserAuthenticated],
     queryFn: async ({ pageParam = 1 }) => {
-      if (!token) throw new Error("Token is null");
-      return userService.getSuggestions(token, pageParam);
+      if (!isUserAuthenticated) throw new Error("Token is null");
+      return userService.getSuggestions( pageParam);
     },
     getNextPageParam: (lastPage: IUser[], allPages) => 
       lastPage.length > 0 ? allPages.length + 1 : undefined,
     initialPageParam: 1,
-    enabled: !!token,
+    enabled: !!isUser
   });
 
   useEffect(() => {

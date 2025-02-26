@@ -7,7 +7,7 @@ import UsersManagement from "../usersManagemen/UsersManagemen";
 import Spinner from "../../common/Spinner";
 import Header from "../Header";
 import { img_Url } from "../../../images/image";
-import { useAuthContext } from "@/context/AuthContext";
+import { useAuthStore } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 // Define the type for menu items
@@ -22,7 +22,7 @@ const Sidebar = () => {
   const [adminMenu, setAdminMenu] = useState<number>(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State to control sidebar visibility
   const {  isLoading } = useAdminAuth();
-const {logout} = useAuthContext()
+const {logout} = useAuthStore()
   // Define the menu items
 
   const navigate = useNavigate()

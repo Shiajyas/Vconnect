@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { img_Url } from "@/images/image";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useAuthContext } from "@/context/AuthContext";
+import { useAuthStore} from "@/context/AuthContext";
 
 interface LeftSideBarProps {
   selectedItem: string;
@@ -24,10 +24,10 @@ const LeftSideBar: React.FC<LeftSideBarProps> = ({ selectedItem, setSelectedItem
     { name: "Create", icon: <PlusCircle /> },
     { name: "Profile", icon: <User /> },
   ];
-    const {logout} = useAuthContext()
+    const {logout} = useAuthStore()
   const handleLogout = () => {
     logout("user")
-    navigate("/admin/dashbord")
+    navigate("/")
   };
 
   return (

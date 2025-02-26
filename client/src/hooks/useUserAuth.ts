@@ -3,7 +3,7 @@ import { authService } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthStore } from "@/context/AuthContext";
 import { socket } from "@/utils/Socket";
 
 const handleMutationError = (error: any, message: string) => {
@@ -21,35 +21,26 @@ const handleMutationSuccess = (
   data: any,
   queryClient: any,
   navigate: any,
-  setUserAuthenticated: any,
   setUser: any
 ) => {
-  const { token, user } = data;
+  const {  user } = data;
   queryClient.setQueryData(["user"], user);
-  setUserAuthenticated(true);
-
-  setUser(user,token); // Setting user in context
-  localStorage.setItem("userToken", token);
+  setUser(user); // Setting user in context
   navigate("/home");
 };
 
 export const useUserAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { setUserAuthenticated,setUser } = useAuthContext();
+  const {setUser,isUserAuthenticated } = useAuthStore();
 
   // Query to get user details if authenticated
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["user"],
     queryFn: authService.getUser,
-    enabled: !!localStorage.getItem("userToken"),
-    initialData: () => {
-      const userToken = localStorage.getItem("userToken");
-      return userToken ? { token: userToken } : null;
-    },
+    enabled: !!isUserAuthenticated
+ 
   });
-
-  // Handle loading state
 
 
   // Mutation for user login
@@ -60,24 +51,13 @@ export const useUserAuth = () => {
     },
     onSuccess: (data) => {
       console.log("Login successful, navigating to /home");
-      handleMutationSuccess(data, queryClient, navigate, setUserAuthenticated,setUser);
+      handleMutationSuccess(data, queryClient, navigate,setUser);
       queryClient.invalidateQueries({ queryKey: ["user"] }); // Invalidate user query to ensure it's up-to-date
     },
     onError: (error) => handleMutationError(error, error.message),
   });
 
-  // Logout function
-  const logout = () => {
-    localStorage.removeItem("userToken");
-    queryClient.setQueryData(["user"], null);
-    
-    setUser(null,null);
-    setUserAuthenticated(false);
-    navigate("/login");
-    authService.logout().catch((error) => {
-      console.error("Logout error (background):", error);
-    });
-  };
+
 
   // Mutation for OTP verification
   const verifyOtpMutation = useMutation({
@@ -87,10 +67,8 @@ export const useUserAuth = () => {
     },
     onSuccess: async (data) => {
       queryClient.setQueryData(["user"], data.user);
-      setUserAuthenticated(true);
      
-      setUser(data.user,data.token); // Save user
-      localStorage.setItem("userToken", data.token);
+      setUser(data.user,); 
       toast.success("User verified");
       navigate("/home");
     },
@@ -152,9 +130,9 @@ export const useUserAuth = () => {
       return response;
     },
     onSuccess: (data) => {
-      // console.log(data.user._id, ">>>>>>>>>>>>>>>");
+      console.log(data.user._id, ">>>>>>>>>>>>>>>");
       socket.emit("joinUser", data.user._id);
-      handleMutationSuccess(data, queryClient, navigate, setUserAuthenticated, setUser);
+      handleMutationSuccess(data, queryClient, navigate,  setUser);
       toast.success("User verified");
     },
     onError: (error) => {
@@ -172,7 +150,6 @@ export const useUserAuth = () => {
     isError,
     isRegisterLoading,
     loginMutation,
-    logout,
     verifyOtpMutation,
     resendOtpMutation,
     resetPasswordMutation,

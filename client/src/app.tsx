@@ -4,7 +4,7 @@ import RegisterPage from "./customeComponents/auth/RegisterPage";
 import OtpVerification from "./customeComponents/auth/VerifyOtpPage";
 import Home from "./pages/User/Home";
 import { ToastContainer } from "react-toastify";
-import { useAuthContext } from "./context/AuthContext";
+import { useAuthStore } from "./context/AuthContext";
 import ForgotPasswordPage from "./customeComponents/ForgetPwd";
 import { UserLoginPage } from "./pages/User/UserLoginPage";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage";
@@ -17,7 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 
 const App = () => {
-  const { isAdminAuthenticated, isUserAuthenticated, userRole } = useAuthContext();
+  const { isAdminAuthenticated, isUserAuthenticated} = useAuthStore();
   const queryClient = new QueryClient();
 
   return (
