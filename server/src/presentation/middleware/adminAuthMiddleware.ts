@@ -12,9 +12,9 @@ export class adminAuthMiddleware{
   static async authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Extract token from Authorization header
-      const token =  req.cookies.userToken;
-      console.log("🔹 Received Token:", token);
-      console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
+      const token =  req.cookies.adminToken;
+      // console.log("🔹 Received AdminToken:", token);
+      // console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
 
 
       if (!token) {

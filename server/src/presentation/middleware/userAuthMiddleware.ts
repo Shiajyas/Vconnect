@@ -13,15 +13,12 @@ export class userAuthMiddleware {
     try {
       // Extract token from Authorization header
       const token =  req.cookies.userToken;
-      console.log("🔹 Received Token:", token);
-      console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
-
-
+      // console.log("🔹 Received UserToken:", token);
+      // console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
       if (!token) {
         res.status(401).json({ msg: "Token is missing" });
         return;
       }
-
       // Verify JWT token
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as DecodedToken;
       // console.log("🔹 Decoded Token:", decoded);
