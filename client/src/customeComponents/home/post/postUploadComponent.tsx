@@ -1,6 +1,6 @@
 import { useState } from "react";
-import MediaPreview from "../media/MediaPreview";
-import MediaCapture from "../media/MediaCapture";
+import MediaPreview from "../../media/MediaPreview";
+import MediaCapture from "../../media/MediaCapture";
 import { socket } from "@/utils/Socket";
 import { useUploadPost } from "@/hooks/usePost";
 

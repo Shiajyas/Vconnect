@@ -72,3 +72,62 @@ export const useDeletePost = () => {
     }
   });
 };
+
+// ✅ Like Post (Optimized Cache Update)
+export const useLikePost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { postId: string; userId: string;  }>({
+    mutationFn: async ({ postId, userId }) => {
+      return postService.likePost(postId);
+    },
+    onSuccess: (_, { postId, userId }) => {
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData) return;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.map((post: Post) =>
+              post._id === postId
+                ? { ...post, likes: [...post.likes, userId] }
+                : post
+            ),
+          })),
+        };
+      });
+    },
+  });
+};
+
+
+// ✅ Unlike Post (Optimized Cache Update)
+export const useUnlikePost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { postId: string; userId: string; }>({
+    mutationFn: async ({ postId, userId }) => {
+      return postService.unLikePost(postId);
+    },
+    onSuccess: (_, { postId, userId }) => {
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData) return;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.map((post: Post) =>
+              post._id === postId
+                ? { ...post, likes: post.likes.filter((id) => id !== userId) }
+                : post
+            ),
+          })),
+        };
+      });
+    },
+  });
+};
+
+

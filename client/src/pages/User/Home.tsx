@@ -10,48 +10,44 @@ import Notification from "@/customeComponents/home/Notification";
 import useNotificationStore from "@/store/notificationStore";
 import { userService } from "@/services/userService";
 import { socket } from "@/utils/Socket";
-import PostUpload from "@/customeComponents/post/postUploadComponent";
-import PostList from "@/customeComponents/post/PostList";
+import PostUpload from "@/customeComponents/home/post/postUploadComponent";
+import PostList from "@/customeComponents/home/post/PostList";
 import { useAuthStore } from "@/context/AuthContext";
+import PostDetails from "@/customeComponents/home/post/PostDetails";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet"; // Right sidebar popup
+import { Home, Bell, PlusCircle, User } from "lucide-react";
 
-const Home: React.FC = () => {
+const Homes: React.FC = () => {
   const { unreadCount, setUnreadCount, resetUnreadCount } = useNotificationStore();
   const [selectedItem, setSelectedItem] = useState("Home");
- const {user} = useAuthStore()
+  const [selectedPost, setSelectedPost] = useState<string | null>(null);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+
+  const { user } = useAuthStore();
   const userId = user?._id || null;
 
-  // Handle user joining and leaving socket
   useEffect(() => {
     if (!userId) return;
-
-    console.log("Emitting joinUser event for:", userId);
     socket.emit("joinUser", userId);
-
     return () => {
-      console.log("User leaving:", userId);
       socket.emit("leaveUser", userId);
     };
   }, [userId]);
 
-  // Fetch unread notification count
   const { data: unreadData, refetch } = useQuery({
     queryKey: ["unreadCount", userId],
-    queryFn: async () => {
-      console.log("Fetching notification count for user:", userId);
-      return await userService.getNotificationCount(userId);
-    },
+    queryFn: async () => userService.getNotificationCount(userId),
     enabled: !!userId,
     staleTime: 60000,
   });
 
-  // Update unread count when new data arrives
   useEffect(() => {
     if (unreadData?.unreadCount !== undefined) {
       setUnreadCount(unreadData.unreadCount);
     }
   }, [unreadData, setUnreadCount]);
 
-  // Reset unread count when switching to Notifications tab
   const handleTabChange = useCallback(
     (tab: string) => {
       setSelectedItem(tab);
@@ -66,25 +62,27 @@ const Home: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-[260px,1fr,320px] gap-6 h-[calc(100vh-4rem)]">
-        {/* Left Sidebar */}
-        <LeftSideBar
-          selectedItem={selectedItem}
-          setSelectedItem={handleTabChange}
-          unreadNotifications={unreadCount}
-        />
+        {/* Left Sidebar (Hidden on Mobile) */}
+        <div className="hidden lg:block">
+          <LeftSideBar
+            selectedItem={selectedItem}
+            setSelectedItem={handleTabChange}
+            unreadNotifications={unreadCount}
+          />
+        </div>
 
         {/* Main Content */}
         <Card className="h-[calc(100vh-4rem)]">
           <CardContent className="p-0 h-full flex flex-col">
             {/* Fixed Status Component */}
-            {selectedItem === "Home" && (
-              <div className="sticky top-0 bg-white z-10 p-4 border-b">
-                <Status />
-                <Separator />
-              </div>
-            )}
+            {selectedItem === "Home" && !selectedPost && (
+  <div className="sticky top-0 bg-white z-20 p-4 border-b">
+    <Status />
+    <Separator />
+  </div>
+)}
 
-            {/* Scrollable Posts Section */}
+            {/* Scrollable Main Section */}
             <ScrollArea className="flex-1 overflow-y-auto">
               <div className="p-6 space-y-6">
                 {selectedItem === "Create" && (
@@ -94,27 +92,32 @@ const Home: React.FC = () => {
                   </>
                 )}
 
-                {selectedItem === "Home" && <PostList />}
-              </div>
-            </ScrollArea>
+                {/* Home Page - Show Post List or Post Details */}
+                {selectedItem === "Home" &&
+                  (selectedPost ? (
+                    <div className="p-4">
+                      <Button onClick={() => setSelectedPost(null)} variant="outline">
+                        ← Back to Posts
+                      </Button>
+                      <PostDetails postId={selectedPost} />
+                    </div>
+                  ) : (
+                    <PostList onSelectPost={setSelectedPost} />
+                  ))}
 
-            <ScrollArea >
-              <div >
                 {selectedItem === "Notifications" && (
                   <>
-                    <Notification  />
+                    <Notification />
                     <Separator />
                   </>
                 )}
-
-                {selectedItem === "Home" && <PostList />}
               </div>
             </ScrollArea>
           </CardContent>
         </Card>
 
-        {/* Right Sidebar (Sticky) */}
-        <div className="h-[calc(100vh-4rem)]">
+        {/* Right Sidebar (Hidden on Mobile, Popup Instead) */}
+        <div className="hidden lg:block h-[calc(100vh-4rem)]">
           <Card className="sticky top-6 h-full flex flex-col">
             <CardContent className="p-0 flex-1 overflow-y-auto">
               <ScrollArea className="h-full scrollbar-hide">
@@ -123,9 +126,42 @@ const Home: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t flex justify-around p-3">
+          <Button
+            variant={selectedItem === "Home" ? "default" : "ghost"}
+            onClick={() => setSelectedItem("Home")}
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+          <Button
+            variant={selectedItem === "Create" ? "default" : "ghost"}
+            onClick={() => setSelectedItem("Create")}
+          >
+            <PlusCircle className="w-5 h-5" />
+          </Button>
+          <Button
+            variant={selectedItem === "Notifications" ? "default" : "ghost"}
+            onClick={() => setSelectedItem("Notifications")}
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && <span className="ml-1 text-xs text-red-500">{unreadCount}</span>}
+          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost">
+                <User className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="p-4">
+              <RightSideBar />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Home;
+export default Homes;

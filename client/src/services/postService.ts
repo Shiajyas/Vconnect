@@ -71,9 +71,21 @@ export const postService = {
       `/users/posts/${id}/unlike`,
       {
         method: "PATCH",
+        
       },
       "Failed to unlike post"
     ),
+
+    getPostComments: async (postId: string, page: number = 1, limit: number = 10) => {
+    const response = await fetchData(
+      `/users/posts/${postId}/comments`,
+      {
+        method: "GET",
+        params: { page, limit },
+      },
+      "Failed to fetch post comments"
+    );
+    },
 
   reportPost: (id: string) =>
     fetchData(
