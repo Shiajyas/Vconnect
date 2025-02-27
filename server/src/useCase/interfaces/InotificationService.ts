@@ -1,6 +1,10 @@
-
-import { IUser } from "../../core/domain/interfaces/IUser";
-
-export interface InotificationService{
-    getUnreadCount(userId: string): Promise<number>;
-}
+export interface INotificationService {
+    sendNotification(
+      senderId: string,
+      receiverIds: string[],
+      type: "follow" | "unfollow" | "like" | "comment" | "mention" | "post",
+      message: string,
+      postId?: string
+    ): Promise<void>;
+  }
+  

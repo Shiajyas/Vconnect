@@ -69,7 +69,11 @@ export class PostController {
     
     async getPost(req:  AuthenticatedRequest, res: Response): Promise<void> {
         try {
+            console.log((req as unknown as Request).params.id, ">>>>333364 1*");
+            
             const post = await this.postService.getPost((req as unknown as Request).params.id);
+            console.log(post, ">>>>333364 2*");
+            
             if (!post) {
                 res.status(404).json({ message: "Post not found." });
                 return;

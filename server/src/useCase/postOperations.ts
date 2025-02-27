@@ -1,14 +1,10 @@
 import { IPostService } from "./interfaces/IPostService";
 import { IPostRepository } from "../data/interfaces/IPostRepository";
 import { IPost } from "../core/domain/interfaces/IPost";
-import { ISocketHandlers } from "./interfaces/ISocketHandlers";
-import { NotificationHelper } from "../infrastructure/utils/NotificationHelper";
-import { Socket } from "socket.io";
 
 export class PostService implements IPostService {
     private postRepository: IPostRepository;
   
-
     constructor(postRepository: IPostRepository, ) {
         this.postRepository = postRepository;
     }
@@ -17,21 +13,17 @@ export class PostService implements IPostService {
     async createPost(userId: string, title: string,description:string, mediaUrls: string[]): Promise<IPost> {
         const newPost = await this.postRepository.createPost(userId, title,description, mediaUrls);
         
-    
         return newPost;
     }
 
     async getPosts(userId: string, page: number, limit: number):  Promise<{posts : IPost[]; nextPage: number | null}> {
         // console.log(userId, page, limit, ">>>>userId 2*");
-
         let {posts,nextPage } = await this.postRepository.getPosts(userId, page, limit);
-        
         // console.log(posts, ">>>>posts 2*"); 
         
         return {posts,nextPage};
     }
     
-
     // Retrieve a single post by ID
     async getPost(postId: string): Promise<IPost | null> {
         return await this.postRepository.getPost(postId);
@@ -60,9 +52,6 @@ export class PostService implements IPostService {
         const post = await this.postRepository.getPost(postId);
         console.log("likre >>>")
         if (!post) throw new Error("Post not found");
-
-   
-
     }
 
     // Unlike a post
@@ -81,8 +70,5 @@ export class PostService implements IPostService {
     // Report a post
     async reportPost(userId: string, postId: string): Promise<void> {
         await this.postRepository.reportPost(userId, postId);
-
-
-
     }
 }

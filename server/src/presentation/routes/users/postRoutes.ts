@@ -6,22 +6,12 @@ import { PostRepository } from "../../../data/repositories/PostRepository";
 import { IPostRepository } from "../../../data/interfaces/IPostRepository";
 import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { upload } from "../../middleware/uploadMiddleware";
-import { SocketHandlers } from "../../../useCase/socketHandlers";
-import { UserRepository } from "../../../data/repositories/userRepository";
-import { SUserRepositoryImpl } from "../../../data/repositories/SUserRepositoryImpl";
-import { NotificationServiceImpl } from "../../../infrastructure/services/NotificationServiceImpl";
-import { ISUserRepository } from "../../../data/interfaces/ISUserRepository";
-import { IUserRepository } from "../../../data/interfaces/IUserRepository";
 import { AuthenticatedRequest } from "../../../core/domain/interfaces/IAuthenticatedRequest";
 
 const router = Router();
 
 // Initialize repositories and services
 const postRepository: IPostRepository = new PostRepository();
-const userRepository: ISUserRepository = new SUserRepositoryImpl();
-const notificationService = new NotificationServiceImpl();
-
-// const socketHandlers = new SocketHandlers(userRepository, mainUserRepository, notificationService, someAdditionalArgument);
 const postService: IPostService = new PostService(postRepository);
 const postController = new PostController(postService);
 

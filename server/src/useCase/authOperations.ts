@@ -327,10 +327,8 @@ async resendOtp(email: string): Promise<boolean> {
       try {
         // Calculate skip value
         const skip = (page - 1) * limit;
-  
         // Fetch paginated users
         const { users, totalCount: totalUsers } = await this.userRepository.findAndCount({}, page, limit);
-  
         // Calculate total pages
         const totalPages = Math.ceil(totalUsers / limit);
   

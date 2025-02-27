@@ -2,12 +2,8 @@ import express from "express";
 import { UserController } from "../../controllers/UserController";
 import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { UserService } from "../../../useCase/UserService";
-import { Server } from "socket.io";
 import { SUserRepositoryImpl } from "../../../data/repositories/SUserRepositoryImpl";
-import { SocketHandlers } from "../../../useCase/socketHandlers";
-import { NotificationService } from "../../../infrastructure/services/interfaces/INotificationService";
 import { UserRepository } from "../../../data/repositories/userRepository";
-import { NotificationServiceImpl } from "../../../infrastructure/services/NotificationServiceImpl";
 
 
 
