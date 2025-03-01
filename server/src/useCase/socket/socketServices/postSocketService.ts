@@ -1,4 +1,5 @@
 import { Socket } from "socket.io";
+import { ObjectId } from "mongodb";
 import { IPostSocketService } from "./Interface/IPostSocketService";
 import { IPostRepository } from "../../../data/interfaces/IPostRepository";
 import { IUserRepository } from "../../../data/interfaces/IUserRepository";
@@ -35,7 +36,7 @@ export class PostSocketService implements IPostSocketService {
   
         if (receiverIds.length) {
           const message = `${owner.fullname} has uploaded a new post.`;
-          await this.notificationService.sendNotification( userId, receiverIds, "post", message, postId);
+          await this.notificationService.sendNotification( userId, receiverIds, "post", message, postId,owner.username);
         }
       } catch (error) {
         this.handleError(socket, error, "postUploadError");
@@ -62,10 +63,41 @@ export class PostSocketService implements IPostSocketService {
   
         if (postOwner._id.toString() !== userId) {
           const ownerMessage = `${likePerson.fullname} ${type === "unlike" ? "unliked" : "liked"} your post.`;
-          await this.notificationService.sendNotification(userId, [postOwner._id.toString()], "like", ownerMessage, postId);
+          await this.notificationService.sendNotification(userId, [postOwner._id.toString()], "like", ownerMessage, postId,postOwner.username);
         }
       } catch (error) {
         this.handleError(socket, error, "likeError");
+      }
+    }
+
+    async addComment(socket: Socket, data: { userId: string; postId: string; content: string }) {
+      try {
+        if (!data.userId || !data.postId || !data.content) throw new Error("Invalid request. User ID, Post ID, and Content are required.");
+  
+        console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}`);
+  
+        const post = await this.postRepository.getPost(data.postId);
+        if (!post) throw new Error("Post not found.");
+  
+        const comment = {
+          userId: new ObjectId(data.userId),
+          content: data.content,
+        };
+  
+        post.comments.push(comment as any);
+        await post.save();
+  
+        socket.broadcast.emit("update_comment", { postId: data.postId, comments: post.comments });
+  
+        const postOwner = await this.userRepository.findById(post.userId);
+        if (!postOwner) throw new Error("Post owner not found.");
+  
+        if (postOwner._id.toString() !== data.userId) {
+          const ownerMessage = `${comment.userId} commented on your post.`;
+          await this.notificationService.sendNotification(data.userId, [postOwner._id.toString()], "comment", ownerMessage, data.postId,postOwner.username);
+        }
+      } catch (error) {
+        this.handleError(socket, error, "commentError");
       }
     }
   

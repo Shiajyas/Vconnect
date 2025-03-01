@@ -7,13 +7,16 @@ import { IPostRepository } from "../../../data/interfaces/IPostRepository";
 import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { upload } from "../../middleware/uploadMiddleware";
 import { AuthenticatedRequest } from "../../../core/domain/interfaces/IAuthenticatedRequest";
+import { ICommentRepository } from "../../../data/interfaces/ICommentRepository";
+import { CommentRepository } from "../../../data/repositories/CommentRepository";
 
 const router = Router();
 
 // Initialize repositories and services
 const postRepository: IPostRepository = new PostRepository();
 const postService: IPostService = new PostService(postRepository);
-const postController = new PostController(postService);
+const commentService: ICommentRepository = new CommentRepository
+const postController = new PostController(postService,commentService);
 
 // Routes
 router.post(
@@ -40,5 +43,15 @@ router.patch("/:id/unlike", userAuthMiddleware.authenticate, (req: Request, res:
 
 router.get("/user/:id", (req: Request, res: Response, next: NextFunction) => postController.getUserPosts(req as any, res).catch(next));
 router.post("/:id/report", userAuthMiddleware.authenticate, (req: Request, res: Response, next: NextFunction) => postController.reportPost(req as unknown as AuthenticatedRequest, res).catch(next));
+
+// router.get("/:id/comments",userAuthMiddleware.authenticate, (req: Request, res: Response, next: NextFunction) => postController.getPostComments(req as unknown as AuthenticatedRequest, res).catch(next));
+
+router.get("/:id/comments", (req, res, next) => {
+    console.log("Route hit: /:id/comments", req.params.id);
+    next();
+}, userAuthMiddleware.authenticate, (req, res, next) => {
+    console.log("Authentication successful");
+    postController.getPostComments(req as unknown as AuthenticatedRequest, res).catch(next);
+});
 
 export default router;

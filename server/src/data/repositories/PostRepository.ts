@@ -9,7 +9,7 @@ export class PostRepository implements IPostRepository {
     }
 
     async getPosts(userId: string, page: number, limit: number): Promise<{posts : IPost[]; nextPage: number | null}> {
-        console.log(userId, page, limit, ">>>>userId 3*"); 
+        // console.log(userId, page, limit, ">>>>userId 3*"); 
         let posts = await Post.find({})
             .populate("userId", "fullname avatar username") // Fetch user details
             .sort({ createdAt: -1 }) // Sort by newest first
@@ -27,7 +27,8 @@ export class PostRepository implements IPostRepository {
     
 
     async getPost(postId: string): Promise<IPost | null> {
-        return await Post.findById(postId);
+        return await Post.findById(postId)
+        .populate("userId", "fullname avatar username");
     }
 
     async updatePost(userId: string, postId: string, content: string, images: string[]): Promise<IPost | null> {
@@ -59,5 +60,10 @@ export class PostRepository implements IPostRepository {
 
     async reportPost(userId: string, postId: string): Promise<void> {
         await Post.findByIdAndUpdate(postId, { $addToSet: { reports: userId } });
+    }
+
+    async getPostOwner(postId: string): Promise<IPost | null> {
+     return  await Post.findById(postId, "userId")
+     .populate("userId", "fullname username avatar");
     }
 }

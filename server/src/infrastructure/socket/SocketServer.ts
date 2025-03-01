@@ -15,7 +15,8 @@ import { ISUserRepository } from "../../data/interfaces/ISUserRepository";
 import { IUserRepository } from "../../data/interfaces/IUserRepository";
 import { IPostRepository } from "../../data/interfaces/IPostRepository";
 import { ICommentRepository } from "../../data/interfaces/ICommentRepository";
-
+import { ICommentSocketService } from "../../useCase/socket/socketServices/Interface/ICommentSocketService";
+import { CommentSocketService } from "../../useCase/socket/socketServices/CommentSocketService";
 
 // Instantiate repositories
 const userRepository: IUserRepository = new UserRepository();
@@ -57,15 +58,21 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
     notificationService
   );
 
+  const commentSocketService: ICommentSocketService = new CommentSocketService(
+    io,
+    commentRepository,
+    userRepository,
+    notificationService,
+    postRepository
+  )
+
   const socketHandlers = new SocketHandlers(
     io,
-    mainUserRepository,
-    userRepository,
-    postRepository,
-    commentRepository,
     notificationService,
     userSocketService,
-    postSocketService
+    postSocketService,
+    commentSocketService
+   
   );
 
   io.on("connection", (socket: Socket) => {
@@ -89,6 +96,8 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
     });
 
     socket.on("followUser", (data) => {
+      console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}123`);
+        
       socketHandlers.followUser(socket, data);
     });
 
@@ -96,29 +105,31 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
       socketHandlers.unfollowUser(socket, data);
     });
 
-    // socket.on("addComment", async (data) => {
-    //   try {
-    //     await socketHandlers.addComment(socket, data);
-    //   } catch (error) {
-    //     console.error("Error adding comment:", error);
-    //   }
-    // });
+    socket.on("addComment", async (data) => {
+      try {
+        // console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}123`);
+        
+        await socketHandlers.addComment(socket, data);
+      } catch (error) {
+        console.error("Error adding comment:", error);
+      }
+    });
 
-    // socket.on("deleteComment", async (data) => {
-    //   try {
-    //     await socketHandlers.deleteComment(socket, data);
-    //   } catch (error) {
-    //     console.error("Error deleting comment:", error);
-    //   }
-    // });
+    socket.on("deleteComment", async (data) => {
+      try {
+        await socketHandlers.deleteComment(socket, data);
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+      }
+    });
 
-    // socket.on("likeComment", async (data) => {
-    //   try {
-    //     await socketHandlers.likeComment(socket, data);
-    //   } catch (error) {
-    //     console.error("Error liking comment:", error);
-    //   }
-    // });
+    socket.on("likeComment", async (data) => {
+      try {
+        await socketHandlers.likeComment(socket, data);
+      } catch (error) {
+        console.error("Error liking comment:", error);
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log(`[${new Date().toISOString()}] ❌ Client disconnected: ${socket.id}`);

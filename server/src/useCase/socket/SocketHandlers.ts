@@ -3,31 +3,28 @@ import { ISocketHandlers } from "./socketServices/Interface/ISocketHandlers";
 import { IUserSocketService } from "./socketServices/Interface/IUserSocketService";
 import { IPostSocketService } from "./socketServices/Interface/IPostSocketService";
 import { INotificationService } from "../interfaces/InotificationService";
-import { ISUserRepository } from "../../data/interfaces/ISUserRepository";
-import { IUserRepository } from "../../data/interfaces/IUserRepository";
-import { IPostRepository } from "../../data/interfaces/IPostRepository";
-import { ICommentRepository } from "../../data/interfaces/ICommentRepository";
+import { ICommentSocketService } from "./socketServices/Interface/ICommentSocketService";
 
 export class SocketHandlers implements ISocketHandlers {
   private io: Server;
   private notificationService: INotificationService;
   private userService: IUserSocketService;
   private postService: IPostSocketService;
+  private commentService: ICommentSocketService;
 
   constructor(
     private ioInstance: Server,
-    private userRepository: ISUserRepository,
-    private mainUserRepository: IUserRepository,
-    private postRepository: IPostRepository,
-    private commentRepository: ICommentRepository,
+  
     notificationService: INotificationService,
     userService: IUserSocketService,
-    postService: IPostSocketService
+    postService: IPostSocketService,
+    commentService: ICommentSocketService
   ) {
     this.io = ioInstance;
     this.notificationService = notificationService;
     this.userService = userService;
     this.postService = postService;
+    this.commentService = commentService;
   }
 
   joinUser(socket: Socket, userId: string): void {
@@ -68,6 +65,31 @@ export class SocketHandlers implements ISocketHandlers {
       await this.userService.handleUnfollow(socket, data.userId, data.followingId);
     } catch (error) {
       this.handleError(socket, error, "unfollowError");
+    }
+  }
+
+  async addComment(socket: Socket, data: { userId: string; postId: string; content: string }): Promise<void> {
+    try {
+      console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}   111`);
+      await this.commentService.addComment(socket, data);
+    } catch (error) {
+      this.handleError(socket, error, "commentError");
+    }
+  }
+
+  async deleteComment(socket: Socket, data: { userId: string; postId: string; commentId: string }): Promise<void> {
+    try {
+     
+    } catch (error) {
+      this.handleError(socket, error, "deleteCommentError");
+    }
+  }
+
+  async likeComment(socket: Socket, data: { userId: string; postId: string; commentId: string }): Promise<void> {
+    try {
+     
+    } catch (error) {
+      this.handleError(socket, error, "likeCommentError");
     }
   }
 

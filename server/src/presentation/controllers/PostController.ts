@@ -2,18 +2,20 @@ import { Request, Response } from "express";
 import { IPostService } from "../../useCase/interfaces/IPostService";
 import { getErrorMessage } from "../../infrastructure/utils/errorHelper";
 import { AuthenticatedRequest } from "../../core/domain/interfaces/IAuthenticatedRequest";
+import { ICommentRepository } from "../../data/interfaces/ICommentRepository";
 
 export class PostController {
     private postService: IPostService;
+    private commentService: ICommentRepository
 
-    constructor(postService: IPostService) {
+    constructor(postService: IPostService, commentService: ICommentRepository) {
         this.postService = postService;
+        this.commentService = commentService;
     }
 
     async createPost(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
-            // console.log(req.files,">>>>321");
-
+           
             let mediaUrls: string[] = [];
             if (req.files) {
                 mediaUrls = (req.files as unknown as { location: string }[]).map((file: { location: string }) => file.location);
@@ -22,9 +24,6 @@ export class PostController {
           
               let { title, description } = req.body as unknown as { title: string; description: string };
 
-            // console.log(title, description,">>>>321");
-
-            
             if (!req.user) {
                 res.status(401).json({ message: "Unauthorized access." });
                 return;
@@ -48,16 +47,14 @@ export class PostController {
             const limit = parseInt((req as unknown as Request).query.limit as string) || 10;
             
             const userId = req.user?.id as string;
-    // 
-            console.log(userId, ">>>>userId 1*"); 
+  
             if (!userId) {
                 res.status(401).json({ message: "Unauthorized access." });
                 return;
             }
     
             const {posts,nextPage } = await this.postService.getPosts(userId, page, limit);
-            // console.log(posts, ">>>>posts 1*");
-
+          
             res.status(200).json({ message: "Success", posts, nextPage });
     
         } catch (error) {
@@ -69,11 +66,9 @@ export class PostController {
     
     async getPost(req:  AuthenticatedRequest, res: Response): Promise<void> {
         try {
-            console.log((req as unknown as Request).params.id, ">>>>333364 1*");
-            
+         
             const post = await this.postService.getPost((req as unknown as Request).params.id);
-            console.log(post, ">>>>333364 2*");
-            
+         
             if (!post) {
                 res.status(404).json({ message: "Post not found." });
                 return;
@@ -175,4 +170,22 @@ export class PostController {
             res.status(500).json({ message: getErrorMessage(error) });
         }
     }
+
+   async getPostComments(req:  AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            const page = parseInt((req as unknown as Request).query.page as string) || 1;
+            const limit = parseInt((req as unknown as Request).query.limit as string) || 10;
+            console.log((req as unknown as Request).params.id, ">>>>33335664 1*");
+            const comments = await this.commentService.getCommentsForPost((req as unknown as Request).params.id, page, limit);
+            // console.log("comments >>>", comments);
+            
+            res.status(200).json({ comments });
+
+        } catch (error) {
+            console
+            .log(error, ">>>>Error in getPostComments Controller");
+            res.status(500).json({ message: getErrorMessage(error) });
+        }
+    }
+   
 }

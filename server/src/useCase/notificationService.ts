@@ -18,7 +18,8 @@ export class NotificationService implements INotificationService {
     receiverIds: string[],
     type: "follow" | "unfollow" | "like" | "comment" | "mention" | "post",
     message: string,
-    postId?: string
+    postId?: string,
+    senderName?: string
   ): Promise<void> {
     try {
       console.log(`🔔 Sending notifications to ${receiverIds.length} users`);
@@ -49,6 +50,7 @@ export class NotificationService implements INotificationService {
         type,
         message,
         postId,
+        senderName, 
         isRead: false,
       });
 
@@ -65,6 +67,7 @@ export class NotificationService implements INotificationService {
             senderId,
             receiverId: receiverUserIds, // All receivers
             postId,
+            senderName,
             isRead: false,
             timestamp: new Date(),
           });

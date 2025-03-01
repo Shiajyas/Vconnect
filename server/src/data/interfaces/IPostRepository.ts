@@ -10,4 +10,5 @@ export interface IPostRepository {
     unlikePost(userId: string, postId: string): Promise<void>;
     getUserPosts(userId: string, page: number, limit: number): Promise<IPost[]>;
     reportPost(userId: string, postId: string): Promise<void>;
+    getPostOwner(postId: string): Promise<IPost | null> 
 }

@@ -44,7 +44,7 @@ export class UserSocketService implements IUserSocketService {
         await this.userRepository.update({ _id: userId }, { $addToSet: { following: followingId } });
         await this.userRepository.update({ _id: followingId }, { $addToSet: { followers: userId } });
     
-        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`);
+        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,sender.username);
         socket.emit("followSuccess", { followingId });
       }
     
@@ -84,7 +84,7 @@ export class UserSocketService implements IUserSocketService {
         await this.userRepository.update({ _id: userId }, { $addToSet: { following: followingId } });
         await this.userRepository.update({ _id: followingId }, { $addToSet: { followers: userId } });
   
-        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`);
+        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,sender.username);
         socket.emit("followSuccess", { followingId });
       } catch (error) {
         this.handleError(socket, error, "followError");

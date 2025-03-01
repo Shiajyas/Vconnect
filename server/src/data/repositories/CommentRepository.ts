@@ -1,7 +1,8 @@
 
 import { ICommentRepository } from "../interfaces/ICommentRepository";
 import { CommentModel} from "../../core/domain/models/commentModel";
-import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
+import { log } from "console";
 
 export class CommentRepository implements ICommentRepository {
   async addComment(commentData: {
@@ -12,10 +13,10 @@ export class CommentRepository implements ICommentRepository {
   }): Promise<any> {
     try {
       const newComment = new CommentModel({
-        userId: new ObjectId(commentData.userId),
-        postId: new ObjectId(commentData.postId),
+        userId: new mongoose.Types.ObjectId(commentData.userId),
+        postId: new mongoose.Types.ObjectId(commentData.postId),
         content: commentData.content,
-        parentId: commentData.parentId ? new ObjectId(commentData.parentId) : null,
+        parentId: commentData.parentId ? new mongoose.Types.ObjectId(commentData.parentId) : null,
         likes: [],
         createdAt: new Date(),
       });
@@ -28,7 +29,7 @@ export class CommentRepository implements ICommentRepository {
 
   async deleteComment(commentId: string): Promise<boolean> {
     try {
-      const deleted = await CommentModel.findByIdAndDelete(new ObjectId(commentId));
+      const deleted = await CommentModel.findByIdAndDelete(new mongoose.Types.ObjectId(commentId));
       return !!deleted;
     } catch (error) {
       throw new Error(`Error deleting comment: ${error}`);
@@ -40,11 +41,11 @@ export class CommentRepository implements ICommentRepository {
       const comment = await CommentModel.findById(commentId);
       if (!comment) throw new Error("Comment not found");
 
-      const alreadyLiked = comment.likes.includes(new ObjectId(userId));
+      const alreadyLiked = comment.likes.includes(new mongoose.Types.ObjectId(userId));
       if (alreadyLiked) {
-        comment.likes = comment.likes.filter((id: ObjectId) => !id.equals(new ObjectId(userId)));
+        comment.likes = comment.likes.filter((id) => !id.equals(new mongoose.Types.ObjectId(userId)));
       } else {
-        comment.likes.push(new ObjectId(userId));
+        comment.likes.push(new mongoose.Types.ObjectId(userId));
       }
 
       await comment.save();
@@ -56,26 +57,41 @@ export class CommentRepository implements ICommentRepository {
 
   async findCommentById(commentId: string): Promise<any> {
     try {
-      return await CommentModel.findById(new ObjectId(commentId));
+      return await CommentModel.findById(new mongoose.Types.ObjectId(commentId));
     } catch (error) {
       throw new Error(`Error finding comment: ${error}`);
     }
   }
 
-  async getCommentsForPost(postId: string, limit: number, offset: number): Promise<any[]> {
+  async getCommentsForPost(postId: string, limit: number, offset: number) {
     try {
-      return await CommentModel.find({ postId: new ObjectId(postId), parentId: null })
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit);
+     
+      const objectIdPostId = new mongoose.Types.ObjectId(postId);
+
+      // console.log("objectIdPostId>>>>>>>>>>>", objectIdPostId, typeof objectIdPostId);
+
+     const comments = await CommentModel.find({ postId: objectIdPostId, parentCommentId: null })
+     .populate("userId", "fullname avatar username")
+     .sort({ createdAt: -1 })
+ 
+    // console.log("comments>>>>>>>>>>>", comments); 
+
+     return comments
+      
     } catch (error) {
-      throw new Error(`Error fetching comments: ${error}`);
+      console.error("Error fetching comments:", error);
+      if (error instanceof Error) {
+        throw new Error(`Error fetching comments: ${error.message}`);
+      } else {
+        throw new Error("Error fetching comments");
+      }
     }
-  }
+}
+
 
   async getRepliesForComment(commentId: string): Promise<any[]> {
     try {
-      return await CommentModel.find({ parentId: new ObjectId(commentId) }).sort({ createdAt: -1 });
+      return await CommentModel.find({ parentId: new mongoose.Types.ObjectId(commentId) }).sort({ createdAt: -1 });
     } catch (error) {
       throw new Error(`Error fetching replies: ${error}`);
     }
@@ -84,7 +100,7 @@ export class CommentRepository implements ICommentRepository {
   async updateComment(commentId: string, content: string): Promise<boolean> {
     try {
       const updated = await CommentModel.findByIdAndUpdate(
-        new ObjectId(commentId),
+        new mongoose.Types.ObjectId(commentId),
         { content, updatedAt: new Date() },
         { new: true }
       );
