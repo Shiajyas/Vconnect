@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { postService } from "../services/postService";
 import { imageUpload } from "../features/imageUpload";
+import { socket } from "@/utils/Socket";
 
 //  Fetch Infinite Posts (Fixed Query Key & Pagination)
 export const useGetPosts = (token: string) => {
@@ -73,23 +74,26 @@ export const useDeletePost = () => {
   });
 };
 
-// ✅ Like Post (Optimized Cache Update)
+// ✅ Optimized Like Post Hook
 export const useLikePost = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { postId: string; userId: string;  }>({
-    mutationFn: async ({ postId, userId }) => {
-      return postService.likePost(postId);
-    },
-    onSuccess: (_, { postId, userId }) => {
+  return useMutation<void, Error, { postId: string; userId: string }>({
+    mutationFn: async ({ postId }) => postService.likePost(postId),
+
+    onMutate: async ({ postId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+
+      const previousData = queryClient.getQueryData(["posts"]);
+
       queryClient.setQueryData(["posts"], (oldData: any) => {
-        if (!oldData) return;
+        if (!oldData) return oldData;
 
         return {
           ...oldData,
           pages: oldData.pages.map((page: any) => ({
             ...page,
-            posts: page.posts.map((post: Post) =>
+            posts: page.posts.map((post:any) =>
               post._id === postId
                 ? { ...post, likes: [...post.likes, userId] }
                 : post
@@ -97,28 +101,39 @@ export const useLikePost = () => {
           })),
         };
       });
+
+      // Emit socket event for real-time update
+      socket.emit("like_post", { userId, postId, type: "like" });
+      
+      return { previousData };
+    },
+
+    onError: (_error, _variables, context: any) => {
+      queryClient.setQueryData(["posts"], context?.previousData);
     },
   });
 };
 
-
-// ✅ Unlike Post (Optimized Cache Update)
+// ✅ Optimized Unlike Post Hook
 export const useUnlikePost = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { postId: string; userId: string; }>({
-    mutationFn: async ({ postId, userId }) => {
-      return postService.unLikePost(postId);
-    },
-    onSuccess: (_, { postId, userId }) => {
+  return useMutation<void, Error, { postId: string; userId: string }>({
+    mutationFn: async ({ postId }) => postService.unLikePost(postId),
+
+    onMutate: async ({ postId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+
+      const previousData = queryClient.getQueryData(["posts"]);
+
       queryClient.setQueryData(["posts"], (oldData: any) => {
-        if (!oldData) return;
+        if (!oldData) return oldData;
 
         return {
           ...oldData,
           pages: oldData.pages.map((page: any) => ({
             ...page,
-            posts: page.posts.map((post: Post) =>
+            posts: page.posts.map((post: any) =>
               post._id === postId
                 ? { ...post, likes: post.likes.filter((id) => id !== userId) }
                 : post
@@ -126,6 +141,15 @@ export const useUnlikePost = () => {
           })),
         };
       });
+
+      // Emit socket event for real-time update
+      socket.emit("like_post", { userId, postId, type: "unlike" });
+
+      return { previousData };
+    },
+
+    onError: (_error, _variables, context: any) => {
+      queryClient.setQueryData(["posts"], context?.previousData);
     },
   });
 };

@@ -7,11 +7,20 @@ import useNotificationStore from "@/store/notificationStore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 
 interface Notification {
   _id: string;
   message: string;
   read: boolean;
+  type: string;
+  senderId: string;
+  postId: string;
+  createdAt: string;
+  setSelectedPost: any
+  userId1: string;
+
 }
 
 interface Page {
@@ -19,16 +28,20 @@ interface Page {
   nextPage?: number | null;
 }
 
-const Notification: React.FC = () => {
+interface NotificationProps {
+  setSelectedPost: React.Dispatch<React.SetStateAction<string | null>>;
+}
 
+const Notification: React.FC<NotificationProps> = ({ setSelectedPost }) => {
   const queryClient = useQueryClient();
   const { unreadCount, setUnreadCount } = useNotificationStore();
   const {user} = useAuthStore()
   const userId = user?._id || null;
 
-  // console.log("User ID:", userId);
+  // console.log("User ID:", userI
+  const navigate = useNavigate();
 
-  // Fetch notifications with infinite scrolling
+
   const {
     data,
     fetchNextPage,
@@ -42,6 +55,7 @@ const Notification: React.FC = () => {
     queryKey: ["notifications", userId],
     queryFn: async ({ pageParam = 1 }) => {
         console.log(`Fetching notifications for user: ${userId}, page: ${pageParam}`);
+        if (!userId) throw new Error("User ID is null");
         return await userService.getNotifications({ pageParam, userId });
     },
     getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined, 
@@ -56,7 +70,19 @@ useEffect(() => {
   }
 }, [unreadCount, refetch]);
 
-;
+
+const handleNotificationClick = (notification: Notification) => {
+  console.log("Notification clicked:", notification);
+  
+  if (["like", "comment", "mention", "post"].includes(notification.type) && notification.postId) {
+    console.log(">>>>getPostId", notification.postId);
+    setSelectedPost(notification.postId); // Set selected post only
+  } else if (notification.type === "follow" || notification.type === "unfollow") {
+    navigate(`users/profile/${notification.senderId}`);
+  }
+};
+
+
 
   if (isError) {
     console.error("Error fetching notifications:", error);
@@ -127,30 +153,56 @@ useEffect(() => {
           <p className="text-center text-gray-500">No notifications</p>
         ) : (
           <ul className="space-y-2">
-            {data?.pages?.flatMap((page) => page.notifications).map((notification, index, arr) => (
-             <li
-             key={notification._id}
-             ref={index === arr.length - 1 ? lastNotificationRef : null}
-             className="flex justify-between items-center bg-gray-100 p-3 rounded-md 
-                        shadow-sm hover:shadow-md hover:bg-gray-200 
-                        hover:scale-[1.02] transition-all duration-300 ease-in-out"
-           >
-             <div className="flex flex-col">
-               <span>{notification.message}</span>
-               <span className="text-xs text-gray-500">
-                 {formatDistanceToNow(new Date( notification.createdAt), { addSuffix: true })}
-               </span>
-             </div>
-             
-             <button
-               onClick={() => deleteMutation.mutate(notification._id)}
-               className="text-red-500 hover:text-red-700"
-             >
-               <Trash2 className="h-5 w-5" />
-             </button>
-           </li>
-            ))}
-          </ul>
+  {data?.pages?.flatMap((page) => page.notifications).map((notification, index, arr) => {
+    const words = notification.message.split(" ");
+    const firstWord = words[0];
+    const lastWord = words[words.length - 1];
+    const middleText = words.slice(1, -1).join(" "); // Middle part of the message
+
+    return (
+      <li
+        key={notification._id}
+        ref={index === arr.length - 1 ? lastNotificationRef : null}
+        className="flex justify-between items-center bg-gray-100 p-3 rounded-md 
+                  shadow-sm hover:shadow-md hover:bg-gray-200 
+                  hover:scale-[1.02] transition-all duration-300 ease-in-out 
+                  cursor-pointer"
+      >
+        <div className="flex flex-col">
+          <p>
+            <span
+              onClick={() => handleNotificationClick(notification)}
+              className="text-blue-500 font-semibold hover:underline cursor-pointer"
+            >
+              {firstWord}
+            </span>{" "}
+            {middleText}{" "}
+            <span
+              onClick={() => handleNotificationClick(notification)}
+              className="text-blue-500 font-semibold hover:underline cursor-pointer"
+            >
+              {lastWord}
+            </span>
+          </p>
+          <span className="text-xs text-gray-500">
+            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+          </span>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering notification click
+            deleteMutation.mutate(notification._id);
+          }}
+          className="text-red-500 hover:text-red-700"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      </li>
+    );
+  })}
+</ul>
+
         )}
 
         {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin mx-auto mt-4 text-primary" />}

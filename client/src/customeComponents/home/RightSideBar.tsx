@@ -16,8 +16,7 @@ const RightSideBar = () => {
   const { user,isUserAuthenticated } = useAuthStore();
   // console.log(user,"3214");
   let isUser = JSON.parse(localStorage.getItem("isUser") || "{}");
-  // console.log(isUser,"3214");  
-  
+  // console.log(isUser,"3214"); 
   const navigate = useNavigate();
   const { ref, inView } = useInView();
 

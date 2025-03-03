@@ -11,9 +11,10 @@ export const commentService = {
       "Failed to add comment"
     ),
 
-  getComments: (postId: string, page: number = 1, limit: number = 10, token: string) =>
+  getComments: (postId: string, page: number = 1, limit: number = 10,) =>
+ 
     fetchData(
-      `/post/${postId}/comments`,
+      `users/posts/${postId}/comments`,
       {
         method: "GET",
         params: { page, limit },

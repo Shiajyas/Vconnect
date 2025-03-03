@@ -76,7 +76,7 @@ export const postService = {
       "Failed to unlike post"
     ),
 
-    getPostComments: async (postId: string, page: number = 1, limit: number = 10) => {
+    getPostComments: async (postId: string, page: number = 1, limit: number = 10) : Promise<{ comments: any[] }>=> {
     const response = await fetchData(
       `/users/posts/${postId}/comments`,
       {
@@ -85,6 +85,7 @@ export const postService = {
       },
       "Failed to fetch post comments"
     );
+    return response
     },
 
   reportPost: (id: string) =>
@@ -113,4 +114,5 @@ export const postService = {
       },
       "Failed to unsave post"
     ),
+
 };

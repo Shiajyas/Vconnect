@@ -1,9 +1,10 @@
-import React, { memo, useState } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuthStore } from "@/context/AuthContext";
 import CommentSection from "../comments/CommentSection";
+import { socket } from "@/utils/Socket"; // Import socket instance
 
 interface Post {
   _id: string;
@@ -11,7 +12,7 @@ interface Post {
   description: string;
   mediaUrls?: string[];
   likes: string[];
-  commentsCount: number;
+  commendCount: number;
   createdAt: string;
 }
 
@@ -28,6 +29,33 @@ const PostCard = memo(({ post, onLike, onSelect }: PostCardProps) => {
 
   // State for toggling the comment section
   const [showComments, setShowComments] = useState(false);
+  
+  // Local state for comment count to update dynamically
+  const [localCommentCount, setLocalCommentCount] = useState(post.commendCount);
+
+  useEffect(() => {
+    // Listen for new comments and update the comment count dynamically
+    const handleNewComment = (data: { postId: string }) => {
+      if (data.postId === post._id) {
+        setLocalCommentCount((prev) => prev + 1);
+      }
+    };
+
+    const handleDeleteComment = (data: { postId: string }) => {
+      console.log("Comment deleted event received:", data.postId.postId);
+      if (data.postId.postId === post._id) {
+        setLocalCommentCount((prev) => Math.max(prev - 1, 0)); // Ensure count never goes below 0
+      }
+    };
+    
+
+    socket.on("newComment", handleNewComment);
+    socket.on("delete_comment",handleDeleteComment)
+    return () => {
+      socket.off("newComment", handleNewComment);
+      socket.off("delete_comment",handleDeleteComment)
+    };
+  }, [post._id]);
 
   return (
     <>
@@ -103,7 +131,7 @@ const PostCard = memo(({ post, onLike, onSelect }: PostCardProps) => {
             }}
           >
             <MessageCircle className={`w-5 h-5 ${showComments ? "text-blue-500" : "text-gray-500"}`} />
-            <span>{post.commentsCount}</span>
+            <span>{localCommentCount}</span> {/* Updated dynamically */}
           </Button>
 
           <Button
@@ -119,7 +147,7 @@ const PostCard = memo(({ post, onLike, onSelect }: PostCardProps) => {
         <div className="hidden sm:block">
           {showComments && (
             <div className="bg-gray-50 p-3 rounded-lg mt-2 border" onClick={(e) => e.stopPropagation()}>
-              <CommentSection postId={post._id} />
+              <CommentSection postId={post._id} onClose={() => setShowComments(false)}/>
             </div>
           )}
         </div>
@@ -127,30 +155,24 @@ const PostCard = memo(({ post, onLike, onSelect }: PostCardProps) => {
 
       {/* Comment Section (For smaller screens - Overlay) */}
       {showComments && (
-  <div 
-    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center sm:hidden z-[60]"
-    onClick={() => setShowComments(false)}
-  >
-    <div 
-      className="bg-white w-full max-w-md rounded-lg shadow-lg p-4 relative"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        className="absolute top-2 right-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
-        onClick={(e) => {
-          setShowComments(false);
-        }}
-      >
-        <X className="w-5 h-5" />
-      </button>
-
-      <h2 className="text-lg font-semibold mb-2">Comments</h2>
-
-      <CommentSection postId={post._id} />
-    </div>
-  </div>
-)}
-
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center sm:hidden z-[60]"
+          onClick={() => setShowComments(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-lg shadow-lg p-4 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-2 right-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
+              onClick={() => setShowComments(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <CommentSection postId={post._id} onClose={() => setShowComments(false)}/>
+          </div>
+        </div>
+      )}
     </>
   );
 });

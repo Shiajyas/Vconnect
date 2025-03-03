@@ -1,154 +1,120 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/context/AuthContext";
-import { io } from "socket.io-client";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { User, Send } from "lucide-react";
-import CommentItem from "./CommentItem";
+import React, { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { socket } from "@/utils/Socket";
+import { useGetComments } from "@/hooks/useComment";
+import CommentList from "./CommentList";
+import CommentInput from "./CommentInput";
+import { X } from "lucide-react";
 
-interface Comment {
-  _id: string;
-  postId: string;
-  userId: { _id: string; fullname: string; avatar: string };
-  content: string;
-  parentCommentId?: string;
-  mentions?: string[];
-  createdAt: string;
-  replies?: Comment[];
-}
-
-const socket = io(import.meta.env.VITE_SOCKET_URL);
-
-const CommentSection = ({ postId }: { postId: string }) => {
-  const { user } = useAuthStore();
+const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => void }) => {
   const queryClient = useQueryClient();
-  const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [mentionList, setMentionList] = useState<string[]>([]);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const mentionRef = useRef<HTMLDivElement>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const { data } = useGetComments(postId);
+  const comments = data?.pages.flatMap((page) => page) || [];
 
   useEffect(() => {
     socket.emit("joinPostRoom", postId);
 
-    socket.on("newComment", (comment: Comment) => {
-      queryClient.setQueryData(["comments", postId], (oldData: Comment[] | undefined) => {
-        return [...(oldData || []), comment];
-      });
+    // Handle new comments
+    const handleNewComment = (newComment: any) => {
+      // queryClient.setQueryData(["comments", postId], (oldData: any) => {
+      //   if (!oldData) return { pages: [[newComment]] };
+      //   return {
+      //     ...oldData,
+      //     pages: [[newComment, ...oldData.pages[0]], ...oldData.pages.slice(1)],
+      //   };
+      // });
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    };
 
-      setTimeout(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    });
-
-    socket.on("deleteComment", (commentId: string) => {
-      queryClient.setQueryData(["comments", postId], (oldData: Comment[] | undefined) => {
-        return oldData ? oldData.filter((c) => c._id !== commentId) : [];
+    // Handle new replies
+    const handleNewReply = (newReply: any) => {
+      queryClient.setQueryData(["comments", postId], (oldData: any) => {
+        if (!oldData) return { pages: [] };
+    
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) =>
+            page.map((comment: any) => {
+              if (comment._id === newReply.parentCommentId) {
+                return {
+                  ...comment,
+                  replies: comment.replies
+                    ? [...comment.replies, newReply]
+                    : [newReply],
+                };
+              }
+              return comment;
+            })
+          ),
+        };
       });
-    });
+    };
+    
+    
+
+    // Handle comment deletion
+    const handleDeleteComment = (commentId: string) => {
+
+      console.log("try to delete>>>>>>>>>>>>>>>>>")
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    };
+
+    // Handle likes
+    const handleCommentLiked = ({ commentId, likes }: { commentId: string; likes: number }) => {
+      queryClient.setQueryData(["comments", postId], (oldData: any) => {
+        if (!oldData) return { pages: [] };
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) =>
+            page.map((comment: any) =>
+              comment._id === commentId ? { ...comment, likes } : comment
+            )
+          ),
+        };
+      });
+    };
+
+    socket.on("newComment", handleNewComment);
+    socket.on("newReply", handleNewReply);
+    socket.on("delete_comment", handleDeleteComment);
+    socket.on("commentLiked", handleCommentLiked);
 
     return () => {
-      socket.off("newComment");
-      socket.off("deleteComment");
+      socket.emit("leavePostRoom", postId);
+      socket.off("newComment", handleNewComment);
+      socket.off("newReply", handleNewReply);
+      socket.off("delete_comment", handleDeleteComment);
+      socket.off("commentLiked", handleCommentLiked);
     };
   }, [postId, queryClient]);
 
-  // Fetch comments initially using React Query
-  const { data: comments = [] } = useQuery<Comment[]>({
-    queryKey: ["comments", postId],
-    queryFn: async () => {
-      const res = await fetch(`/post/comments/${postId}`);
-      return res.json();
-    },
-  });
-
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    const commentData = { content: newComment, parentCommentId: replyTo || undefined, postId, userId: user?._id };
-    
-    socket.emit("addComment", commentData);
-    setNewComment("");
-    setReplyTo(null);
-  };
-
-  const handleMentionInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setNewComment(text);
-
-    const match = text.match(/@(\w+)$/);
-    if (match) {
-      setMentionQuery(match[1]);
-    } else {
-      setMentionQuery("");
-    }
-  };
-
   return (
-    <div className="mt-4 flex flex-col h-[450px] bg-gray-100 rounded-lg shadow-md overflow-hidden">
-      {/* Comments List (Chat Box) */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {comments.map((comment) => (
-          <div
-            key={comment._id}
-            className={`flex ${
-              comment.userId._id === user?._id ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-[75%] p-3 rounded-lg shadow-md ${
-                comment.userId._id === user?._id
-                  ? "bg-blue-500 text-white rounded-br-none"
-                  : "bg-white text-gray-800 rounded-bl-none"
-              }`}
-            >
-              <p className="text-sm">{comment.content}</p>
-              <span className="text-xs opacity-70 block mt-1">
-                {new Date(comment.createdAt).toLocaleTimeString()}
-              </span>
-            </div>
-          </div>
-        ))}
-        <div ref={chatEndRef}></div>
+    <div className="relative w-full md:w-[600px] bg-white shadow-md rounded-lg">
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white shadow-lg rounded-t-lg z-50">
+        <div className="flex justify-between items-center p-2 border-b bg-gray-100">
+          <span className="font-semibold text-gray-800">Comments</span>
+          <button onClick={onClose} className="text-gray-600 hover:text-black p-1">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="h-[80vh] overflow-y-auto p-2">
+          <CommentList comments={comments} />
+        </div>
+
+        <div className="p-2 border-t bg-gray-100">
+          <CommentInput postId={postId} />
+        </div>
       </div>
 
-      {/* Chat Input */}
-      <div className="border-t bg-white p-3 flex items-center space-x-2">
-        <img src={user?.avatar} alt="User Avatar" className="w-8 h-8 rounded-full" />
-        <div className="relative flex-1">
-          <Textarea
-            value={newComment}
-            onChange={handleMentionInput}
-            placeholder="Write a comment..."
-            className="w-full resize-none rounded-full border p-2 focus:ring-2 focus:ring-blue-400"
-          />
-          {mentionQuery && (
-            <div ref={mentionRef} className="absolute bg-white border p-2 mt-1 w-full shadow-md rounded-md">
-              {mentionList
-                .filter((m) => m.includes(mentionQuery))
-                .map((mention) => (
-                  <div
-                    key={mention}
-                    className="cursor-pointer p-2 hover:bg-gray-200 flex items-center"
-                    onClick={() => {
-                      setNewComment((prev) => prev.replace(/@\w+$/, `@${mention} `));
-                      setMentionQuery("");
-                    }}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    {mention}
-                  </div>
-                ))}
-            </div>
-          )}
+      <div className="hidden md:block p-4 bg-gray-100 rounded-lg shadow-md w-full">
+        <h3 className="font-semibold text-lg mb-2">Comments</h3>
+        <div className="h-96 overflow-y-auto p-2 bg-white rounded-md shadow-sm">
+          <CommentList comments={comments} />
         </div>
-        <Button
-          onClick={handleAddComment}
-          className="bg-blue-500 text-white p-2 rounded-full"
-        >
-          <Send className="w-5 h-5" />
-        </Button>
+        <div className="p-2 border-t mt-2">
+          <CommentInput postId={postId} />
+        </div>
       </div>
     </div>
   );

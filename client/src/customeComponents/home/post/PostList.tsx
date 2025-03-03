@@ -4,6 +4,7 @@ import { postService } from "@/services/postService";
 import PostItem from "./PostItem";
 import { socket } from "@/utils/Socket";
 import { useAuthStore } from "@/context/AuthContext";
+import PostSocketService from "@/services/postSocketService";
 
 interface PostListProps {
   onSelectPost: (postId: string | null) => void;
@@ -15,7 +16,7 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
   const { user, isUserAuthenticated } = useAuthStore();
   const userId = user?._id.toString();
 
-  console.log("🔹 User ID:", userId);
+  // console.log("🔹 User ID:", userId);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["posts"],
@@ -72,33 +73,15 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
       queryClient.setQueryData(["posts"], context.previousData),
   });
 
+  const postSocketService = new PostSocketService(queryClient);
+
   useEffect(() => {
-    console.log("🔌 Checking socket connection:", socket.connected);
-
-    socket.on("update_like_count", ({ postId, likes }) => {
-      console.log("🔹 Received update_like_count event:", { postId, likes });
-
-      queryClient.setQueryData(["posts"], (oldData: any) => {
-        if (!oldData) return oldData;
-
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
-            ...page,
-            posts: page.posts.map((post) =>
-              post._id === postId ? { ...post, likes } : post
-            ),
-          })),
-        };
-      });
-    });
+    postSocketService.handleLikeUpdates(); 
 
     return () => {
-      console.log("🛑 Removing listener for update_like_count");
-      socket.off("update_like_count");
+      postSocketService.removeListeners(); 
     };
-  }, [queryClient]);
-
+  }, [postSocketService]);
   // Handle Like Click
   const handleLike = (postId: string) => {
     const post = data?.pages.flatMap((page) => page.posts).find((post) => post._id === postId);
