@@ -4,6 +4,7 @@ import PostItem from "./PostItem";
 import { useLikePost, useUnlikePost } from "@/hooks/usePost";
 import { useAuthStore } from "@/context/AuthContext";
 import { useEffect } from "react";
+import { socket } from "@/utils/Socket";
 import PostSocketService from "@/services/postSocketService";
 
 const PostDetails: React.FC<{ postId: string }> = ({ postId }) => {
@@ -30,6 +31,27 @@ const PostDetails: React.FC<{ postId: string }> = ({ postId }) => {
     },
   });
 
+    useEffect(() => {
+      const handleNewComment = (data: { postId: string }) => {
+        queryClient.invalidateQueries({ queryKey: ["post"] });
+        queryClient.invalidateQueries({ queryKey: ["comments", data.postId] });
+      };
+  
+      const handleDeleteComment = (data: { postId: string }) => {
+        queryClient.invalidateQueries({ queryKey: ["post"] });
+        queryClient.invalidateQueries({ queryKey: ["comments", data.postId] });
+      };
+  
+      socket.on("newComment", handleNewComment);
+      socket.on("delete_comment", handleDeleteComment);
+  
+      return () => {
+        socket.off("newComment", handleNewComment);
+        socket.off("delete_comment", handleDeleteComment);
+      };
+    }, [queryClient]);
+  
+
   const likeMutation = useLikePost();
   const unlikeMutation = useUnlikePost();
 
@@ -45,13 +67,19 @@ const PostDetails: React.FC<{ postId: string }> = ({ postId }) => {
     }
   
     const post = data.post;
+  
+    if (!Array.isArray(post.likes)) {
+      console.error("❌ post.likes is not an array:", post.likes);
+      return;
+    }
+  
     const isLiked = post.likes.includes(userId);
     console.log(`💙 Like status before: ${isLiked ? "Liked" : "Not Liked"}`);
   
     // ✅ Optimistically update UI
     queryClient.setQueryData(["post", postId], (oldData: any) => {
       if (!oldData) return oldData;
-      
+  
       const updatedLikes = isLiked
         ? oldData.post.likes.filter((id: string) => id !== userId) // Remove like
         : [...oldData.post.likes, userId]; // Add like
@@ -66,7 +94,6 @@ const PostDetails: React.FC<{ postId: string }> = ({ postId }) => {
         {
           onError: (error) => {
             console.error("❌ Error unliking post:", error);
-            // Revert optimistic update on error
             queryClient.invalidateQueries({ queryKey: ["post", postId] });
           },
         }
@@ -78,13 +105,13 @@ const PostDetails: React.FC<{ postId: string }> = ({ postId }) => {
         {
           onError: (error) => {
             console.error("❌ Error liking post:", error);
-            // Revert optimistic update on error
             queryClient.invalidateQueries({ queryKey: ["post", postId] });
           },
         }
       );
     }
   };
+  
   
   const postSocketService = new PostSocketService(queryClient);
 

@@ -29,7 +29,8 @@ interface Page {
 }
 
 interface NotificationProps {
-  setSelectedPost: React.Dispatch<React.SetStateAction<string | null>>;
+  // setSelectedPost: React.Dispatch<React.SetStateAction<string | null>>;
+  setSelectedPost: (postId: string) => void;
 }
 
 const Notification: React.FC<NotificationProps> = ({ setSelectedPost }) => {

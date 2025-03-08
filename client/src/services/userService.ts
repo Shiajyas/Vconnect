@@ -7,22 +7,29 @@ export const userService = {
             `/users/suggestions?page=${page}`,
             {
                 method: "GET",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+                 },
             "Failed to fetch suggestions"
         );
     },
     
     // Follow a user
-    followUser: (userId: string) => {
+    getFollowers: (userId: string) => {
         return fetchData(
-            `/users/follow/${userId}`,
+            `/users/followers/${userId}`,
             {
-                method: "POST",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+                method: "GET",
+             }, 
+
+            "Failed to follow user"
+        );
+    },
+    
+    getFollowing: (userId: string) => {
+        return fetchData(
+            `/users/following/${userId}`,
+            {
+                method: "GET",
+             },
             "Failed to follow user"
         );
     },
@@ -33,9 +40,7 @@ export const userService = {
             `/users/unfollow/${userId}`,
             {
                 method: "POST",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+             },
             "Failed to unfollow user"
         );
     },
@@ -46,9 +51,7 @@ export const userService = {
             `/users/profile/${userId}`,
             {
                 method: "GET",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+           },
             "Failed to fetch user profile"
         );
     },
@@ -59,9 +62,7 @@ export const userService = {
             `/users/notification/unreadcount/${userId}`,
             {
                 method: "GET",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+          },
             "Failed to fetch notification count"
         );
     },
@@ -72,9 +73,7 @@ export const userService = {
             `/users/notification?userId=${userId}&page=${pageParam}&limit=${limit}`,
             {
                 method: "GET",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+           },
             "Failed to fetch notifications"
         );
     },
@@ -85,10 +84,31 @@ export const userService = {
             `/users/notification/${notificationId}`,
             {
                 method: "DELETE",
-                isAuthRequired: true,
-                tokenKey: "userToken",
-            },
+         },
             "Failed to delete notification"
+        );
+    },
+
+    getUserMediaPosts: (userId: string) => {
+        return fetchData(
+            `/users/post/${userId}`,
+            {
+                method: "GET"
+            },
+            "faild to fetch post"
+        )
+    },
+
+    updateUserProfile: (userId: string, updatedData: any) => {
+        return fetchData(
+            `/users/profile/${userId}`,
+            {
+                method: "PUT",
+                data: updatedData,
+                headers: { "Content-Type": "multipart/form-data" },
+             
+            },
+            "Failed to update profile"
         );
     },
 };

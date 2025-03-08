@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button"; // ShadCN Button
 import { socket } from "../utils/Socket";
 import useNotificationStore from "@/store/notificationStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/context/AuthContext";
 
 interface FollowBtnProps {
   userId: string; // The current logged-in user
@@ -13,12 +15,18 @@ const FollowBtn: React.FC<FollowBtnProps> = ({ followingId, isFollowing, userId 
   const [following, setFollowing] = useState(isFollowing);
   const [loading, setLoading] = useState(false);
   const { incrementUnreadCount } = useNotificationStore();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const handleFollowUpdate = (data: { followingId: string; action: "follow" | "unfollow" }) => {
+    const handleFollowUpdate = (data: { followingId: string; action: "follow" | "unfollow" ;}) => {
       if (data.followingId === followingId) {
         setFollowing(data.action === "follow");
         setLoading(false);
+        queryClient.invalidateQueries({ queryKey: ["suggestions"] })
+
+      queryClient.invalidateQueries({ queryKey: ["followers" ]});
+      queryClient.invalidateQueries({ queryKey: ["following" ]});
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
       }
     };
 
@@ -29,7 +37,7 @@ const FollowBtn: React.FC<FollowBtnProps> = ({ followingId, isFollowing, userId 
       socket.off("followSuccess", handleFollowUpdate);
       socket.off("unfollowSuccess", handleFollowUpdate);
     };
-  }, [followingId]);
+  }, [followingId, queryClient, userId]);
 
   const handleFollowAction = useCallback(
     (action: "followUser" | "unfollowUser") => {

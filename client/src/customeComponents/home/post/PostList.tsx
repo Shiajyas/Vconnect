@@ -1,22 +1,18 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { postService } from "@/services/postService";
-import PostItem from "./PostItem";
+import PostCard from "./PostItem";
 import { socket } from "@/utils/Socket";
 import { useAuthStore } from "@/context/AuthContext";
-import PostSocketService from "@/services/postSocketService";
 
-interface PostListProps {
-  onSelectPost: (postId: string | null) => void;
-}
-
-const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
+const PostList: React.FC = () => {
   const queryClient = useQueryClient();
   const observerRef = useRef<HTMLDivElement | null>(null);
   const { user, isUserAuthenticated } = useAuthStore();
   const userId = user?._id.toString();
 
-  // console.log("🔹 User ID:", userId);
+  // Manage which post's comments are open
+  const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["posts"],
@@ -24,10 +20,9 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
     getNextPageParam: (lastPage) => lastPage?.nextPage || undefined,
     initialPageParam: 1,
     enabled: !!isUserAuthenticated,
-    refetchInterval: 60000, 
+    refetchInterval: 60000, // Auto-refetch every 60 sec
   });
 
-  // ✅ Optimized Like/Unlike Mutation Logic
   const updateLikeCache = async (postId: string, liked: boolean) => {
     await queryClient.cancelQueries({ queryKey: ["posts"] });
 
@@ -57,6 +52,21 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
     return { previousData };
   };
 
+  useEffect(() => {
+    const handleNewComment = (data: { postId: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["comments", data.postId] });
+    };
+
+    socket.on("newComment", handleNewComment);
+    socket.on("delete_comment", handleNewComment);
+
+    return () => {
+      socket.off("newComment", handleNewComment);
+      socket.off("delete_comment", handleNewComment);
+    };
+  }, [queryClient]);
+
   const likeMutation = useMutation({
     mutationFn: (postId: string) => postService.likePost(postId),
     onMutate: async (postId) => updateLikeCache(postId, true),
@@ -73,23 +83,12 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
       queryClient.setQueryData(["posts"], context.previousData),
   });
 
-  const postSocketService = new PostSocketService(queryClient);
-
-  useEffect(() => {
-    postSocketService.handleLikeUpdates(); 
-
-    return () => {
-      postSocketService.removeListeners(); 
-    };
-  }, [postSocketService]);
-  // Handle Like Click
-  const handleLike = (postId: string) => {
-    const post = data?.pages.flatMap((page) => page.posts).find((post) => post._id === postId);
-
-    if (!post) return;
-
-    const isLiked = post.likes.includes(userId);
+  const handleLike = (postId: string, isLiked: boolean) => {
     isLiked ? unlikeMutation.mutate(postId) : likeMutation.mutate(postId);
+  };
+
+  const handleToggleComments = (postId: string) => {
+    setOpenPostId((prev) => (prev === postId ? null : postId));
   };
 
   const handleObserver = useCallback(
@@ -111,11 +110,13 @@ const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
     <div className="w-full max-w-2xl mx-auto px-4">
       {data?.pages.map((page) =>
         page.posts.map((post) => (
-          <PostItem
+          <PostCard
             key={post._id}
             post={post}
-            onLike={handleLike}
-            onSelect={() => onSelectPost(post._id)}
+            isLiked={post.likes.includes(userId)}
+            onLike={() => handleLike(post._id, post.likes.includes(userId))}
+            onToggleComments={() => handleToggleComments(post._id)}
+            isCommentsOpen={openPostId === post._id}
           />
         ))
       )}

@@ -25,7 +25,7 @@ const LeftSideBar: React.FC<LeftSideBarProps> = ({ selectedItem, setSelectedItem
     { name: "Profile", icon: <User /> },
   ];
     const {logout} = useAuthStore()
-  const handleLogout = () => {
+  const handleLogout = () => { 
     logout("user")
     navigate("/")
   };
