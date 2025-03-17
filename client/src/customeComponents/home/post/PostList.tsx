@@ -4,14 +4,15 @@ import { postService } from "@/services/postService";
 import PostCard from "./PostItem";
 import { socket } from "@/utils/Socket";
 import { useAuthStore } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const PostList: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const observerRef = useRef<HTMLDivElement | null>(null);
   const { user, isUserAuthenticated } = useAuthStore();
-  const userId = user?._id.toString();
+  const userId = user?._id?.toString() || "";
 
-  // Manage which post's comments are open
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -19,9 +20,13 @@ const PostList: React.FC = () => {
     queryFn: ({ pageParam = 1 }) => postService.getPosts(pageParam, 10),
     getNextPageParam: (lastPage) => lastPage?.nextPage || undefined,
     initialPageParam: 1,
-    enabled: !!isUserAuthenticated,
+    enabled: isUserAuthenticated, // No need for `!!` since it's already a boolean
     refetchInterval: 60000, // Auto-refetch every 60 sec
   });
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/home/post/${postId}`);
+  };
 
   const updateLikeCache = async (postId: string, liked: boolean) => {
     await queryClient.cancelQueries({ queryKey: ["posts"] });
@@ -101,8 +106,11 @@ const PostList: React.FC = () => {
   );
 
   useEffect(() => {
+    if (!observerRef.current) return;
+
     const observer = new IntersectionObserver(handleObserver, { threshold: 1.0 });
-    if (observerRef.current) observer.observe(observerRef.current);
+    observer.observe(observerRef.current);
+
     return () => observer.disconnect();
   }, [handleObserver]);
 
@@ -117,6 +125,7 @@ const PostList: React.FC = () => {
             onLike={() => handleLike(post._id, post.likes.includes(userId))}
             onToggleComments={() => handleToggleComments(post._id)}
             isCommentsOpen={openPostId === post._id}
+            onClick={() => handlePostClick(post._id)}
           />
         ))
       )}

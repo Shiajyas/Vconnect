@@ -111,4 +111,14 @@ export const userService = {
             "Failed to update profile"
         );
     },
+
+    getUserSavedPosts:(userId: string)=>{
+        return fetchData(
+            `/users/profile/savedPost/${userId}`,
+            {
+                method: "GET"
+            },
+            "failed to get savedPost"
+        )
+    }
 };

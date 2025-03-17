@@ -10,21 +10,24 @@ const MediaPreview = ({ previewUrl, onRemove }: MediaPreviewProps) => {
   const [isVideo, setIsVideo] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkMediaType = async () => {
-      try {
-        const response = await fetch(previewUrl);
-        const blob = await response.blob();
-        setIsVideo(blob.type.startsWith("video/"));
-      } catch (error) {
-        console.error("Error checking media type:", error);
-      }
-    };
-
     if (previewUrl.startsWith("blob:")) {
+      const checkMediaType = async () => {
+        try {
+          const response = await fetch(previewUrl);
+          const blob = await response.blob();
+          setIsVideo(blob.type.startsWith("video/"));
+        } catch (error) {
+          console.error("Error checking media type:", error);
+        }
+      };
       checkMediaType();
+    } else {
+      setIsVideo(previewUrl.endsWith(".mp4") || previewUrl.endsWith(".mov")); // 🔹 Detect videos by extension
     }
   }, [previewUrl]);
 
+  
+console.log(previewUrl,".............................")
   return (
     <div className="p-4 bg-white shadow-md rounded-lg flex-grow h-full flex flex-col items-center">
       {isVideo === null ? (

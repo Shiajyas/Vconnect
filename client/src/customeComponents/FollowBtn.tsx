@@ -30,6 +30,8 @@ const FollowBtn: React.FC<FollowBtnProps> = ({ followingId, isFollowing, userId 
       }
     };
 
+    
+
     socket.on("followSuccess", (data) => handleFollowUpdate({ ...data, action: "follow" }));
     socket.on("unfollowSuccess", (data) => handleFollowUpdate({ ...data, action: "unfollow" }));
 
@@ -38,6 +40,11 @@ const FollowBtn: React.FC<FollowBtnProps> = ({ followingId, isFollowing, userId 
       socket.off("unfollowSuccess", handleFollowUpdate);
     };
   }, [followingId, queryClient, userId]);
+
+  useEffect(() => {
+    setFollowing(isFollowing);
+  }, [isFollowing]);
+  
 
   const handleFollowAction = useCallback(
     (action: "followUser" | "unfollowUser") => {

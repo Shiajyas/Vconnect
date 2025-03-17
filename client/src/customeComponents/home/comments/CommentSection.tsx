@@ -41,7 +41,9 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
   }, [postId, queryClient, comments.length]);
 
   return (
-    <div className="relative w-full md:w-[600px] bg-white shadow-md rounded-lg">
+    <div className="relative w-full  bg-white shadow-md rounded-lg"
+    onClick={(e) => e.stopPropagation()} 
+    >
       {/* Mobile View */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white shadow-lg rounded-t-lg z-50">
         <div className="flex justify-between items-center p-2 border-b bg-gray-100">
@@ -81,7 +83,7 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
         </div>
 
         <div className="p-2 border-t mt-2">
-          <CommentInput postId={postId} />
+          <CommentInput  postId={postId} />
         </div>
       </div>
     </div>
@@ -89,3 +91,4 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
 };
 
 export default CommentSection;
+

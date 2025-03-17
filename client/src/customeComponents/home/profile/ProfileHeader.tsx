@@ -1,4 +1,4 @@
-import { useState,useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useMutation } from "@tanstack/react-query";
 import { userService } from "@/services/userService";
+import FollowBtn from "@/customeComponents/FollowBtn";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react"; // Loading spinner
+import { Loader2 } from "lucide-react"; 
 
 interface ProfileHeaderProps {
   user: {
@@ -27,14 +28,20 @@ interface ProfileHeaderProps {
     mobile?: string;
     address?: string;
     website?: string;
+    following?: [];
+    followers?: [];
   } | undefined;
   userId: string;
   refetch: () => void;
+  parentUserId: string;
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, parentUserId }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [profileData, setProfileData] = useState({
     fullname: user?.fullname || "",
     username: user?.username || "",
@@ -47,6 +54,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
     avatar: user?.avatar || "",
   });
 
+  // Update state when user data changes
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -63,10 +71,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
     }
   }, [user]);
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({}); // Validation errors
-
-  // Form validation
+  // Validate form
   const validateForm = () => {
     let newErrors: Record<string, string> = {};
 
@@ -76,35 +81,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
     if (profileData.mobile && !/^\+?\d{10,15}$/.test(profileData.mobile)) {
       newErrors.mobile = "Invalid mobile number.";
     }
+    if (profileData.website && !/^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/.test(profileData.website)) {
+      newErrors.website = "Invalid website URL.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission with avatar upload
+  // Handle profile update
   const updateProfile = useMutation({
     mutationFn: async () => {
       setLoading(true);
-
       const formData = new FormData();
-      formData.append("fullname", profileData.fullname);
-      formData.append("username", profileData.username);
-      formData.append("bio", profileData.bio);
-      formData.append("email", profileData.email);
-      formData.append("gender", profileData.gender);
-      formData.append("mobile", profileData.mobile);
-      formData.append("address", profileData.address);
-      formData.append("website", profileData.website);
+      Object.entries(profileData).forEach(([key, value]) => formData.append(key, value));
 
-      if (avatarFile) {
-        formData.append("avatar", avatarFile); // Append file if selected
-      }
+      if (avatarFile) formData.append("avatar", avatarFile);
 
       await userService.updateUserProfile(userId, formData);
     },
     onSuccess: () => {
       setLoading(false);
-      refetch();
+      refetch(); // Refetch to get updated data
       setEditing(false);
     },
     onError: () => setLoading(false),
@@ -113,10 +111,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
   // Handle file selection
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      setAvatarFile(e.target.files[0]); // Store file
-      setProfileData((prev) => ({ ...prev, avatar: URL.createObjectURL(e?.target?.files[0]) })); // Show preview
+      setAvatarFile(e.target.files[0]);
+      setProfileData((prev) => ({ ...prev, avatar: URL.createObjectURL(e.target.files[0]) }));
     }
   };
+
+  // Check if the logged-in user is following the profile user
+  const isFollowing =
+    (user?.followers ?? []).includes(parentUserId) || (user?.following ?? []).includes(parentUserId);
 
   return (
     <Card className="max-w-3xl mx-auto">
@@ -130,6 +132,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
                 <AvatarImage src={profileData.avatar} alt={user?.fullname || "User"} />
                 <AvatarFallback>{user?.fullname?.slice(0, 2).toUpperCase() || "NA"}</AvatarFallback>
               </Avatar>
+
               {editing && (
                 <input
                   type="file"
@@ -144,9 +147,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
               <p className="text-sm text-gray-500">@{user?.username}</p>
             </div>
           </div>
-          <Button onClick={() => setEditing(!editing)} variant="outline">
-            {editing ? "Cancel" : "Edit Profile"}
-          </Button>
+
+          {userId === parentUserId && !isFollowing ? (
+            <Button onClick={() => setEditing(!editing)} variant="outline">
+              {editing ? "Cancel" : "Edit Profile"}
+            </Button>
+          ) : (
+            <FollowBtn followingId={userId} isFollowing={isFollowing} userId={parentUserId} />
+          )}
         </div>
 
         <Separator className="my-4" />
@@ -154,23 +162,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
         {/* Edit Profile Form */}
         {editing ? (
           <div className="space-y-4">
-            <div>
-              <Input
-                value={profileData.fullname}
-                onChange={(e) => setProfileData({ ...profileData, fullname: e.target.value })}
-                placeholder="Full Name"
-              />
-              {errors.fullname && <p className="text-red-500 text-sm">{errors.fullname}</p>}
-            </div>
+            <Input
+              value={profileData.fullname}
+              onChange={(e) => setProfileData({ ...profileData, fullname: e.target.value })}
+              placeholder="Full Name"
+            />
+            {errors.fullname && <p className="text-red-500 text-sm">{errors.fullname}</p>}
 
-            <div>
-              <Input
-                value={profileData.username}
-                onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                placeholder="Username"
-              />
-              {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
-            </div>
+            <Input
+              value={profileData.username}
+              onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+              placeholder="Username"
+            />
+            {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
 
             <Textarea
               value={profileData.bio}
@@ -178,39 +182,49 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
               placeholder="Bio"
             />
 
-            <div>
-              <Input
-                value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                placeholder= {profileData.email}
-                type="email"
-                disabled
-              />
-              {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-            </div>
+            <Input
+              type="email"
+              value={profileData.email}
+              onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+              placeholder="Email"
+              disabled
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
 
-            <Select value={profileData.gender} onValueChange={(value) => setProfileData({ ...profileData, gender: value })}>
+            <Input
+              type="tel"
+              value={profileData.mobile}
+              onChange={(e) => setProfileData({ ...profileData, mobile: e.target.value })}
+              placeholder="Mobile"
+            />
+            {errors.mobile && <p className="text-red-500 text-sm">{errors.mobile}</p>}
+
+            <Input
+              value={profileData.address}
+              onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+              placeholder="Address"
+            />
+
+            <Input
+              value={profileData.website}
+              onChange={(e) => setProfileData({ ...profileData, website: e.target.value })}
+              placeholder="Website"
+            />
+            {errors.website && <p className="text-red-500 text-sm">{errors.website}</p>}
+
+            <Select
+              value={profileData.gender}
+              onValueChange={(value) => setProfileData({ ...profileData, gender: value })}
+            >
               <SelectTrigger>
                 <SelectValue>{profileData.gender}</SelectValue>
               </SelectTrigger>
-              <SelectContent className="z-[100]">
+              <SelectContent className="bg-slate-400">
                 <SelectItem value="male">Male</SelectItem>
                 <SelectItem value="female">Female</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-
-            <div>
-              <Input
-                value={profileData.mobile}
-                onChange={(e) => setProfileData({ ...profileData, mobile: e.target.value })}
-                placeholder="Mobile"
-              />
-              {errors.mobile && <p className="text-red-500 text-sm">{errors.mobile}</p>}
-            </div>
-
-            <Input value={profileData.address} onChange={(e) => setProfileData({ ...profileData, address: e.target.value })} placeholder="Address" />
-            <Input value={profileData.website} onChange={(e) => setProfileData({ ...profileData, website: e.target.value })} placeholder="Website" />
 
             <Button
               onClick={() => validateForm() && updateProfile.mutate()}
@@ -221,11 +235,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
             </Button>
           </div>
         ) : (
-          <div className="text-gray-600 space-y-2">
+          <div>
             <p>{user?.bio || "No bio available"}</p>
             {user?.website && (
               <p>
-                🌍 <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{user.website}</a>
+                🌐 <a href={user.website} target="_blank" className="text-blue-500">{user.website}</a>
               </p>
             )}
           </div>
@@ -234,5 +248,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch }) 
     </Card>
   );
 };
+
 
 export default ProfileHeader;

@@ -3,15 +3,17 @@ import MediaPreview from "../../media/MediaPreview";
 import MediaCapture from "../../media/MediaCapture";
 import { socket } from "@/utils/Socket";
 import { useUploadPost } from "@/hooks/usePost";
+import { useParams } from "react-router-dom";
 
-const PostUpload = ({ userId, token }: { userId: string; token: string }) => {
+const PostUpload = () => {
   const [media, setMedia] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [description, setDescription] = useState("");
 
-  // ✅ Use React Query Mutation for Post Upload
-  const { mutate: uploadPost, status } = useUploadPost(token);
+  const { userId } = useParams(); 
+
+  const { mutate: uploadPost, status } = useUploadPost();
 
   const handleMediaCaptured = (file: File, previewUrl: string) => {
     setMedia(file);
@@ -33,24 +35,23 @@ const PostUpload = ({ userId, token }: { userId: string; token: string }) => {
     formData.append("mediaUrls", media);
     formData.append("title", caption);
     formData.append("description", description);
-    formData.append("userId", userId);
+    formData.append("userId", userId || ""); 
 
     console.log("🔹 FormData Entries:");
     for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]); // Key: Value
     }
-  
 
     uploadPost(formData, {
       onSuccess: (data) => {
-        console.log(data.post._id,">>>321");
+        console.log(data.post._id, ">>>321");
 
-        let postId = data.post._id
-        
-        alert("Post uploaded successfully!"); 
-        socket.emit("postUploaded", { userId,postId });
+        let postId = data.post._id;
 
-        // ✅ Reset form fields after successful upload
+        alert("Post uploaded successfully!");
+        socket.emit("postUploaded", { userId, postId });
+
+       
         handleRemoveMedia();
         setCaption("");
         setDescription("");

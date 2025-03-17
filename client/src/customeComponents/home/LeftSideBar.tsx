@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { img_Url } from "@/images/image";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore} from "@/context/AuthContext";
+import { useAuthStore } from "@/context/AuthContext";
 
 interface LeftSideBarProps {
   selectedItem: string;
@@ -15,19 +15,26 @@ interface LeftSideBarProps {
 }
 
 const LeftSideBar: React.FC<LeftSideBarProps> = ({ selectedItem, setSelectedItem, unreadNotifications }) => {
-  let navigate = useNavigate()
+  const navigate = useNavigate();
+  const { logout,user } = useAuthStore();
+
   const menuItems = [
-    { name: "Home", icon: <Home /> },
-    { name: "Messages", icon: <MessageSquare /> },
-    { name: "Search", icon: <Search /> },
-    { name: "Notifications", icon: <Bell />, hasBadge: true },
-    { name: "Create", icon: <PlusCircle /> },
-    { name: "Profile", icon: <User /> },
+    { name: "Home", icon: <Home />, path: "/home" },
+    { name: "Messages", icon: <MessageSquare />, path: "/home/messages" },
+    { name: "Search", icon: <Search />, path: "/home/search" },
+    { name: "Notifications", icon: <Bell />, path: "/home/notifications", hasBadge: true },
+    { name: "Create", icon: <PlusCircle />, path: `/home/create/${user?._id}` },
+    { name: "Profile", icon: <User />, path: `/home/profile/${user?._id}` },
   ];
-    const {logout} = useAuthStore()
-  const handleLogout = () => { 
-    logout("user")
-    navigate("/")
+
+  const handleMenuClick = (item: any) => {
+    setSelectedItem(item.name);
+    navigate(item.path); // ✅ Navigate to correct route
+  };
+
+  const handleLogout = () => {
+    logout("user");
+    navigate("/");
   };
 
   return (
@@ -50,7 +57,7 @@ const LeftSideBar: React.FC<LeftSideBarProps> = ({ selectedItem, setSelectedItem
               className={`relative flex items-center w-full justify-start px-4 py-3 text-lg font-medium rounded-lg ${
                 selectedItem === item.name ? "bg-accent text-primary font-bold" : "hover:bg-accent"
               }`}
-              onClick={() => setSelectedItem(item.name)}
+              onClick={() => handleMenuClick(item)} // ✅ Navigate to the correct route
             >
               {item.icon}
               <span className="ml-3">{item.name}</span>

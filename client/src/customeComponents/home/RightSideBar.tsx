@@ -41,7 +41,7 @@ const RightSideBar = () => {
   }, [inView, hasNextPage, fetchNextPage]);
 
   const handleNavigate = (userId: string) => {
-    navigate(`/profile/${userId}`);
+    navigate(`/home/profile/${userId}`);
   };
 
   useEffect(() => {

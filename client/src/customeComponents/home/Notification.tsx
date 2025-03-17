@@ -33,7 +33,7 @@ interface NotificationProps {
   setSelectedPost: (postId: string) => void;
 }
 
-const Notification: React.FC<NotificationProps> = ({ setSelectedPost }) => {
+const Notification: React.FC= () => {
   const queryClient = useQueryClient();
   const { unreadCount, setUnreadCount } = useNotificationStore();
   const {user} = useAuthStore()
@@ -77,7 +77,7 @@ const handleNotificationClick = (notification: Notification) => {
   
   if (["like", "comment", "mention", "post"].includes(notification.type) && notification.postId) {
     console.log(">>>>getPostId", notification.postId);
-    setSelectedPost(notification.postId); // Set selected post only
+    navigate(`/post/${notification.postId}`);
   } else if (notification.type === "follow" || notification.type === "unfollow") {
     navigate(`users/profile/${notification.senderId}`);
   }

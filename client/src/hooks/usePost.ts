@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useInfiniteQuery,useQuery } from "@tanstack/react-query";
 import { postService } from "../services/postService";
 import { imageUpload } from "../features/imageUpload";
 import { socket } from "@/utils/Socket";
@@ -20,7 +20,7 @@ export const useGetPosts = (token: string) => {
 
 
 // ✅ Create Post (Fixed Cache Update)
-export const useUploadPost = (token: string) => {
+export const useUploadPost = () => {
   const queryClient = useQueryClient();
 
   return useMutation<any, Error, FormData>({
@@ -37,7 +37,19 @@ export const useUploadPost = (token: string) => {
   });
 };
 
-// ✅ Update Post (Fixed Cache Update)
+export const useGetPostDetails = (postId?: string) => {
+  return useQuery({
+    queryKey: ["post", postId], // Unique query key for caching
+    queryFn: async () => {
+      if (!postId) throw new Error("Post ID is required");
+      return postService.getPost(postId); // Fetch post details
+    },
+    enabled: !!postId, // Only fetch when postId exists
+    staleTime: 60000, // Cache for 1 minute
+  });
+};
+
+//  Update Post (Fixed Cache Update)
 export const useUpdatePost = () => {
   const queryClient = useQueryClient();
 
@@ -50,7 +62,7 @@ export const useUpdatePost = () => {
 
       const updatedPost = await postService.updatePost(postId, content, media);
 
-      // ✅ Correct cache update
+      //  Correct cache update
       queryClient.invalidateQueries({ queryKey: ["posts"] });
 
       return updatedPost;
@@ -58,7 +70,7 @@ export const useUpdatePost = () => {
   });
 };
 
-// ✅ Delete Post (Fixed Cache Update)
+// Delete Post (Fixed Cache Update)
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
 
@@ -66,7 +78,7 @@ export const useDeletePost = () => {
     mutationFn: async ({ postId, auth }: { postId: string; auth: any }) => {
       await postService.deletePost(postId,);
 
-      // ✅ Correct cache update
+      //  Correct cache update
       queryClient.invalidateQueries({ queryKey: ["posts"] });
 
       return postId;
@@ -74,7 +86,7 @@ export const useDeletePost = () => {
   });
 };
 
-// ✅ Optimized Like Post Hook
+//  Optimized Like Post Hook
 export const useLikePost = () => {
   const queryClient = useQueryClient();
 
@@ -114,7 +126,7 @@ export const useLikePost = () => {
   });
 };
 
-// ✅ Optimized Unlike Post Hook
+//  Optimized Unlike Post Hook
 export const useUnlikePost = () => {
   const queryClient = useQueryClient();
 
