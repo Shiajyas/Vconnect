@@ -53,22 +53,21 @@ export const useGetPostDetails = (postId?: string) => {
 export const useUpdatePost = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<any, Error, { content: string; images: any[]; postId: string; auth: any }>({
-    mutationFn: async ({ content, images, postId, auth }: { content: string; images: any[]; postId: string; auth: { token: string } }) => {
-      let media = [];
-      if (images.length > 0) {
-        media = await imageUpload(images, auth.token);
-      }
-
-      const updatedPost = await postService.updatePost(postId, content, media);
-
-      //  Correct cache update
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-
-      return updatedPost;
+  return useMutation<any, Error, { formData: FormData; postId: string }>(
+    {
+      mutationFn: async ({ formData, postId }): Promise<any> => {
+        return postService.updatePost(postId, formData); // Sending FormData directly
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+      },
+      onError: () => {
+        alert("Update failed!");
+      },
     }
-  });
+  );
 };
+
 
 // Delete Post (Fixed Cache Update)
 export const useDeletePost = () => {

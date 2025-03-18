@@ -4,9 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { userService } from "@/services/userService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils"; // Optional utility for class handling
-
-
+import { cn } from "@/lib/utils";
 import { Image as ImageIcon, Video as VideoIcon, List as ListIcon, Bookmark as BookmarkIcon, Grid as GridIcon } from "lucide-react";
 import { useAuthStore } from "@/context/AuthContext";
 
@@ -14,47 +12,69 @@ interface ProfilePostsProps {
   userId: string;
 }
 
-
 const ProfilePosts: React.FC<ProfilePostsProps> = ({ userId }) => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<"all" | "image" | "video">("all");
   const [activeTab, setActiveTab] = useState<"myPosts" | "savedPosts">("myPosts");
 
-  // Fetch user's media posts (Only images/videos)
+  const currentUserId = user?._id;
+
+  // Fetch user’s posts
   const { data: mediaPosts, isLoading: isLoadingMedia } = useQuery({
     queryKey: ["userMediaPosts", userId],
     queryFn: () => userService.getUserMediaPosts(userId),
   });
 
-  // Fetch saved posts (Only images/videos) only if the user is viewing their own profile
+  console.log(mediaPosts,">>>>>65")
+  // Fetch saved posts (only if viewing own profile)
   const { data: savedPosts, isLoading: isLoadingSaved } = useQuery({
     queryKey: ["userSavedPosts", userId],
     queryFn: () => userService.getUserSavedPosts(userId),
-    enabled: user?._id === userId, // Fetch only if the current user is viewing their own profile
+    enabled: userId === currentUserId,
   });
 
-  const currentUserId = user?._id;
+  // Fetch followers & following
+  const { data: followers } = useQuery({
+    queryKey: ["followers", userId],
+    queryFn: () => userService.getFollowers(userId),
+    enabled: !!userId,
+  });
+
+  const { data: following } = useQuery({
+    queryKey: ["following", userId],
+    queryFn: () => userService.getFollowing(userId),
+    enabled: !!userId,
+  });
 
   const isImage = (url: string) => /\.(jpeg|jpg|png|webp)$/i.test(url);
   const isVideo = (url: string) => /\.(mp4|webm|ogg)$/i.test(url);
-
   const filteredPosts = (posts: any) => {
     if (!posts) return [];
-
+  
     const data = Array.isArray(posts.posts) ? posts.posts : posts;
-
     if (!Array.isArray(data)) return [];
-
+  
     return data.filter((post) => {
       const mediaUrl = Array.isArray(post.mediaUrls) ? post.mediaUrls[0] : post.mediaUrls;
+      const isOwner = post.userId === currentUserId;
+      const isFollower = followers?.some((f: any) => f._id === currentUserId);
+      const isFollowing = following?.some((f: any) => f._id === post.userId);
+  
+      const hasAccess = isOwner || isFollower || isFollowing;
+  
+      // **Allow private posts for saved posts**
+      if (activeTab !== "savedPosts" && !hasAccess && post.visibility === "private") {
+        return false;
+      }
+  
       if (selectedType === "image") return isImage(mediaUrl);
       if (selectedType === "video") return isVideo(mediaUrl);
       return true;
     });
   };
+  
 
-  // Show saved posts only for the current user
   const currentPosts =
     activeTab === "myPosts"
       ? mediaPosts
@@ -66,7 +86,7 @@ const ProfilePosts: React.FC<ProfilePostsProps> = ({ userId }) => {
 
   return (
     <div className="mt-6">
-      {/* Tab Selector: My Posts (Always) & Saved Posts (Only for current user) */}
+      {/* Tabs: My Posts & Saved Posts */}
       <div className="flex justify-center gap-4 mb-4">
         <Button
           variant={activeTab === "myPosts" ? "default" : "outline"}

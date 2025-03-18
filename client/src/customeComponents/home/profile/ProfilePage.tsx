@@ -70,11 +70,11 @@
 
     return (
       <div className="container mx-auto px-4 py-6">
-       <ProfileHeader user={user} userId={userId} parentUserId={parantUserId} refetch={refetch} />
+       <ProfileHeader user={user} userId={userId} parentUserId={parantUserId || ""} refetch={refetch} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <FollowList title="Followers" data={followers} refetch={refetchFollowers} hideUnfollow={true} parentUserId={parantUserId} />
-          <FollowList title="Following" data={following} refetch={refetchFollowing} hideUnfollow={false} parentUserId={parantUserId} />
+          <FollowList title="Followers" data={followers} refetch={refetchFollowers}  parentUserId={parantUserId || ""} />
+          <FollowList title="Following" data={following} refetch={refetchFollowing}  parentUserId={parantUserId || ""} />
         </div>
         <ProfilePosts userId={userId} />
       </div>

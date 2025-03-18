@@ -110,7 +110,7 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center p-4 border rounded-lg bg-white shadow w-full max-w-sm mx-auto">
+    <div className="flex flex-col items-center p-4 border rounded-lg bg-white shadow  relative  w-full max-w-sm mx-auto">
       {/* Webcam View */}
       <div className="w-full max-w-xs h-72 bg-gray-200 flex justify-center items-center rounded-lg overflow-hidden relative mt-4" style={{ filter: selectedFilter }}>
         <Webcam

@@ -5,7 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import FollowBtn from "@/customeComponents/FollowBtn";
 import { useAuthStore } from "@/context/AuthContext";
-
+import { socket } from "@/utils/Socket";
+import { useQueryClient } from "@tanstack/react-query";
 interface FollowListProps {
   title: string;
   data?: { 
@@ -24,10 +25,13 @@ const FollowList: React.FC<FollowListProps> = ({ title, data = [], refetch, pare
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [followList, setFollowList] = useState(data);
+  const queryClient = useQueryClient()
 
+  // Update state when data changes
   useEffect(() => {
     setFollowList(data);
   }, [data]);
+
 
   return (
     <Card>
@@ -38,9 +42,8 @@ const FollowList: React.FC<FollowListProps> = ({ title, data = [], refetch, pare
         <ScrollArea className="h-40 overflow-y-auto">
           {followList.length > 0 ? (
             followList.map((person) => {
-          
-              const isFollowing = (person.followers ?? []).includes(parentUserId) || (person.following ?? []).includes(parentUserId);
-// {console.log(isFollowing,">>>>>>>>>>>>>")}
+              const isFollowing = person.followers.includes(parentUserId);
+
               return (
                 <div key={person._id} className="flex items-center justify-between gap-3 py-2">
                   <div
@@ -55,14 +58,8 @@ const FollowList: React.FC<FollowListProps> = ({ title, data = [], refetch, pare
                   </div>
 
                   {user?._id !== person._id && (
-                    <FollowBtn
-  followingId={person._id}
-  isFollowing={isFollowing}
-  userId={parentUserId}
-/>
-
-)}
-
+                    <FollowBtn followingId={person._id} isFollowing={isFollowing} userId={parentUserId} />
+                  )}
                 </div>
               );
             })

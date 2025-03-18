@@ -13,6 +13,17 @@ export const postService = {
       "Failed to create post"
     ),
 
+    updatePost: (id:String ,content: FormData) =>
+      fetchData(
+        `/users/posts/update/${id}`,
+        {
+          method: "PUT",
+          data: content,
+        headers: { "Content-Type": "multipart/form-data" },
+        },
+        "Failed to update post"
+      ),
+
   getPosts: async (page: number = 1, limit: number = 10) => {
     const response = await fetchData(
       "/users/posts",
@@ -38,15 +49,7 @@ export const postService = {
       "Failed to fetch post"
     ),
 
-  updatePost: (id: string, content: string, images: any[]) =>
-    fetchData(
-      `/users/posts/${id}`,
-      {
-        method: "PATCH",
-        data: { content, images },
-      },
-      "Failed to update post"
-    ),
+
 
   deletePost: (id: string) =>
     fetchData(

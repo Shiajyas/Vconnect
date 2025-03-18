@@ -3,6 +3,7 @@ import { useAuthStore } from "@/context/AuthContext";
 import { socket } from "@/utils/Socket";
 import { Trash2, Heart, ChevronDown, ChevronUp } from "lucide-react";
 import CommentInput from "./CommentInput";
+import { useNavigate } from "react-router-dom";
 
 export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: any[] }) => {
   const { user } = useAuthStore();
@@ -15,6 +16,14 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
     Array.isArray(comment?.likes) && comment.likes.includes(user?._id)
   );
   const [deleted, setDeleted] = useState(false); // Track if comment is deleted
+
+  const navigate = useNavigate()
+
+  const handleProfileClick = () => {
+    if (comment?.userId?._id) {
+      navigate(`/home/profile/${comment.userId._id}`);
+    }
+  };
 
   useEffect(() => {
     setLocalReplies(replies);
@@ -78,11 +87,13 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
   return (
     <div className="w-full">
       <div className="flex items-start p-2 space-x-3">
-        <img
-          src={comment?.userId?.avatar || "/default-avatar.png"}
-          className="w-8 h-8 rounded-full"
-          alt="User"
-        />
+      <button onClick={handleProfileClick} className="focus:outline-none">
+          <img
+            src={comment?.userId?.avatar || "/default-avatar.png"}
+            className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+            alt="User"
+          />
+        </button>
         <div className="bg-gray-100 p-3 rounded-lg w-full shadow-sm">
           <p className="text-sm font-medium">{comment?.content || "Comment unavailable"}</p>
 

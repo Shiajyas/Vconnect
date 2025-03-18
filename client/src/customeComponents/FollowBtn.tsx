@@ -53,6 +53,7 @@ const FollowBtn: React.FC<FollowBtnProps> = ({ followingId, isFollowing, userId 
 
       socket.emit(action, { followingId, userId }, (response: any) => {
         if (!response?.success) {
+          
           console.error(`${action} action failed:`, response?.message);
           setLoading(false);
         }

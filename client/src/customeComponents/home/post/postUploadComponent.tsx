@@ -10,6 +10,7 @@ const PostUpload = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "private">("public"); // Default public
 
   const { userId } = useParams(); 
 
@@ -36,6 +37,7 @@ const PostUpload = () => {
     formData.append("title", caption);
     formData.append("description", description);
     formData.append("userId", userId || ""); 
+    formData.append("visibility", visibility); // Adding visibility option
 
     console.log("🔹 FormData Entries:");
     for (const pair of formData.entries()) {
@@ -51,10 +53,10 @@ const PostUpload = () => {
         alert("Post uploaded successfully!");
         socket.emit("postUploaded", { userId, postId });
 
-       
         handleRemoveMedia();
         setCaption("");
         setDescription("");
+        setVisibility("public"); // Reset to default
       },
       onError: () => {
         alert("Upload failed!");
@@ -83,6 +85,16 @@ const PostUpload = () => {
         onChange={(e) => setDescription(e.target.value)}
         className="border rounded p-2 my-2"
       />
+
+      {/* Visibility Selector */}
+      <select
+        value={visibility}
+        onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+        className="border rounded p-2 my-2"
+      >
+        <option value="public">Public</option>
+        <option value="private">Private</option>
+      </select>
 
       <button
         onClick={handleUpload}
