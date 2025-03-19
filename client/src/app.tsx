@@ -18,10 +18,13 @@ import ProfilePage from "@/customeComponents/home/profile/ProfilePage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PostUpload from "./customeComponents/home/post/postUploadComponent";
 import EditPost from "./customeComponents/home/post/EditPost";
+import ChatSection from "./customeComponents/home/chat/ChatSection";
+
+const queryClient = new QueryClient();
 
 const App = () => {
   const { isAdminAuthenticated, isUserAuthenticated } = useAuthStore();
-  const queryClient = new QueryClient();
+  // const queryClient = new QueryClient();
 
   return (
     <div className="bg-white">
@@ -45,6 +48,7 @@ const App = () => {
   <Route path="profile/:userId" element={<ProfilePage />} />
   <Route path="create/:userId" element={<PostUpload />} />
   <Route path="edit-post/:postId" element={<EditPost />} />
+  <Route path="messages" element={<ChatSection />} />
 </Route>
 
             <Route path="/admin/dashboard" element={<AdminPrivateRoute><AdminDashBord /></AdminPrivateRoute>} />

@@ -29,7 +29,7 @@ const PostDetails: React.FC = () => {
     queryFn: async () => {
       try {
         console.log("📡 Fetching post details for:", postId);
-        const response = await postService.getPost(postId);
+        const response = await postService.getPost(postId || "");
         console.log("✅ Post fetched:", response);
         return response;
       } catch (error) {
@@ -169,7 +169,7 @@ const PostDetails: React.FC = () => {
         onLike={handleLike} 
         isCommentsOpen={isCommentsOpen} 
         onToggleComments={handleToggleComments} 
-        userId={userId}
+        userId={userId }
         isLiked={data.post.likes.includes(userId)} 
       />
     </div>
