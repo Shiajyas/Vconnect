@@ -15,7 +15,7 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
 
   const [isFixed, setIsFixed] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => { 
     setIsFixed(comments.length > MAX_VISIBLE_COMMENTS);
 
     socket.emit("joinPostRoom", postId);
@@ -30,13 +30,14 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
     socket.on("delete_comment", handleDeleteComment);
     socket.on("commentLiked", handleCommentLiked);
     socket.on("delete_reply", handleNewReply);
+    
     return () => {
       socket.emit("leavePostRoom", postId);
       socket.off("newComment", handleNewComment);
       socket.off("newReply", handleNewReply);
       socket.off("delete_comment", handleDeleteComment);
       socket.off("commentLiked", handleCommentLiked);
-      socket.on("delete_reply", handleNewReply);
+      socket.off("delete_reply", handleNewReply);
     };
   }, [postId, queryClient, comments.length]);
 

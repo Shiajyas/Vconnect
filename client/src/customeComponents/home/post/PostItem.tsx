@@ -49,6 +49,12 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
     setIsSaved(post.saved.includes(userId));
   }, [post.saved, userId]);
 
+  useEffect(() => {
+    setLocalCommentCount(post.commendCount);
+  }, [post.commendCount]);
+
+  console.log(post,">>>>>>>>>>>>>>>>>>>>321")
+
   const handleSavePost = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsSaved(!isSaved);

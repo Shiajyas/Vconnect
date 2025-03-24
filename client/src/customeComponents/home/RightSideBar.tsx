@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Import ScrollArea
 import { LoaderIcon } from "lucide-react";
 import { useAuthStore } from "@/context/AuthContext";
 import { userService } from "@/services/userService";
@@ -46,19 +47,18 @@ const RightSideBar = () => {
 
   useEffect(() => {
     const handleRemoveFollowedUser = (event: CustomEvent) => {
-      const { followingId } = event.detail;
-      queryClient.invalidateQueries({ queryKey: ["suggestions", isUserAuthenticated] })
+      queryClient.invalidateQueries({ queryKey: ["suggestions", isUserAuthenticated] });
     };
 
     window.addEventListener("removeFollowedUser", handleRemoveFollowedUser as EventListener);
-
     return () => {
       window.removeEventListener("removeFollowedUser", handleRemoveFollowedUser as EventListener);
     };
   }, [queryClient, isUserAuthenticated]);
 
   return (
-    <div className="my-4">
+    <div className="w-[320px] h-[calc(100vh-4rem)] flex flex-col border-l bg-white">
+      {/* User Card */}
       {user && (
         <Card className="w-full p-4">
           <motion.div
@@ -81,11 +81,13 @@ const RightSideBar = () => {
         </Card>
       )}
 
+      {/* Sticky Suggestions Header */}
       <div className="sticky top-0 bg-white z-10 flex justify-center py-2 border-b shadow-sm">
         <h5 className="text-lg font-semibold text-center">Suggestions</h5>
       </div>
 
-      <div className="suggestions flex-1 overflow-y-auto scrollbar-hide px-2">
+      {/* Scrollable Suggestions List */}
+      <ScrollArea className="flex-1 overflow-y-auto px-2">
         {data?.pages.map((page, pageIndex) =>
           page.map((suggestedUser: IUser, index) => (
             <motion.div
@@ -94,7 +96,7 @@ const RightSideBar = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: (pageIndex * 5 + index) * 0.05 }}
             >
-              <Card className="mb-3 inner-shadow rounded-lg p-4 transition-all hover:scale-105 hover:shadow-lg">
+              <Card className="mb-3 rounded-lg p-4 transition-all hover:scale-105 hover:shadow-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 cursor-pointer" onClick={() => handleNavigate(suggestedUser._id)}>
                     <Avatar className="h-12 w-12">
@@ -120,7 +122,7 @@ const RightSideBar = () => {
         )}
 
         <div ref={ref} className="h-10" />
-      </div>
+      </ScrollArea>
     </div>
   );
 };

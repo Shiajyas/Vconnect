@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useCallback } from "react";
+
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/services/userService";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 , Bell} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import useNotificationStore from "@/store/notificationStore";
 import { toast } from "react-toastify";
@@ -112,68 +113,77 @@ const Notification: React.FC = () => {
     <div className="p-4 bg-white shadow-md rounded-lg flex-grow h-full flex flex-col">
       {/* Sticky Header */}
       <div className="sticky top-0 bg-white shadow-md p-3 z-10 border-b">
-        <h2 className="text-lg font-semibold text-center">🔔 Notifications</h2>
+        <h2 className="text-lg font-semibold text-center">Notifications</h2>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-auto scrollbar-hide p-2">
-        {isLoading && <Loader2 className="h-6 w-6 animate-spin mx-auto mt-4 text-primary" />}
-        
-        {data?.pages?.flatMap((page) => page.notifications).length === 0 ? (
-          <p className="text-center text-gray-500">No notifications</p>
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        ) : data?.pages?.flatMap((page) => page.notifications).length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <Bell className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+            <p>No notifications yet</p>
+          </div>
         ) : (
-          <ul className="space-y-2">
-            {data?.pages?.flatMap((page) => page.notifications).map((notification, index, arr) => {
-              return (
-                <li
-                  key={notification._id}
-                  ref={index === arr.length - 1 ? lastNotificationRef : null}
-                  className={`flex justify-between items-center p-3 rounded-md 
-                      shadow-sm transition-all duration-300 ease-in-out cursor-pointer 
-                      ${notification.read ? "bg-gray-100" : "bg-blue-100"} 
-                      hover:shadow-md hover:bg-gray-200 hover:scale-[1.02]`}
-                >
-                  <div className="flex flex-col">
-                    <p>
-                      {/* Clickable Sender Name */}
+          <ul className="space-y-3">
+            {data?.pages?.flatMap((page) => page.notifications).map((notification, index, arr) => (
+              <li
+                key={notification._id}
+                ref={index === arr.length - 1 ? lastNotificationRef : null}
+                onClick={() => handleNotificationClick(notification)}
+                className={`relative flex items-start p-4 rounded-lg shadow-sm transition-all duration-200 cursor-pointer
+                  ${notification.read ? "bg-gray-200" : "bg-gray-50 border-l-4 border-gray-300"}
+                  hover:bg-gray-100 hover:shadow-md`}
+              >
+                <div className="flex-1">
+                  <p className="text-sm">
+                    <span
+                      className="font-semibold text-blue-600 hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/home/profile/${notification.senderId}`);
+                      }}
+                    >
+                      {notification.senderName}
+                    </span>{" "}
+                    {notification.message.replace(notification.senderName, "")}{" "}
+                    {notification.postId && (
                       <span
-                        className="text-blue-500 font-semibold hover:underline cursor-pointer"
-                        onClick={() => navigate(`/home/profile/${notification.senderId}`)}
+                        className="font-semibold text-blue-600 hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/home/post/${notification.postId}`);
+                        }}
                       >
-                        {notification.senderName}
-                      </span>{" "}
-                      {notification.message.replace(notification.senderName, "")}{" "}
-                      {/* Clickable Post Link if exists */}
-                      {notification.postId && (
-                        <span
-                          className="text-blue-500 font-semibold hover:underline cursor-pointer"
-                          onClick={() => navigate(`/home/post/${notification.postId}`)}
-                        >
-                          Post
-                        </span>
-                      )}
-                    </p>
-                    <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteMutation.mutate(notification._id);
-                    }}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </li>
-              );
-            })}
+                        Post
+                      </span>
+                    )}
+                  </p>
+                  <span className="text-xs text-gray-400">
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteMutation.mutate(notification._id);
+                  }}
+                  className="ml-3 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </li>
+            ))}
           </ul>
         )}
-
-        {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin mx-auto mt-4 text-primary" />}
+        {isFetchingNextPage && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,123 +1,161 @@
-import React, { useEffect, useState } from "react";
-import { socket } from "@/utils/Socket";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/context/AuthContext";
-import { useQuery } from "@tanstack/react-query"; // ✅ Correct
-import ChatList from "./ChatList";
-import ChatMessages from "./ChatMessages";
-import ChatInput from "./ChatInput";
+import ChatList from "../chat/ChatList";
+import ChatMessages from "../chat/ChatMessages";
+import ChatInput from "../chat/ChatInput";
+import { useChatSocket } from "@/hooks/useChatSocket";
+import { Moon, Sun, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { userService } from "@/services/userService";
+import { useChat } from "@/hooks/useChat";
 
-interface Message {
+interface User {
   _id: string;
-  chatId: string;
-  senderId: string;
-  content: string;
-  type: "text" | "image" | "video";
-  createdAt: string;
-}
-
-interface Chat {
-  _id: string;
-  members: string[];
-  isGroup: boolean;
-  groupName?: string;
-  groupAvatar?: string;
+  name: string;
+  fullname: string;
+  avatar?: string;
 }
 
 const ChatSection = () => {
   const { user } = useAuthStore();
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [typing, setTyping] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const userId = user?._id || null;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("darkMode") === "true");
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
-  // If user is not authenticated, show a message
-  if (!user) {
-    return (
-      <div className="flex h-[800px] items-center justify-center">
-        <p className="text-xl">Please log in to access the chat</p>
-      </div>
-    );
-  }
+  const { chats, selectedChat, setSelectedChat, createChatWithUser } = useChat(userId);
 
-  const { data: chats, isLoading, error } = useQuery({
-    queryKey: ["chats"],
-    queryFn: async () => {
-      const res = await fetch("/api/chats");
-      if (!res.ok) throw new Error("Failed to fetch chats");
-      return res.json();
-    },
+  // **Fetch Followers & Following**
+  const { data: followers } = useQuery({
+    queryKey: ["followers", userId],
+    queryFn: () => userService.getFollowers(userId as string),
+    enabled: !!userId,
   });
 
-  const [theme, setTheme] = useState('light');
+  const { data: following } = useQuery({
+    queryKey: ["following", userId],
+    queryFn: () => userService.getFollowing(userId as string),
+    enabled: !!userId,
+  });
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-  };
-
-  useEffect(() => {
-    // Initialize theme from system preference or stored value
-    const savedTheme = localStorage.getItem('chat-theme') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
-
-  useEffect(() => {
-    // Save theme preference
-    localStorage.setItem('chat-theme', theme);
-  }, [theme]);
-
+  // **Merge Followers & Following (Remove Duplicates)**
+  const allUsers: User[] = [
+    ...new Map(
+      [...(followers || []), ...(following || [])].map((user) => [
+        user._id, 
+        { ...user, name: user.name || user.fullname, fullname: user.fullname || user.name }
+      ])
+    ).values(),
+  ];
 
   useEffect(() => {
-    socket.on("receiveMessage", (message: Message) => {
-      if (message.chatId === selectedChat?._id) {
-        setMessages((prev) => [...prev, message]);
-      }
-    });
+    localStorage.setItem("darkMode", darkMode.toString());
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, [darkMode]);
 
-    socket.on("userTyping", (chatId: string) => {
-      if (chatId === selectedChat?._id) setTyping(true);
-      setTimeout(() => setTyping(false), 2000);
-    });
+  // **Filter Users Based on Search Input**
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredUsers([]);
+    } else {
+      setFilteredUsers(
+        allUsers.filter((u) =>
+          u.fullname.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+  }, [searchTerm, allUsers]);
 
-    socket.on("updateOnlineUsers", (users: string[]) => {
-      setOnlineUsers(users);
-    });
+  if (!user) {
+    return <div className="p-4">Please log in to access the chat</div>;
+  }
 
-    return () => {
-      socket.off("receiveMessage");
-      socket.off("userTyping");
-      socket.off("updateOnlineUsers");
-    };
-  }, [selectedChat]);
-
-  const sendMessage = (message: string) => {
-    if (!selectedChat?._id || !user._id) return;
-    socket.emit("sendMessage", { 
-      chatId: selectedChat._id, 
-      senderId: user._id, 
-      content: message, 
-      type: "text" 
-    });
-  };
+  const chatId = selectedChat?._id || null;
+  const { messages, typing, sendMessage, fetchNextPage, hasNextPage, isFetchingNextPage, handleTyping } =
+    useChatSocket(chatId);
 
   return (
-    <div className={`flex h-[800px] shadow-lg rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'}`}>
-      <div className="absolute right-4 top-4">
-        <button
-          onClick={toggleTheme}
-          className={`p-2 rounded-full ${
-            theme === 'light' ? 'bg-gray-200 text-gray-800' : 'bg-gray-700 text-gray-200'
-          }`}
-        >
-          {theme === 'light' ? '🌙' : '☀️'}
+    <div className={`flex flex-col h-[750px] w-full max-w-4xl border transition-all ${darkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
+      {/* Header Section */}
+      <div className="p-2 flex justify-between items-center border-b">
+        <h2 className="text-lg font-semibold">Chat</h2>
+        <button className="p-2 rounded-full" onClick={() => setDarkMode(!darkMode)}>
+          {darkMode ? <Sun className="text-yellow-400 w-6 h-6" /> : <Moon className="text-gray-600 w-6 h-6" />}
         </button>
       </div>
-      <ChatList chats={chats} selectedChat={selectedChat} setSelectedChat={setSelectedChat} onlineUsers={onlineUsers} />
-      <div className={`w-2/3 flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-gray-800 text-white'}`}>
-        <ChatMessages messages={messages} userId={user._id} typing={typing} />
-        <ChatInput sendMessage={sendMessage} handleTyping={() => socket.emit("typing", { chatId: selectedChat?._id })} />
+
+      {/* Search Bar */}
+      <div className="relative p-2">
+        <div className="flex items-center bg-gray-200 dark:bg-gray-800 rounded-md px-2">
+          <Search className="w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search friends..."
+            className="flex-1 p-2 bg-transparent focus:outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+      {searchTerm && (
+  <div
+    className={`absolute top-16 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md shadow-lg rounded-lg p-3 border 
+      ${darkMode ? "bg-gray-800 text-white border-gray-700" : "bg-white text-black border-gray-300"}`}
+  >
+    {/* Close Button */}
+    <button
+      className={`absolute top-2 right-2 p-2 rounded-full transition-all ${
+        darkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-black"
+      }`}
+      onClick={() => setSearchTerm("")} 
+    >
+      ✕
+    </button>
+
+    {/* Search Results Content */}
+    <div className="py-2 space-y-2">
+      {allUsers.length > 0 ? (
+        allUsers
+          .filter((u) => u?.fullname.toLowerCase().includes(searchTerm.toLowerCase()))
+          .slice(0, 5) // Show only the top 5 results
+          .map((user) => (
+            <div
+              key={user?._id}
+              className={`p-3 flex items-center gap-3 rounded-lg cursor-pointer transition-all 
+                ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                createChatWithUser(userId,user?._id);
+                setSearchTerm(""); // Close modal after selecting a user
+              }}
+            >
+              <img src={user?.avatar || "/user.png"} className="w-10 h-10 rounded-full" />
+              <p className="font-medium">{user?.fullname}</p>
+            </div>
+          ))
+      ) : (
+        <div className="text-center text-gray-400 py-4">
+          No users found
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+      </div>
+
+      {/* Chat List & Messages */}
+      <div className="flex flex-grow">
+        <ChatList chats={chats} selectedChat={selectedChat} setSelectedChat={setSelectedChat} users={allUsers} />
+        <div className="flex flex-col flex-grow">
+          {selectedChat ? (
+            <>
+              <ChatMessages messages={messages} userId={user._id} typing={typing} fetchNextPage={fetchNextPage} hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} />
+              <ChatInput sendMessage={(msg) => sendMessage(msg, chatId || "", user._id, selectedChat.members.find(id => id !== user._id) || "")} handleTyping={() => handleTyping(chatId || "")} darkMode={darkMode} />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center">Select a chat to start messaging</div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -58,20 +58,26 @@ const PostList: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log("Setting up socket listeners...");
+    
     const handleNewComment = (data: { postId: string }) => {
+      console.log("New comment received:", data);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["comments", data.postId] });
     };
-
+  
     socket.on("newComment", handleNewComment);
     socket.on("delete_comment", handleNewComment);
-
+    socket.on("update_like_count", handleNewComment);
+  
     return () => {
+      console.log("Removing socket listeners...");
       socket.off("newComment", handleNewComment);
       socket.off("delete_comment", handleNewComment);
+      socket.off("update_like_count", handleNewComment);
     };
   }, [queryClient]);
-
+  
   const likeMutation = useMutation({
     mutationFn: (postId: string) => postService.likePost(postId),
     onMutate: async (postId) => updateLikeCache(postId, true),

@@ -8,45 +8,48 @@ import { useNavigate } from "react-router-dom";
 export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: any[] }) => {
   const { user } = useAuthStore();
   const [likesCount, setLikesCount] = useState<number>(comment?.likes?.length || 0);
+  const [liked, setLiked] = useState<boolean>(
+    Array.isArray(comment?.likes) && comment.likes.includes(user?._id)
+  );
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [localReplies, setLocalReplies] = useState(replies);
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
-  const [liked, setLiked] = useState<boolean>(
-    Array.isArray(comment?.likes) && comment.likes.includes(user?._id)
-  );
   const [deleted, setDeleted] = useState(false); // Track if comment is deleted
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const handleProfileClick = () => {
-    if (comment?.userId?._id) {
-      navigate(`/home/profile/${comment.userId._id}`);
-    }
-  };
+  // console.log(comment,">>>>>>>>>>")
 
   useEffect(() => {
     setLocalReplies(replies);
   }, [replies]);
 
+  // Listen for like/unlike updates
   useEffect(() => {
     const handleLikeUpdate = ({ commentId, likes }: { commentId: string; likes: string[] }) => {
       if (comment._id === commentId) {
-        setLiked(likes.includes(user?._id));
+        // console.log("Received like update:", likes); 
+        // console.log("Previous likesCount:", likesCount); 
+  
         setLikesCount(likes.length);
+        setLiked(likes.includes(user?._id));
+  
+        console.log("Updated likesCount:", likes.length);
       }
     };
-
+  
     socket.on("commentLiked", handleLikeUpdate);
     return () => {
       socket.off("commentLiked", handleLikeUpdate);
     };
   }, [comment._id, user?._id]);
-
+  
+  // Listen for comment deletion
   useEffect(() => {
     const handleDeleteUpdate = ({ commentId }: { commentId: string }) => {
       if (comment._id === commentId) {
-        setDeleted(true); // Mark as deleted
+        setDeleted(true);
       } else {
         setLocalReplies((prevReplies) => prevReplies.filter((reply) => reply._id !== commentId));
       }
@@ -73,6 +76,12 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
     socket.emit("deleteComment", { commentId: comment._id });
   };
 
+  const handleProfileClick = () => {
+    if (comment?.userId?._id) {
+      navigate(`/home/profile/${comment.userId._id}`);
+    }
+  };
+
   const handleReplyClick = (commentId: string) => {
     if (selectedCommentId === commentId) {
       setShowReplyInput(!showReplyInput);
@@ -82,12 +91,12 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
     }
   };
 
-  if (deleted) return null; // Remove comment from UI immediately
+  if (deleted) return null; // Remove deleted comments immediately
 
   return (
     <div className="w-full">
       <div className="flex items-start p-2 space-x-3">
-      <button onClick={handleProfileClick} className="focus:outline-none">
+        <button onClick={handleProfileClick} className="focus:outline-none">
           <img
             src={comment?.userId?.avatar || "/default-avatar.png"}
             className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"

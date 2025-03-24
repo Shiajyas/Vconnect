@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // Import navigate
 import MediaPreview from "../../media/MediaPreview";
 import MediaCapture from "../../media/MediaCapture";
 import { socket } from "@/utils/Socket";
@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const EditPost = () => {
   const { postId } = useParams();
+  const navigate = useNavigate(); // Initialize navigate
   const queryClient = useQueryClient();
 
   // Fetch post data
@@ -54,11 +55,12 @@ const EditPost = () => {
       {
         onSuccess: () => {
           alert("Post updated successfully!");
-          queryClient.invalidateQueries({queryKey:["post", postId]}); 
+          queryClient.invalidateQueries({ queryKey: ["post", postId] }); 
           socket.emit("postUpdated", { postId });
+          navigate(-1); // Navigate back after updating
         },
         onError: (e) => {
-          console.log(e,">>>>>>")
+          console.log(e, ">>>>>>");
           alert("Failed to update post!");
         },
       }
@@ -70,6 +72,13 @@ const EditPost = () => {
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg flex-grow h-full flex flex-col">
+           <button
+        onClick={() => navigate(-1)}
+        className="mb-4 px-4 py-2 text-sm font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-900 transition"
+      >
+        ← Back
+      </button>
+
       {!preview ? (
         <MediaCapture onMediaCaptured={handleMediaCaptured} />
       ) : (

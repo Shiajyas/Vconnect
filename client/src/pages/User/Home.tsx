@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
-import HomeRoutes from "@/routes/HomeRoutes";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-import Status from "@/customeComponents/home/Status";
-import RightSideBar from "@/customeComponents/home/RightSideBar";
 import LeftSideBar from "@/customeComponents/home/LeftSideBar";
-
+import RightSideBar from "@/customeComponents/home/RightSideBar";
+import BottomNav from "@/customeComponents/home/BottomNav";
+import Header from "@/customeComponents/home/Header";
 import useNotificationStore from "@/store/notificationStore";
 import { useAuthStore } from "@/context/AuthContext";
 import { socket } from "@/utils/Socket";
+import Status from "@/customeComponents/home/Status";
 
 const HomeLayout: React.FC = () => {
   const { unreadCount } = useNotificationStore();
   const { user } = useAuthStore();
   const userId = user?._id || null;
+  const location = useLocation();
 
-  // State for selected menu item in LeftSideBar
-  const [selectedItem, setSelectedItem] = useState("Home");
+  // ✅ Load selectedItem from localStorage or default to "Home"
+  const [selectedItem, setSelectedItem] = useState(
+    localStorage.getItem("selectedItem") || "Home"
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -29,51 +30,53 @@ const HomeLayout: React.FC = () => {
     };
   }, [userId]);
 
+  // ✅ Update selectedItem when the route changes & save to localStorage
+  useEffect(() => {
+    let newSelectedItem = "Home"; // Default to Home
+    if (location.pathname.includes("/messages")) newSelectedItem = "Messages";
+    else if (location.pathname.includes("/notifications")) newSelectedItem = "Notifications";
+    else if (location.pathname.includes("/profile")) newSelectedItem = "Profile";
+
+    setSelectedItem(newSelectedItem);
+    localStorage.setItem("selectedItem", newSelectedItem); // Save to localStorage
+  }, [location.pathname]);
+
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[260px,1fr,320px] gap-6 h-[calc(100vh-4rem)]">
-        
-        {/* Left Sidebar */}
-        <div className="hidden lg:block">
-          <LeftSideBar
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-            unreadNotifications={unreadCount}
-          />
+    <div className="w-full h-screen flex flex-col overflow-hidden">
+      <Header unreadCount={unreadCount} />
+  
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - Hidden on small screens */}
+        <div className="hidden lg:flex w-[260px] h-full">
+          <LeftSideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
         </div>
-
-        {/* Main Content */}
-        <Card className="h-[calc(100vh-4rem)]">
-          <CardContent className="p-0 h-full flex flex-col">
-            {/* Status Bar */}
-            <div className="sticky top-0 bg-white z-20 p-4 border-b">
-              <Status />
-              <Separator />
-            </div>
-
-            {/* Scrollable Content */}
-            <ScrollArea className="flex-1 overflow-y-auto">
-              <div className="p-6 space-y-6">
-                {/* <HomeRoutes /> */}
-                <Outlet />
+  
+        {/* Main Content - Full Width on small screens */}
+        <Card className="flex-1 w-full p-2 flex flex-col overflow-hidden">
+          <CardContent className="flex-1 flex flex-col overflow-hidden">
+            {/* ✅ Show Status only on Home Page */}
+            {selectedItem === "Home" && (
+              <div className="m-2 border-b">
+                <Status />
               </div>
+            )}
+  
+            <ScrollArea className="flex-1 mt-2 overflow-y-auto m-0">
+              <Outlet />
             </ScrollArea>
           </CardContent>
         </Card>
-
-        {/* Right Sidebar */}
-        <div className="hidden lg:block h-[calc(100vh-4rem)]">
-          <Card className="sticky top-6 h-full flex flex-col">
-            <CardContent className="p-0 flex-1 overflow-y-auto">
-              <ScrollArea className="h-full scrollbar-hide">
-                <RightSideBar />
-              </ScrollArea>
-            </CardContent>
-          </Card>
+  
+        {/* Right Sidebar - Hidden on small screens */}
+        <div className="hidden lg:flex w-[320px] h-full">
+          <RightSideBar />
         </div>
       </div>
+  
+      <BottomNav selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
     </div>
   );
+  
 };
 
 export default HomeLayout;

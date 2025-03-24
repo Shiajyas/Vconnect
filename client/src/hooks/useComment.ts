@@ -9,7 +9,7 @@
         queryKey: ["comments", postId],
         queryFn: async ({ queryKey, pageParam = 1 }: { queryKey: string[]; pageParam: number | false }) => {
           const response: { comments: Comment[]; nextPage?: number } = await postService.getPostComments(postId, pageParam, 10);
-          console.log("Fetched comments:", response);
+          // console.log("Fetched comments:", response);
     
           return response.comments; // ✅ Return only the array
         },

@@ -12,6 +12,7 @@
   "dependencies": {
     "@cloudinary/react": "^1.13.1",
     "@cloudinary/url-gen": "^1.21.0",
+    "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -39,6 +40,7 @@
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.474.0",
     "moment": "^2.29.1",
+    "mongoose": "^8.12.2",
     "postcss": "^8.4.49",
     "process": "^0.11.10",
     "react": "^18.3.1",
