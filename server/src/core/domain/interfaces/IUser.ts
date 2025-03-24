@@ -12,6 +12,7 @@ export interface IUser extends Document {
   gender?: string;
   mobile?: string;
   address?: string;
+  bio?: string
   saved?: mongoose.Types.ObjectId[];
   story?: string;
   website?: string;

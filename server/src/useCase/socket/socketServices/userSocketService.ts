@@ -44,17 +44,26 @@ export class UserSocketService implements IUserSocketService {
         await this.userRepository.update({ _id: userId }, { $addToSet: { following: followingId } });
         await this.userRepository.update({ _id: followingId }, { $addToSet: { followers: userId } });
     
-        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,sender.username);
-        socket.emit("followSuccess", { followingId });
+        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,undefined,sender.username);
+        this.io.emit("followSuccess", { followingId });
       }
     
       async handleUnfollow(socket: Socket, userId: string, followingId: string): Promise<void> {
-        await this.userRepository.update({ _id: userId }, { $pull: { following: followingId } });
-        await this.userRepository.update({ _id: followingId }, { $pull: { followers: userId } });
+        try {
+            const success = await this.userRepository.unfollow(userId, followingId);
     
-        console.log(`User ${userId} unfollowed ${followingId}`);
-        socket.emit("unfollowSuccess", { followingId });
-      }
+            if (!success) {
+                socket.emit("unfollowError", { message: "Unfollow operation failed." });
+                return;
+            }
+    
+            console.log(`✅ User ${userId} successfully unfollowed ${followingId}`);
+            this.io.emit("unfollowSuccess", { followingId });
+        } catch (error) {
+            this.handleError(socket, error, "unfollowError");
+        }
+    }
+    
   
     joinUser(socket: Socket, id: string): void {
       try {
@@ -84,7 +93,7 @@ export class UserSocketService implements IUserSocketService {
         await this.userRepository.update({ _id: userId }, { $addToSet: { following: followingId } });
         await this.userRepository.update({ _id: followingId }, { $addToSet: { followers: userId } });
   
-        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,sender.username);
+        await this.notificationService.sendNotification( userId, [followingId], "follow", `${sender.username} started following you.`,undefined,sender.username);
         socket.emit("followSuccess", { followingId });
       } catch (error) {
         this.handleError(socket, error, "followError");

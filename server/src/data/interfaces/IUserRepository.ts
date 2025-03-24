@@ -36,4 +36,9 @@ export interface IUserRepository {
   findFollowers(userId: string): Promise<IUser[]>;  // Fetch followers
   
   findFollowing(userId: string): Promise<IUser[]>;
+
+  unfollow(userId: string, unfollowUserId: string): Promise<boolean> 
+  updateUserById(userId: string, updatedData: Partial<IUser>): Promise<IUser | null>
+
+  savePost(userId: string, postId: string): Promise<boolean> 
 }

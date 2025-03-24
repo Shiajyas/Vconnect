@@ -135,10 +135,15 @@ export class AuthController {
             res.status(500).json({ message: getErrorMessage(error) });
         }
     }
+
     async verify_Otp(req: Request, res: Response): Promise<void> {
         try {
             const { email, enterdOtp } = req.body;
+            
+            // Ensure correct deconstruction
             const { userData } = await this.userService.verify_Otp(email, enterdOtp);
+    
+        
             res.status(200).json({
                 msg: "OTP verified successfully.",
                 userData

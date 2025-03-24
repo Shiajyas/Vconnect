@@ -1,9 +1,10 @@
-import mongoose, { Schema } from 'mongoose';
-import { IPost } from '../interfaces/IPost';
+import mongoose, { Schema } from "mongoose";
+import { IPost } from "../interfaces/IPost";
 
-const postSchema = new Schema<IPost>(
+export const postSchema = new Schema<IPost>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "user", required: true },
+    saved: [{ type: mongoose.Types.ObjectId, ref: "user" }],
     title: { type: String, required: true },
     description: { type: String, required: true },
     mediaUrls: { type: [String], default: [] },
@@ -14,10 +15,18 @@ const postSchema = new Schema<IPost>(
         reason: { type: String, required: true },
       },
     ],
+    commendCount: { type: Number, default: 0 },
+
+    // Added visibility field for public/private posts
+    visibility: {
+      type: String,
+      enum: ["public", "private"],
+      default: "public",
+    },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
 
-const Post = mongoose.model<IPost>('post', postSchema);
+const Post = mongoose.model<IPost>("post", postSchema);
 
 export default Post;

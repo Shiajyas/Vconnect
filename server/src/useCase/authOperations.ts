@@ -232,36 +232,52 @@ export class AuthService implements IAuthService {
   }
   
 
-  async verify_Otp(email: string, enterdOtp: string): Promise<{ userData: IUser }> {
+
+  async verify_Otp(
+    email: string,
+    enterdOtp: string
+  ): Promise<{ userData: IUser; accessToken: string; refreshToken: string }> {
     try {
-        
-        const user = await this.userRepository.findByEmail(email);
-        if (!user) {
-            throw new Error("User not found.");
+      const user = await this.userRepository.findByEmail(email);
+      if (!user) {
+        throw new Error("User not found.");
+      }
+  
+      const { valid, expired } = this.otpService.verifyOtp(email, enterdOtp);
+  
+      if (expired) {
+        throw new Error("OTP has expired, please request a new one.");
+      }
+  
+      if (!valid) {
+        throw new Error("Invalid OTP, please try again.");
+      }
+  
+      // ✅ Ensure tokens are generated and returned
+      const { accessToken, refreshToken } = this.generateTokens({
+        id: user._id.toString(),
+        role: user.role || "user",
+        subscription: {
+          isActive: user.subscription?.isActive || false,
+          startDate: user.subscription?.startDate || new Date(),
+          endDate: user.subscription?.endDate || new Date(),
         }
-
-        const { valid, expired } = this.otpService.verifyOtp(email, enterdOtp);
-
-        if (expired) {
-            throw new Error("OTP has expired, please request a new one.");
-        }
-
-        if (!valid) {
-            throw new Error("Invalid OTP, please try again.");
-        }
-
-        return { userData: user };
+      });
+  
+      console.log("✅ Tokens Generated:", { accessToken, refreshToken });
+  
+      return { 
+        userData: user, 
+        accessToken, 
+        refreshToken 
+      };
+  
     } catch (error) {
-        
-        if (error instanceof Error) {
-          console.log("Error in verify_Otp:", error.message || error);
-            throw new Error(error.message || "Failed to verify OTP.");
-        } else {
-            throw new Error("Failed to verify OTP.");
-        }
+      console.error("Error in verify_Otp:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to verify OTP.");
     }
-}
-
+  }
+  
 async resendOtp(email: string): Promise<boolean> {
     try {
         // Check if the user exists

@@ -1,6 +1,7 @@
 import { IUser } from "../../core/domain/interfaces/IUser";
 import { IUserRepository } from "../interfaces/IUserRepository";
 import User from "../../core/domain/models/userModel";
+import mongoose from "mongoose";
 
 export class UserRepository implements IUserRepository {
   // Find a user by email
@@ -112,15 +113,96 @@ async updateById(id: string, update: Partial<IUser>): Promise<IUser | null> {
   return await User.findByIdAndUpdate(id, update, { new: true }).select("-password");
 }
 
+// Fetch followers of a user
+async findFollowers(userId: string): Promise<IUser[]> {
+  return await User.find({ following: userId }).select("username fullname avatar following followers");
+}
 
-  async findFollowers(userId: string): Promise<IUser[]> {
-    const user = await User.findById(userId).populate('followers', '-password');
-    return user ? (user.followers as unknown as IUser[]) : [];
+// Fetch users the user is following
+async findFollowing(userId: string): Promise<IUser[]> {
+  return await User.find({ followers: userId }).select("username fullname avatar following followers");
+}
+
+
+
+async unfollow(userId: string, unfollowUserId: string): Promise<boolean> {
+  try {
+      if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(unfollowUserId)) {
+          console.error("❌ Invalid userId or unfollowUserId:", { userId, unfollowUserId });
+          return false;
+      }
+
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+      const unfollowObjectId = new mongoose.Types.ObjectId(unfollowUserId);
+
+      console.log(`🔄 Attempting to unfollow: ${userId} -> ${unfollowUserId}`);
+
+      // Fetch users
+      const [user, unfollowUser] = await Promise.all([
+          User.findById(userObjectId),
+          User.findById(unfollowObjectId),
+      ]);
+
+      if (!user || !unfollowUser) {
+          console.error("❌ User or Unfollow User not found:", { user, unfollowUser });
+          return false;
+      }
+
+      // Update both users' follow lists
+      const [updatedUser, updatedUnfollowUser] = await Promise.all([
+          User.findByIdAndUpdate(userObjectId, { $pull: { following: unfollowObjectId } }, { new: true }),
+          User.findByIdAndUpdate(unfollowObjectId, { $pull: { followers: userObjectId } }, { new: true })
+      ]);
+
+      if (!updatedUser || !updatedUnfollowUser) {
+          console.error("❌ Unfollow operation failed: Updates did not persist.");
+          return false;
+      }
+
+      console.log("✅ Unfollow success:", {
+          updatedUserFollowing: updatedUser.following,
+          updatedUnfollowUserFollowers: updatedUnfollowUser.followers,
+      });
+
+      return true;
+  } catch (error) {
+      console.error("❌ Error in unfollow function:", error);
+      return false;
   }
-  
-  async findFollowing(userId: string): Promise<IUser[]> {
-    const user = await User.findById(userId).populate('following', '-password');
-    return user ? (user.following as unknown as IUser[]) : [];
+}
+
+async updateUserById(userId: string, updatedData: Partial<IUser>): Promise<IUser | null> {
+  try {
+      const updatedUser = await User.findByIdAndUpdate(userId, updatedData, { 
+          new: true, 
+          runValidators: true 
+      }).select("-password");
+
+      return updatedUser ? (updatedUser.toObject() as IUser) : null;
+  } catch (error) {
+      console.error("Error updating user by ID:", error);
+      return null;
   }
+}
+
+async savePost(userId: string, postId: string): Promise<boolean> {
+  try {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const postObjectId = new mongoose.Types.ObjectId(postId);
+
+    // Update user's saved posts array
+    await User.findByIdAndUpdate(
+      userObjectId,
+      { $addToSet: { saved: postObjectId } }, // Use $addToSet to prevent duplicates
+      { new: true } // Return the updated document
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Error saving post:", error);
+    return false;
+  }
+}
+
 
 }

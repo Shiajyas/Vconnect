@@ -30,11 +30,14 @@ export class userAuthMiddleware {
 
       // Find user by ID
       const user = await User.findById(decoded.id);
+   
+      // console.log("🔹 Found User:", user);
       if (!user) {
         res.status(404).json({ msg: "User not found" });
         return;
       }
 
+   
       // Attach user to request object
       (req as Request & { user?: IUser }).user = user;
       next();

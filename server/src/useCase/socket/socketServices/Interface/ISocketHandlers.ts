@@ -18,4 +18,9 @@ export interface ISocketHandlers {
   deleteComment(socket: Socket, data: { userId: string; postId: string; commentId: string }): Promise<void>;
 
   likeComment(socket: Socket, data: { userId: string; postId: string; commentId: string }): Promise<void>;
+
+  savePost(socket: Socket, postId: any, userId: string): Promise<void>
+
+  deletePost(socket: Socket, postId: any, userId: string): Promise<void>
+  sendMessage(socket: Socket, messageData: { _id: string; chatId: string; senderId: string; content: string; type: string; createdAt: string; replyTo?: string }): Promise<void>
 }

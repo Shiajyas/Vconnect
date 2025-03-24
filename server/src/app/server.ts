@@ -1,7 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
-import { logger } from "../infrastructure/utils/logger";
+import morgan from "morgan";
 import corsMiddleware from "../presentation/middleware/corsMiddleware";
 import userAuthRoutes from "../presentation/routes/users/userAuthRoutes";
 import adminAuthRoutes from "../presentation/routes/admin/adminAuthRoutes";
@@ -39,7 +39,8 @@ class App {
 
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
-    this.app.use(cookieParser()); 
+    this.app.use(cookieParser());
+    this.app.use(morgan("dev")); 
 
     // Express-Session Setup
     this.app.use(

@@ -6,7 +6,12 @@ export interface ICommentSocketService {
     data: { userId: string; postId: string; content: string; parentId?: string }
   ): Promise<void>;
 
-  deleteComment(socket: Socket, userId: string, commentId: string): Promise<void>;
+  deleteComment(socket: Socket, commentId: string): Promise<void>;
 
   likeComment(socket: Socket, userId: string, commentId: string): Promise<void>;
+
+  
+  unLikeComment(socket: Socket, userId: string, commentId: string): Promise<void>;
+
+
 }

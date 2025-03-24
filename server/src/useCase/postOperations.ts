@@ -10,11 +10,10 @@ export class PostService implements IPostService {
     }
 
     // Create a new post
-    async createPost(userId: string, title: string,description:string, mediaUrls: string[]): Promise<IPost> {
-        const newPost = await this.postRepository.createPost(userId, title,description, mediaUrls);
-        
-        return newPost;
+    async createPost(userId: string, title: string, description: string, mediaUrls: string[], visibility: "public" | "private"): Promise<IPost> {
+        return await this.postRepository.createPost(userId, title, description, mediaUrls, visibility);
     }
+    
 
     async getPosts(userId: string, page: number, limit: number):  Promise<{posts : IPost[]; nextPage: number | null}> {
         // console.log(userId, page, limit, ">>>>userId 2*");
@@ -23,6 +22,7 @@ export class PostService implements IPostService {
         
         return {posts,nextPage};
     }
+
     
     // Retrieve a single post by ID
     async getPost(postId: string): Promise<IPost | null> {
@@ -30,15 +30,22 @@ export class PostService implements IPostService {
     }
 
     // Update a post
-    async updatePost(userId: string, postId: string, content: string, images: string[]): Promise<IPost> {
-        const updatedPost = await this.postRepository.updatePost(userId, postId, content, images);
+    async updatePost(
+        postId: string, 
+        userId: string, 
+        title: string, 
+        description: string, 
+        mediaUrls: string[]
+      ): Promise<IPost> {
+        const updatedPost = await this.postRepository.updatePost(postId, userId, title, description, mediaUrls);
+        
         if (!updatedPost) {
-            throw new Error('Post not found or could not be updated');
+          throw new Error("Post not found or could not be updated");
         }
-
+      
         return updatedPost;
-    }
-
+      }
+      
     // Delete a post
     async deletePost(userId: string, postId: string): Promise<void> {
         await this.postRepository.deletePost(userId, postId);

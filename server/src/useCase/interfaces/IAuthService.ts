@@ -7,7 +7,7 @@ export interface IAuthService {
   createUser(user: IUser): Promise<IUser>;
   getUser(userId : unknown) : Promise<{user: IUser}>
   login(email: string, password: string, role: "user" | "admin"): Promise<{ token: string; user: IUser;refreshToken: string;  } | null>
-  verify_Otp(email: string, enterdOtp: string): Promise<{ userData: IUser }>
+  verify_Otp(email: string, enterdOtp: string): Promise<{ userData: IUser; accessToken: string; refreshToken: string }>
   resendOtp(email: string): Promise<boolean>;
   resetPassword(email: string, newPassword: string): Promise<boolean>;
   googleAuth(idToken: string): Promise<{ user: IUser; token: string }>;

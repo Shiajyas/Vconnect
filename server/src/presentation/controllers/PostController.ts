@@ -15,15 +15,16 @@ export class PostController {
 
     async createPost(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
-           
             let mediaUrls: string[] = [];
             if (req.files) {
-                mediaUrls = (req.files as unknown as { location: string }[]).map((file: { location: string }) => file.location);
+                mediaUrls = (req.files as unknown as { location: string }[]).map((file) => file.location);
             }
-
-          
-              let { title, description } = req.body as unknown as { title: string; description: string };
-
+    
+            // Ensure req.body is correctly cast
+            const body = req.body as unknown as { title: string; description: string; visibility?: "public" | "private" };
+    
+            const { title, description, visibility = "public" } = body; // Default to "public" if not provided
+    
             if (!req.user) {
                 res.status(401).json({ message: "Unauthorized access." });
                 return;
@@ -32,9 +33,37 @@ export class PostController {
                 res.status(400).json({ message: "Please add photo(s)." });
                 return;
             }
-
-            const newPost = await this.postService.createPost(req.user.id, title,description, mediaUrls);
+    
+            const newPost = await this.postService.createPost(req.user.id, title, description, mediaUrls, visibility);
             res.status(201).json({ message: "Post created successfully.", post: newPost });
+    
+        } catch (error) {
+            res.status(500).json({ message: getErrorMessage(error) });
+        }
+    }
+    
+
+    async updatePost(req:  AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+                  
+            let mediaUrls: string[] = [];
+            if (req.files) {
+                mediaUrls = (req.files as unknown as { location: string }[]).map((file: { location: string }) => file.location);
+            }
+
+          
+              let { title, description } = req.body as unknown as { title: string; description: string };
+
+            const postId = (req as unknown as Request).params.id;
+
+            const userId = req.user?.id;
+            if (!userId) {
+                res.status(401).json({ message: "Unauthorized access." });
+                return;
+            }
+            console.log(postId,userId, title,description, mediaUrls,">>>>>>>32....")
+            const updatedPost = await this.postService.updatePost( postId,userId, title,description, mediaUrls);
+            res.status(200).json({ message: "Post updated successfully.", post: updatedPost });
 
         } catch (error) {
             res.status(500).json({ message: getErrorMessage(error) });
@@ -80,23 +109,7 @@ export class PostController {
         }
     }
 
-    async updatePost(req:  AuthenticatedRequest, res: Response): Promise<void> {
-        try {
-            const { content, images } = req.body as unknown as { content: string; images: string[] };
-            const postId = (req as unknown as Request).params.id;
-
-            const userId = req.user?.id;
-            if (!userId) {
-                res.status(401).json({ message: "Unauthorized access." });
-                return;
-            }
-            const updatedPost = await this.postService.updatePost(userId, postId, content, images);
-            res.status(200).json({ message: "Post updated successfully.", post: updatedPost });
-
-        } catch (error) {
-            res.status(500).json({ message: getErrorMessage(error) });
-        }
-    }
+ 
 
     async deletePost(req:  AuthenticatedRequest, res: Response): Promise<void> {
         try {
@@ -171,21 +184,26 @@ export class PostController {
         }
     }
 
-   async getPostComments(req:  AuthenticatedRequest, res: Response): Promise<void> {
+    async getPostComments(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
+            const postId = (req as unknown as Request).params.id;
+            if (!postId) {
+                res.status(400).json({ message: "Post ID is required" });
+            }
+    
             const page = parseInt((req as unknown as Request).query.page as string) || 1;
             const limit = parseInt((req as unknown as Request).query.limit as string) || 10;
-            console.log((req as unknown as Request).params.id, ">>>>33335664 1*");
-            const comments = await this.commentService.getCommentsForPost((req as unknown as Request).params.id, page, limit);
-            // console.log("comments >>>", comments);
-            
-            res.status(200).json({ comments });
-
+           
+            const comments = await this.commentService.getCommentsForPost(postId, page, limit);
+    
+            console.log(`✅ Fetched ${comments.length} comments for post: ${postId}`);
+    
+            res.status(200).json({ comments: comments || [] });
         } catch (error) {
-            console
-            .log(error, ">>>>Error in getPostComments Controller");
+            console.error("❌ Error in getPostComments Controller:", error);
             res.status(500).json({ message: getErrorMessage(error) });
         }
     }
+    
    
 }

@@ -10,20 +10,23 @@ import { IUserSocketService } from "../../useCase/socket/socketServices/Interfac
 import { IPostSocketService } from "../../useCase/socket/socketServices/Interface/IPostSocketService";
 import { UserSocketService } from "../../useCase/socket/socketServices/userSocketService";
 import { PostSocketService } from "../../useCase/socket/socketServices/postSocketService";
-import { INotificationService } from "../../useCase/interfaces/InotificationService";
 import { ISUserRepository } from "../../data/interfaces/ISUserRepository";
 import { IUserRepository } from "../../data/interfaces/IUserRepository";
 import { IPostRepository } from "../../data/interfaces/IPostRepository";
 import { ICommentRepository } from "../../data/interfaces/ICommentRepository";
 import { ICommentSocketService } from "../../useCase/socket/socketServices/Interface/ICommentSocketService";
 import { CommentSocketService } from "../../useCase/socket/socketServices/CommentSocketService";
+import { IChatService } from "../../useCase/socket/socketServices/Interface/IChatService";
+import { ChatService } from "../../useCase/socket/socketServices/ChatService";
+import { IChatRepository } from "../../data/interfaces/IChatRepository";
+import  ChatRepository  from "../../data/repositories/ChatRepository";
 
 // Instantiate repositories
 const userRepository: IUserRepository = new UserRepository();
 const mainUserRepository: ISUserRepository = new SUserRepositoryImpl();
 const postRepository: IPostRepository = new PostRepository();
 const commentRepository: ICommentRepository = new CommentRepository();
-
+const chatService: IChatService = new ChatService(ChatRepository);
 let io: Server | null = null; // Ensure proper initialization
 let notificationService: NotificationService; // Declare without initialization
 
@@ -41,7 +44,7 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
   });
 
   // Initialize Notification Service AFTER io is set up
-  notificationService = new NotificationService(io, mainUserRepository);
+  notificationService = new NotificationService(io, mainUserRepository,userRepository);
 
   // Now initialize socket services since notificationService is available
   const userSocketService: IUserSocketService = new UserSocketService(
@@ -71,9 +74,11 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
     notificationService,
     userSocketService,
     postSocketService,
-    commentSocketService
+    commentSocketService,
+    chatService
    
   );
+
 
   io.on("connection", (socket: Socket) => {
     console.log(`[${new Date().toISOString()}] 🔌 New client connected: ${socket.id}`);
@@ -107,7 +112,7 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
 
     socket.on("addComment", async (data) => {
       try {
-        // console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}123`);
+        console.log(`💬 Comment added by ${data.userId} on Post ID: ${data.postId}123`);
         
         await socketHandlers.addComment(socket, data);
       } catch (error) {
@@ -130,6 +135,67 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
         console.error("Error liking comment:", error);
       }
     });
+
+    socket.on("unLikeComment", async (data) => {
+      try {
+        await socketHandlers.unLikeComment(socket, data);
+      } catch (error) {
+        console.error("Error liking comment:", error);
+      }
+    });
+
+    socket.on("savePost",async(postId,userId)=>{
+      try {
+        await socketHandlers.savePost(socket,postId,userId)
+      } catch (error) {
+        console.error("Error liking comment:", error);
+      }
+    })
+
+    socket.on("deletePost",async(postId,userId)=>{
+      try {
+        console.log(postId,userId,"for>>>>>>>>>>>>> 1")
+        await socketHandlers.deletePost(socket,postId,userId)
+      } catch (error) {
+        console.error("Error liking comment:", error);
+      }
+    })
+
+    socket.on("sendMessage",async(newMessage)=>{
+      try {
+        console.log(newMessage,"for>>>>>>>>>>>>> 1")
+        await socketHandlers.sendMessage(socket,newMessage)
+       
+      } catch (error) {
+        console.error("Error liking comment:", error);
+      }
+    })
+
+    socket.on("loadMessages", async ({ chatId, page, limit }) => {
+      try {
+        console.log(`Loading messages for chat: ${chatId}, Page: ${page}`);
+
+        // Fetch messages from the database
+        const messages = await chatService.getMessages(chatId);
+
+        // Emit messages to the client
+        socket.emit("chatMessages", { messages });
+        
+      } catch (error) {
+        console.error("Error loading messages:", error);
+      }
+    });
+
+    socket.on("typing", ({ chatId, userId }) => {
+      console.log(`User ${userId} is typing in chat: ${chatId}`);
+      socket.to(chatId).emit("userTyping", chatId);
+    });
+
+    socket.on("userOnline", (userId) => {
+      console.log(`User ${userId} is online`);
+      socket.emit("updateOnlineUsers", userId);
+    });
+
 
     socket.on("disconnect", () => {
       console.log(`[${new Date().toISOString()}] ❌ Client disconnected: ${socket.id}`);

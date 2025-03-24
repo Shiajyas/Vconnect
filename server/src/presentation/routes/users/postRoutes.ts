@@ -30,9 +30,9 @@ router.get("/", userAuthMiddleware.authenticate, (req: Request, res: Response, n
 router.get("/:id", (req: Request, res: Response, next: NextFunction) => postController.getPost(req as unknown as AuthenticatedRequest, res).catch(next));
 
 router.put(
-    "/:id",
+    "/update/:id",
     userAuthMiddleware.authenticate,
-    upload.array("file", 5), // Accepts both images and videos
+    upload.array("mediaUrls", 5), // Accepts both images and videos
     (req: Request, res: Response, next: NextFunction) => postController.updatePost(req as unknown as AuthenticatedRequest, res).catch(next)
 );
 

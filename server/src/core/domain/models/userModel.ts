@@ -11,12 +11,16 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png",
     },
+
+
     role: { type: String, enum: ["admin", "proUser", "user"], default: "user" },
     subscription: {
       isActive: { type: Boolean, default: false },
       startDate: { type: Date, default: null },
       endDate: { type: Date, default: null },
     },
+
+    bio: {type: String, default:""},
     gender: { type: String, default: "male" },
     mobile: { type: String, default: "" },
     address: { type: String, default: "" },
@@ -27,6 +31,9 @@ const userSchema = new Schema<IUser>(
     following: [{ type: mongoose.Types.ObjectId, ref: "user" }], // Following array
     isBlocked: { type: Boolean, default: false },
   },
+
+
+
   {
     timestamps: true,
   }

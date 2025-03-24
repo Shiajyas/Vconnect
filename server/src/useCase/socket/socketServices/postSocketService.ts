@@ -24,7 +24,7 @@ export class PostSocketService implements IPostSocketService {
       try {
         if (!userId || !postId) throw new Error("Invalid request. User ID and Post ID are required.");
   
-        console.log(`📸 Post uploaded by ${userId} (Post ID: ${postId})`);
+        // console.log(`📸 Post uploaded by ${userId} (Post ID: ${postId})`);
   
         let owner = await this.userRepository.findById(userId);
         if (!owner) throw new Error("User not found.");
@@ -33,7 +33,7 @@ export class PostSocketService implements IPostSocketService {
         let following = await this.userRepository.findFollowing(userId);
   
         let receiverIds = [...followers, ...following].map(user => user._id.toString());
-  
+        socket.broadcast.emit("postUpload", { postId });
         if (receiverIds.length) {
           const message = `${owner.fullname} has uploaded a new post.`;
           await this.notificationService.sendNotification( userId, receiverIds, "post", message, postId,owner.username);
@@ -42,33 +42,49 @@ export class PostSocketService implements IPostSocketService {
         this.handleError(socket, error, "postUploadError");
       }
     }
-  
+
     async likePost(socket: Socket, userId: string, postId: string, type: string) {
       try {
         if (!userId || !postId) throw new Error("Invalid request. User ID and Post ID are required.");
-  
+    
         console.log(`❤️ ${type === "unlike" ? "Unlike" : "Like"} received from ${userId} for Post ID: ${postId}`);
-  
+    
+        if (type === "unlike") {
+          await this.postRepository.unlikePost(userId, postId);
+        } else {
+          await this.postRepository.likePost(userId, postId);
+        }
         const updatedPost = await this.postRepository.getPost(postId);
         if (!updatedPost) throw new Error("Post not found or failed to update.");
-  
-        socket.broadcast.emit("update_like_count", { postId, likes: updatedPost.likes.length });
-  
+    
+        const likesArray = Array.isArray(updatedPost.likes) ? updatedPost.likes : [];
+
+        this.io.emit("update_like_count", { postId, likes: likesArray.length });
+        socket.broadcast.emit("update_like_count", { postId, likes: likesArray.length });
+    
         const [postOwner, likePerson] = await Promise.all([
           this.userRepository.findById(updatedPost.userId),
           this.userRepository.findById(userId),
         ]);
-  
+    
         if (!postOwner || !likePerson) throw new Error("User not found.");
-  
+    
         if (postOwner._id.toString() !== userId) {
           const ownerMessage = `${likePerson.fullname} ${type === "unlike" ? "unliked" : "liked"} your post.`;
-          await this.notificationService.sendNotification(userId, [postOwner._id.toString()], "like", ownerMessage, postId,postOwner.username);
+          await this.notificationService.sendNotification(
+            userId,
+            [postOwner._id.toString()],
+            "like",
+            ownerMessage,
+            postId,
+            postOwner.username
+          );
         }
       } catch (error) {
         this.handleError(socket, error, "likeError");
       }
     }
+    
 
     async addComment(socket: Socket, data: { userId: string; postId: string; content: string }) {
       try {
@@ -100,6 +116,33 @@ export class PostSocketService implements IPostSocketService {
         this.handleError(socket, error, "commentError");
       }
     }
+    
+    async savePost(socket: Socket, postId: string, userId: string) {
+      try {
+      let res =  await this.postRepository.savePost(postId, userId);
+      if(res){
+        console.log("saved post",postId)
+      }
+        
+        socket.emit("postSaved", { userId, saved: res });
+      } catch (error) {
+        this.handleError(socket, error, "savePostError");
+      }
+    }
+
+    async deletePost(socket: Socket, postId: string, userId: string) {
+      try {
+      let res =  await this.postRepository.deletePost(postId, userId);
+      if(res){
+        console.log("saved post",postId)
+      }
+        
+        socket.emit("deletePost", { userId });
+      } catch (error) {
+        this.handleError(socket, error, "savePostError");
+      }
+    }
+    
   
     private handleError(socket: Socket, error: unknown, event: string) {
       console.error(`❌ ${event} Error:`, error instanceof Error ? error.message : error);
