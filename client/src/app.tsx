@@ -49,6 +49,7 @@ const App = () => {
   <Route path="create/:userId" element={<PostUpload />} />
   <Route path="edit-post/:postId" element={<EditPost />} />
   <Route path="messages" element={<ChatSection />} />
+  
 </Route>
 
             <Route path="/admin/dashboard" element={<AdminPrivateRoute><AdminDashBord /></AdminPrivateRoute>} />

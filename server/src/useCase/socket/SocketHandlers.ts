@@ -129,9 +129,11 @@ export class SocketHandlers implements ISocketHandlers {
     async sendMessage(socket: Socket, messageData: { _id: string; chatId: string; senderId: string; receiverId:string;  content: string; type: string; createdAt: string; replyTo?: string }): Promise<void> {
       try {
         const { _id, chatId, senderId, content, type, createdAt, replyTo } = messageData;
-
+          if(!messageData.type){
+            messageData.type = "text"
+          }
         if (["text", "image", "video", "file"].includes(messageData.type)) {
-          await this.chatService.sendMessage(socket, messageData as { _id: string; chatId: string; senderId: string; receiverId:string; content: string; type: "text" | "image" | "video" | "file"; createdAt: string; replyTo?: string });
+          await this.chatService.sendMessage(socket, messageData.chatId, messageData.senderId, messageData);
         } else {
           throw new Error(`Invalid message type: ${messageData.type}`);
         }
@@ -142,12 +144,27 @@ export class SocketHandlers implements ISocketHandlers {
 
     async createChat(socket: Socket, senderId: string, receiverId: string){
       try {
-        await this.chatService.createChat()
+        console.log(senderId,receiverId,"for>>>>>>>>>>>>> 2")
+        await this.chatService.createChat(socket,senderId,receiverId)
       } catch (error) {
         
       }
     }
-  
+  async getChats(socket: Socket, userId: { userId: string }): Promise<void> {
+    try {
+      await this.chatService.getUserChats(socket, userId);
+    } catch (error) {
+      this.handleError(socket, error, "getChatsError");
+    }
+  }
+
+  async getMessages(socket: Socket,chatId: string, page: number, limit: number ): Promise<void> {
+    try {
+      await this.chatService.getMessages(socket, chatId, page, limit);
+    } catch (error) {
+      this.handleError(socket, error, "loadMessagesError");
+    }
+  }
 
 
   private handleError(socket: Socket, error: unknown, event: string) {

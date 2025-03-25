@@ -40,7 +40,8 @@ class App {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
     this.app.use(cookieParser());
-    this.app.use(morgan("dev")); 
+    // this.app.use(morgan("dev")); 
+    
 
     // Express-Session Setup
     this.app.use(

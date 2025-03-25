@@ -6,19 +6,7 @@ export interface IChatService {
   /**
    * Sends a message in a chat.
    */
-  sendMessage(
-    socket: Socket,
-    messageData: {
-      _id: string;
-      chatId?: string;
-      senderId: string;
-      receiverId: string;
-      content: string;
-      type: string;
-      createdAt: string;
-      replyTo?: string;
-    }
-  ): Promise<void>;
+ sendMessage(socket:Socket,chatId:string, senderId: string, message: object): Promise<void>
   /**
    * Saves a message to the database.
    */
@@ -32,7 +20,7 @@ export interface IChatService {
   /**
    * Retrieves messages for a chat.
    */
-  getMessages(chatId: string): Promise<IMessage[]>;
+  getMessages(socket:Socket, chatId: string, page: number, limit: number ): Promise<void> 
 
   /**
    * Retrieves a chat by its ID.
@@ -47,8 +35,7 @@ export interface IChatService {
   /**
    * Retrieves all chats for a user.
    */
-  getUserChats(userId: string): Promise<IChat[]>;
-
+  getUserChats(socket: Socket, userId: { userId: string }): Promise<void> 
    /**
    * Create one to one chat.
    */

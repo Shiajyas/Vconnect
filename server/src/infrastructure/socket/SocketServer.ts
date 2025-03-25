@@ -18,17 +18,18 @@ import { ICommentSocketService } from "../../useCase/socket/socketServices/Inter
 import { CommentSocketService } from "../../useCase/socket/socketServices/CommentSocketService";
 import { IChatService } from "../../useCase/socket/socketServices/Interface/IChatService";
 import { ChatService } from "../../useCase/socket/socketServices/ChatService";
-import { IChatRepository } from "../../data/interfaces/IChatRepository";
-import  ChatRepository  from "../../data/repositories/ChatRepository";
+import IChatRepository from "../../data/interfaces/IChatRepository";
+import { ChatRepository } from "../../data/repositories/ChatRepository";
 
 // Instantiate repositories
 const userRepository: IUserRepository = new UserRepository();
 const mainUserRepository: ISUserRepository = new SUserRepositoryImpl();
 const postRepository: IPostRepository = new PostRepository();
 const commentRepository: ICommentRepository = new CommentRepository();
-const chatService: IChatService = new ChatService(ChatRepository);
+
 let io: Server | null = null; // Ensure proper initialization
 let notificationService: NotificationService; // Declare without initialization
+const chatRepository: IChatRepository = new ChatRepository();
 
 export const initializeSocket = (server: ReturnType<typeof createServer>) => {
   if (io) {
@@ -45,6 +46,7 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
 
   // Initialize Notification Service AFTER io is set up
   notificationService = new NotificationService(io, mainUserRepository,userRepository);
+  const chatService: IChatService = new ChatService(chatRepository, io);
 
   // Now initialize socket services since notificationService is available
   const userSocketService: IUserSocketService = new UserSocketService(
@@ -82,6 +84,11 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
 
   io.on("connection", (socket: Socket) => {
     console.log(`[${new Date().toISOString()}] 🔌 New client connected: ${socket.id}`);
+
+    socket.removeAllListeners("joinChat");
+    socket.removeAllListeners("leaveChat");
+    socket.removeAllListeners("sendMessage");
+  
 
     socket.on("joinUser", (id) => socketHandlers.joinUser(socket, id));
 
@@ -156,11 +163,49 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
       try {
         console.log(postId,userId,"for>>>>>>>>>>>>> 1")
         await socketHandlers.deletePost(socket,postId,userId)
+     
       } catch (error) {
         console.error("Error liking comment:", error);
       }
     })
 
+    socket.on("userOnline", (userId) => {
+      console.log(`User ${userId} is online`);
+      socket.emit("updateOnlineUsers", userId);
+    });
+
+    socket.on("createChat", async({ senderId, receiverId }) => {
+      console.log(`User ${senderId} is create in chat: ${receiverId}`);
+      try {
+        await socketHandlers.createChat(socket, senderId, receiverId);
+      } catch (error) {
+        console.log(error)
+      }
+    });
+    
+    socket.on("getChats", async (userId) => {
+      try {
+        console.log("getChats", userId);
+        await socketHandlers.getChats(socket, userId);
+      } catch (error) {
+        console.error("Error getChats:", error);
+      }
+    });
+
+    socket.on("fetchMessages", async ({ chatId, page, limit }) => {
+      try {
+        console.log("fetchMessages", chatId, page, limit);
+        const messages = await socketHandlers.getMessages(socket,chatId, page, limit);
+
+        console.log("hited fetchMessages")
+     
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        socket.emit("error", { message: "Failed to fetch messages" });
+      }
+    });
+
+    
     socket.on("sendMessage",async(newMessage)=>{
       try {
         console.log(newMessage,"for>>>>>>>>>>>>> 1")
@@ -171,36 +216,39 @@ export const initializeSocket = (server: ReturnType<typeof createServer>) => {
       }
     })
 
-    socket.on("loadMessages", async ({ chatId, page, limit }) => {
-      try {
-        console.log(`Loading messages for chat: ${chatId}, Page: ${page}`);
 
-        // Fetch messages from the database
-        const messages = await chatService.getMessages(chatId);
+ socket.on("typing", ({ chatId, senderId }) => {
+  console.log("typing", chatId, senderId);
+  socket.to(chatId).emit("userTyping", { senderId });
+});
 
-        // Emit messages to the client
-        socket.emit("chatMessages", { messages });
-        
-      } catch (error) {
-        console.error("Error loading messages:", error);
-      }
-    });
+const chatRooms = new Map(); // Store active socket rooms
 
-    socket.on("typing", ({ chatId, userId }) => {
-      console.log(`User ${userId} is typing in chat: ${chatId}`);
-      socket.to(chatId).emit("userTyping", chatId);
-    });
+socket.on("joinChat", async(chatId) => {
+  const existingRoom = chatRooms.get(socket.id);
+  if (existingRoom === chatId) return; // Prevent duplicate joins
 
-    socket.on("userOnline", (userId) => {
-      console.log(`User ${userId} is online`);
-      socket.emit("updateOnlineUsers", userId);
-    });
+  console.log(`[${socket.id}] joining chat room: ${chatId}`);
+  chatRooms.set(socket.id, chatId);
 
+  socket.join(chatId);
+ 
+  console.log(`[${socket.id}] joined chat room: ${chatId}`);
+//  await socketHandlers.getMessages(socket,chatId, 1, 20);
+});
 
-    socket.on("disconnect", () => {
-      console.log(`[${new Date().toISOString()}] ❌ Client disconnected: ${socket.id}`);
-    });
+socket.on("leaveChat", (chatId) => {
+  console.log(`[${socket.id}] leaving chat room: ${chatId}`);
+  socket.leave(chatId);
+  chatRooms.delete(socket.id);
+});
+
+socket.on("disconnect", () => {
+  console.log(`[${new Date().toISOString()}] ❌ Client disconnected: ${socket.id}`);
+});
   });
+
+  
 
   console.log("✅ Socket.IO initialized and ready to accept connections.");
 };

@@ -6,7 +6,7 @@ export interface IMessage extends Document {
   _id: string;
   chatId: string;
   senderId: string;
-  receiverId:string; 
+  receiverId: string | null; 
   content: string;
   type: "text" | "image" | "video" | "file"; 
   createdAt: Date;

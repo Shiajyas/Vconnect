@@ -1,47 +1,63 @@
 import React, { useRef, useEffect } from "react";
 import { useInfiniteScroll } from "@/customeComponents/common/useInfiniteScroll";
+import useChatSockets from "@/hooks/chatHooks/useChatSocket";
 
 interface Message {
   _id: string;
   senderId: string;
   content: string;
-  replyTo?: {
-    content: string;
-  };
+  createdAt?: string;
 }
 
 interface ChatMessagesProps {
-  messages: Message[];
+  chatId: string;
   userId: string;
-  typing: boolean;
-  fetchNextPage: () => void;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
+  darkMode: boolean;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, userId, typing, fetchNextPage, hasNextPage, isFetchingNextPage }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
-  useInfiniteScroll(chatContainerRef, fetchNextPage, hasNextPage, isFetchingNextPage);
+  const { messages, fetchMessages, hasMore, typing, loading } = useChatSockets(chatId, userId);
 
-  // Scroll to the latest message when a new message arrives
+  console.log("📥 Messages:", messages);
+
+  useInfiniteScroll(chatContainerRef, fetchMessages, hasMore, loading);
+
+  // Scroll to the latest message on new messages
   useEffect(() => {
-    if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (lastMessageRef.current && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
   return (
-    <div ref={chatContainerRef} className="flex flex-col flex-grow overflow-y-auto p-4 space-y-2">
-      {hasNextPage && !isFetchingNextPage && <p className="text-center text-gray-500 text-sm">Loading older messages...</p>}
+    <div
+      ref={chatContainerRef}
+      className={`flex flex-col flex-grow overflow-y-auto overflow-x-hidden p-4 space-y-2 ${
+        darkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+      }`}
+      style={{ height: "60vh", scrollbarWidth: "none" }}
+    >
+      {/* Hide Scrollbar */}
+      <style>
+        {`
+          ::-webkit-scrollbar {
+            display: none;
+          }
+        `}
+      </style>
+      {hasMore && !loading && (
+        <p className="text-center text-gray-500 text-sm">Loading older messages...</p>
+      )}
 
       {messages.map((msg, index) => {
-        const isSelf = msg.senderId === userId;
+        const isSelf = msg?.sender?._id?._id === userId ;
         return (
           <div
             key={msg._id}
-            ref={index === messages.length - 1 ? lastMessageRef : null} // Track last message
+            ref={index === messages.length - 1 ? lastMessageRef : null}
             className={`flex ${isSelf ? "justify-end" : "justify-start"}`}
           >
             <div
@@ -49,11 +65,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, userId, typing, f
                 isSelf ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"
               }`}
             >
-              {msg.replyTo && (
-                <div className="text-xs text-gray-600 border-l-2 pl-2 mb-1">
-                  Replying to: {msg.replyTo.content}
-                </div>
-              )}
               <p>{msg.content}</p>
             </div>
           </div>

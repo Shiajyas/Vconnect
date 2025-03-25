@@ -1,57 +1,102 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Smile } from "lucide-react";
+import useChatSockets from "@/hooks/chatHooks/useChatSocket";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 
 interface ChatInputProps {
-  sendMessage: (message: string) => void;
-  handleTyping: () => void;
+  chatId: string;
+  userId: string;
   darkMode: boolean;
+  replyTo?: any;
+  editMode?: any;
+  setReplyTo: (msg: any | null) => void;
+  setEditMode: (msg: any | null) => void;
+  editMessage: (id: string, newContent: string) => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ sendMessage, handleTyping, darkMode }) => {
-  const [newMessage, setNewMessage] = useState("");
+const ChatInput: React.FC<ChatInputProps> = ({ chatId, userId, darkMode, replyTo, editMode, setReplyTo, setEditMode, editMessage }) => {
+  const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const { sendMessage, handleTyping } = useChatSockets(chatId, userId);
 
-  const onSend = () => {
-    if (newMessage.trim()) {
-      sendMessage(newMessage);
-      setNewMessage("");
-    }
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (replyTo) setMessage(`Replying to: ${replyTo.content}`);
+    if (editMode) setMessage(editMode.content);
+  }, [replyTo, editMode]);
+
+  const handleTypingWithDebounce = useCallback(() => {
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
+      handleTyping();
+    }, 1000);
+  }, []);
+
+  const addEmoji = (emoji: any) => {
+    setMessage((prev) => prev + emoji.native);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onSend();
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
     }
-    handleTyping();
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker]);
+
+  const onSend = () => {
+    if (message.trim()) {
+      if (editMode) {
+        editMessage(editMode._id, message.trim());
+        setEditMode(null);
+      } else {
+        setMessage("");
+        sendMessage(message.trim());
+        setReplyTo(null);
+      }
+      setMessage("");
+      setShowEmojiPicker(false);
+    }
   };
 
   return (
-    <div className={`relative p-3 border-t flex items-center ${darkMode ? "bg-gray-900 border-gray-700" : "bg-white"}`}>
-      <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-all" onClick={() => setShowEmojiPicker((prev) => !prev)}>
-        <Smile className={`w-6 h-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
-      </button>
-
-      {showEmojiPicker && (
-        <div className="absolute bottom-14 left-2 bg-white shadow-md rounded-lg">
-          <Picker data={data} onEmojiSelect={(emoji: any) => setNewMessage((prev) => prev + emoji.native)} />
-        </div>
-      )}
+    <div className={`relative p-3 flex items-center w-full rounded-lg ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
+      <div className="relative" ref={emojiPickerRef}>
+        <Button onClick={() => setShowEmojiPicker((prev) => !prev)} className="p-2">
+          <Smile className="w-5 h-5" />
+        </Button>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full left-0 z-50 mb-2">
+            <Picker data={data} onEmojiSelect={addEmoji} theme={darkMode ? "dark" : "light"} />
+          </div>
+        )}
+      </div>
 
       <Input
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a message..."
-        className={`flex-grow mx-2 border rounded-lg px-3 py-2 ${darkMode ? "bg-gray-800 text-white border-gray-600" : "bg-white text-black border-gray-300"}`}
+        value={message}
+        onChange={(e) => {
+          setMessage(e.target.value);
+          handleTypingWithDebounce();
+        }}
+        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), onSend())}
+        className="flex-grow mx-2"
       />
 
-      <Button onClick={onSend} className={`p-2 ${darkMode ? "bg-blue-700 hover:bg-blue-800" : "bg-blue-500 hover:bg-blue-600"}`}>
-        <Send className="w-5 h-5 text-white" />
+      <Button onClick={onSend}>
+        <Send className="w-5 h-5" />
       </Button>
     </div>
   );
