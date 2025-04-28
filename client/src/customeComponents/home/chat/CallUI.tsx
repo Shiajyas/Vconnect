@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, Mic, MicOff, Video, VideoOff, PhoneOff, User } from "lucide-react";
+import gsap from "gsap";
 
 interface CallUIProps {
   callType: "voice" | "video";
@@ -10,9 +11,10 @@ interface CallUIProps {
   isVideoOn: boolean;
   onToggleMic: () => void;
   onToggleVideo: () => void;
-  otherUser?: { username: string; avatar?: string };
+  otherUser?: { username: string; avatar?: string; isMicMuted?: boolean };
   callActive: boolean;
-  incomingCall: boolean; // New prop to indicate if it's an incoming call for the recipient
+  incomingCall: boolean;
+  onCallAccepted: () => void;
 }
 
 const CallUI: React.FC<CallUIProps> = ({
@@ -27,20 +29,21 @@ const CallUI: React.FC<CallUIProps> = ({
   otherUser,
   callActive,
   incomingCall,
+  onCallAccepted,
 }) => {
   const [seconds, setSeconds] = useState(0);
-  const [audioStarted, setAudioStarted] = useState(false); // Tracks if user has interacted
+  const [audioStarted, setAudioStarted] = useState(false);
   const [ringback, setRingback] = useState<HTMLAudioElement | null>(null);
   const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
+  const [micLoading, setMicLoading] = useState(false);
+  const [showEndCallConfirm, setShowEndCallConfirm] = useState(false);
 
   useEffect(() => {
-    // Start call timer once the call is active (only after the call is accepted)
     if (!callActive) return;
     const interval = setInterval(() => setSeconds((prev) => prev + 1), 1000);
     return () => clearInterval(interval);
   }, [callActive]);
-  console.log("Call active:", callActive);
-  console.log("Incoming call:", incomingCall);
+
   useEffect(() => {
     function setupAudio() {
       const newRingback = new Audio('/sounds/outgoing-ring.mp3');
@@ -51,7 +54,6 @@ const CallUI: React.FC<CallUIProps> = ({
       setRingtone(newRingtone);
     }
 
-    // Allow user to interact with the page before playing sound
     function handleAudioStart() {
       if (!audioStarted) {
         setAudioStarted(true);
@@ -59,14 +61,11 @@ const CallUI: React.FC<CallUIProps> = ({
       }
     }
 
-    // Event listener for user interaction (click anywhere)
     const audioStartListener = () => handleAudioStart();
     document.body.addEventListener('click', audioStartListener);
 
-    // Cleanup audio listeners and stop sounds
     return () => {
       document.body.removeEventListener('click', audioStartListener);
-      // Stop the audio when the component is unmounted or the call ends
       if (ringback) {
         ringback.pause();
         ringback.currentTime = 0;
@@ -75,36 +74,39 @@ const CallUI: React.FC<CallUIProps> = ({
         ringtone.pause();
         ringtone.currentTime = 0;
       }
-    };  
-  }, [ ringback, ringtone]);
+    };
+  }, [audioStarted, ringback, ringtone]);
 
   useEffect(() => {
     if (!audioStarted) return;
 
-    // Play incoming ringtone for incoming calls
-    if (incomingCall  ) {
+    if (incomingCall) {
       try {
         ringtone?.play();
-        console.log("Ringtone playing...");
       } catch (err) {
         console.warn("Failed to play ringtone", err);
       }
-    }else{
-      setRingtone(null);
-      console.log("Ringtone stopped...");
+    } else {
+      if (ringtone) {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+      }
     }
 
-    // Play outgoing ringback for outgoing calls
-    if (!callActive ) {
+    if (!callActive && !incomingCall) {
       try {
         ringback?.play();
-        console.log("Ringback playing...");
       } catch (err) {
         setRingback(null);
         console.warn("Failed to play ringback", err);
       }
+    } else {
+      if (ringback) {
+        ringback.pause();
+        ringback.currentTime = 0;
+      }
     }
-  }, [incomingCall, callActive, ringback, ringtone]);
+  }, [incomingCall, callActive, audioStarted, ringback, ringtone]);
 
   const formatTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
@@ -115,19 +117,69 @@ const CallUI: React.FC<CallUIProps> = ({
   useEffect(() => {
     const localVideo = document.getElementById("local-video") as HTMLVideoElement | null;
     const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+    const localAudio = document.getElementById("local-audio") as HTMLAudioElement | null;
 
-    if (localVideo && localStream) {
+    if (localVideo && localStream && callType === "video") {
       localVideo.srcObject = localStream;
     }
+    if (localAudio && localStream && callType === "voice") {
+      localAudio.srcObject = localStream;
+    }
 
-    if (remoteVideo && remoteStream) {
+    if (remoteVideo && remoteStream && callType === "video") {
       remoteVideo.srcObject = remoteStream;
     }
-  }, [localStream, remoteStream]);
+  }, [localStream, remoteStream, callType]);
+
+  const handleMicToggle = async () => {
+    setMicLoading(true);
+    try {
+      await onToggleMic();
+    } catch (error) {
+      console.error("Error toggling mic:", error);
+    } finally {
+      setMicLoading(false);
+    }
+  };
+
+  const handleEndCall = () => {
+    if (showEndCallConfirm) {
+      onClose(); // Close call when confirmed
+    } else {
+      setShowEndCallConfirm(true); // Show confirmation
+    }
+  };
+
+  // GSAP animations for better UI experience
+  const animateModal = () => {
+    gsap.fromTo(
+      ".call-modal",
+      { opacity: 0, scale: 0.8 },
+      { opacity: 1, scale: 1, duration: 0.3 }
+    );
+  };
+
+  const animateEndCallConfirm = () => {
+    gsap.fromTo(
+      ".end-call-confirm",
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 0.3 }
+    );
+  };
+
+  useEffect(() => {
+    animateModal();
+  }, []);
+
+  useEffect(() => {
+    if (showEndCallConfirm) {
+      animateEndCallConfirm();
+    }
+  }, [showEndCallConfirm]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center transition-all">
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 w-[90%] sm:w-96 shadow-2xl">
+      <div className="call-modal relative bg-white dark:bg-gray-900 rounded-2xl p-6 w-[90%] sm:w-96 shadow-2xl">
         <button
           className="absolute top-3 right-3 text-gray-500 hover:text-red-500 transition"
           onClick={onClose}
@@ -193,12 +245,18 @@ const CallUI: React.FC<CallUIProps> = ({
 
         <div className="flex justify-center items-center gap-4 mt-2">
           <button
-            onClick={onToggleMic}
-            className="p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:scale-110 transition"
+            onClick={handleMicToggle}
+            className={`p-3 rounded-full ${micLoading ? 'bg-gray-400' : 'bg-gray-200 dark:bg-gray-700'} hover:scale-110 transition`}
             aria-label="Toggle Microphone"
-            tabIndex={0}
+            disabled={micLoading}
           >
-            {isMicOn ? <Mic className="text-green-500" /> : <MicOff className="text-red-500" />}
+            {micLoading ? (
+              <span>Loading...</span>
+            ) : isMicOn ? (
+              <Mic className="text-green-500" />
+            ) : (
+              <MicOff className="text-red-500" />
+            )}
           </button>
 
           {callType === "video" && (
@@ -206,21 +264,58 @@ const CallUI: React.FC<CallUIProps> = ({
               onClick={onToggleVideo}
               className="p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:scale-110 transition"
               aria-label="Toggle Video"
-              tabIndex={0}
             >
-              {isVideoOn ? <Video className="text-green-500" /> : <VideoOff className="text-red-500" />}
+              {micLoading ? (
+                <span>Loading...</span>
+              ) : isVideoOn ? (
+                <Video className="text-green-500" />
+              ) : (
+                <VideoOff className="text-red-500" />
+              )}
             </button>
           )}
 
           <button
-            onClick={onClose}
-            className="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 transition hover:scale-110"
+            onClick={handleEndCall}
+            className="p-3 rounded-full bg-red-600 text-white hover:bg-red-700"
             aria-label="End Call"
-            tabIndex={0}
           >
-            <PhoneOff />
+            <PhoneOff className="w-6 h-6" />
           </button>
         </div>
+
+        {showEndCallConfirm && (
+  <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center transition-all">
+    <div className="end-call-confirm bg-white dark:bg-gray-800 p-6 rounded-lg w-[80%] sm:w-[400px] shadow-xl">
+      <p className="text-sm font-semibold text-red-600 mb-4 text-center">
+        Are you sure you want to end the call?
+      </p>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={handleEndCall}
+          className="bg-red-500 text-white py-2 px-4 rounded-full"
+        >
+          Yes
+        </button>
+        <button
+          onClick={() => setShowEndCallConfirm(false)}
+          className="bg-gray-500 text-white py-2 px-4 rounded-full"
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+        {callType === "voice" && (
+          <audio
+            id="local-audio"
+            autoPlay
+            className="hidden"
+          />
+        )}
       </div>
     </div>
   );

@@ -40,13 +40,13 @@ const ChatSection = () => {
     endCall,
     localStream,
     remoteStream,
+    localAudioRef,
     toggleMic,
     toggleVideo,
     isMicOn,
     isVideoOn,
     incomingCall,
     acceptCall,
-
   } = useWebRTC({
     userId,
     chatId: selectedChat?.users.find((u) => u._id !== userId)?._id,
@@ -107,13 +107,13 @@ const ChatSection = () => {
       ? selectedChat.users.find((u) => u._id !== userId)
       : null;
 
+
+      console.log("other user", otherUser);
   const isOtherUserOnline = otherUser ? onlineUsers.includes(otherUser._id) : false;
 
   return (
     <div
-      className={`flex flex-col h-[740px] w-full max-w-4xl border transition-all ${
-        darkMode ? "bg-gray-900 text-white" : "bg-white text-black"
-      }`}
+      className={`flex flex-col h-[740px] w-full max-w-4xl border transition-all ${darkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}
     >
       {/* Header */}
       <div className="p-2 flex justify-between items-center border-b">
@@ -196,24 +196,20 @@ const ChatSection = () => {
 
       {/* Call UI */}
       {inCall && callType && (
-     <CallUI
-
-     callType={callType}
-     localStream={localStream}
-     remoteStream={remoteStream}
-     onClose={() => endCall()}
-     isMicOn={isMicOn}
-     isVideoOn={isVideoOn}
-     onToggleMic={toggleMic}
-     onToggleVideo={toggleVideo}
-     otherUser={otherUser ? { username: otherUser.username, avatar: otherUser.avatar } : undefined}
-     callActive = {callActive}
-     incomingCall={!!incomingCall}
-   />
-   
+        <CallUI
+          callType={callType}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          onClose={() => endCall()}
+          isMicOn={isMicOn}
+          isVideoOn={isVideoOn}
+          onToggleMic={toggleMic}
+          onToggleVideo={toggleVideo}
+          otherUser={otherUser ? { username: otherUser.username, avatar: otherUser.avatar } : undefined}
+          callActive={callActive}
+          incomingCall={!!incomingCall}
+        />
       )}
-
-    
     </div>
   );
 };
