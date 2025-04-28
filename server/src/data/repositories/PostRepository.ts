@@ -91,16 +91,22 @@ async getPosts(
     }
     
     
-    async deletePost(postId: string,userId: string ): Promise<boolean> {
-        try {
-          await Post.findOneAndDelete({ _id: postId, userId });
-          console.log("success delete")
-          return  true
-        } catch (error) {
-          console.log("delete post error",error)
-          return false
+    async deletePost(postId: string, userId: string): Promise<boolean> {
+      try {
+
+        if (typeof postId !== "string" || typeof userId !== "string") {
+          throw new Error("Invalid postId or userId");
         }
+    
+        await Post.findOneAndDelete({ _id: postId, userId });
+        // console.log("success delete");
+        return true;
+      } catch (error) {
+        console.log("delete post error", error);
+        return false;
+      }
     }
+    
  
     async likePost(userId: string, postId: string): Promise<void> {
         await Post.findByIdAndUpdate(postId, { $addToSet: { likes: userId } });
@@ -126,7 +132,7 @@ async getPosts(
      .populate("userId", "fullname username avatar");
     }
 
-async savePost(userId: string, postId: string): Promise<boolean> {
+async savePost(postId: string,userId: string ): Promise<boolean> {
   try {
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const postObjectId = new mongoose.Types.ObjectId(postId);
@@ -153,7 +159,7 @@ async savePost(userId: string, postId: string): Promise<boolean> {
         { new: true }
       );
     }
-    console.log(updatedPost,">>>>>>>>>>>>");
+    // console.log(updatedPost,">>>>>>>>>>>>");
           
     return !isAlreadySaved; // Return true if saved, false if unsaved
   } catch (error) {

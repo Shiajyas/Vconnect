@@ -8,7 +8,8 @@ export interface IMessage extends Document {
   senderId: string;
   receiverId: string | null; 
   content: string;
-  type: "text" | "image" | "video" | "file"; 
+  type: "text" | "image" | "video" | "file"|"link"; 
   createdAt: Date;
   replyTo?: IMessage | string | null; 
+  replayContent?: string | null;
 }

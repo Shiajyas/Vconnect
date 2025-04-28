@@ -5,6 +5,7 @@ import { IMessage } from "../../core/domain/interfaces/IMessage";
 import { IChat } from "../../core/domain/interfaces/IChat";
 import { INormalizedChat } from "../../core/domain/interfaces/INormalizedChat";
 import { INormalizedMessage } from "../../core/domain/interfaces/INormalizedMessage";
+import { ISUserRepository } from "../interfaces/ISUserRepository";
 import mongoose from "mongoose";
 
 
@@ -14,12 +15,18 @@ export class ChatRepository implements IChatRepository {
    */
   async saveMessage(message: Partial<IMessage>): Promise<INormalizedMessage> {
     try {
+      console.log(message,"for send messageLast")
       const newMessage = new MessageModel(message);
       const savedMessage = await newMessage.save();
-
-      // Populate sender details
-      await savedMessage.populate("senderId", "username avatar");
-
+  
+      // Populate sender details and replyTo details
+      await savedMessage.populate([
+        { path: "senderId", select: "username avatar" },
+        { path: "replyTo", select: "content senderId", populate: { path: "senderId", select: "username avatar" } }
+      ]);
+  
+      console.log(savedMessage, "savedMessage from chatRepository");
+  
       return {
         _id: savedMessage._id,
         chatId: savedMessage.chatId,
@@ -28,6 +35,7 @@ export class ChatRepository implements IChatRepository {
           username: (savedMessage.senderId as any).username,
           avatar: (savedMessage.senderId as any).avatar,
         },
+        receiverId: savedMessage?.receiverId ?? undefined,
         content: savedMessage.content,
         replyTo: savedMessage.replyTo
           ? {
@@ -37,14 +45,17 @@ export class ChatRepository implements IChatRepository {
                 ? savedMessage.replyTo.senderId.toString()
                 : "",
             }
-          : null,
+          : null, 
+          type: savedMessage?.type || "text",  
         createdAt: savedMessage.createdAt,
       };
-    } catch (error) {
+      
+    } catch (error) { 
       console.error("Error saving message:", error);
       throw new Error("Failed to save message");
     }
   }
+  
 
   /**
    * Updates the last message in a chat.
@@ -58,21 +69,21 @@ export class ChatRepository implements IChatRepository {
    */
 
   async getMessages(chatId: string, page: number = 0, limit: number = 20): Promise<INormalizedMessage[]> {
-    console.log(chatId, "from chatRepository");
+    // console.log(chatId, "from chatRepository");
   
     const objectId = new mongoose.Types.ObjectId(chatId); 
 
-    console.log(objectId, "from chatRepository");
+    // console.log(objectId, "from chatRepository");
   
     const messages = await MessageModel.find({ chatId: objectId }) // Use ObjectId
-      .sort({ createdAt: 1 }) // Oldest messages first
+      .sort({ createdAt: -1 }) // Oldest messages first
       .skip(page * limit)
       .limit(limit)
       .populate("senderId", "username avatar")
       .populate("replyTo", "content senderId")
       .exec();
 
-      console.log(messages, "from chatRepository");
+      // console.log(messages, "from chatRepository");
   
     return messages.map((msg) => ({
       _id: msg._id,
@@ -92,6 +103,7 @@ export class ChatRepository implements IChatRepository {
               : "",
           }
         : null,
+        type: msg.type || "text",
       createdAt: msg.createdAt,
     }));
   }
@@ -143,7 +155,7 @@ export class ChatRepository implements IChatRepository {
         await chat.save();
         chat = await chat.populate("users", "username avatar"); // Ensure users are populated after saving
       }
-     console.log(chat, "chat from getOrCreateOneToOneChat");
+    //  console.log(chat, "chat from getOrCreateOneToOneChat");
       return {
         _id: chat._id.toString(),
         users: chat.users.map((user) => ({
@@ -159,17 +171,16 @@ export class ChatRepository implements IChatRepository {
       throw new Error("Could not retrieve or create chat.");
     }
   }
-  
 
   /**
    * Retrieves all chats for a user.
    */
   async getUserChats(userId: string): Promise<INormalizedChat[]> {
-    console.log(userId, "from chatRepository getUserChats");
+    // console.log(userId, "from chatRepository getUserChats");
     const objectId = new mongoose.Types.ObjectId(userId); 
 
     const chats = await ChatModel.find({ users: objectId })
-      .sort({ createdAt: 1 })
+      .sort({ updatedAt: -1 })
       .populate("users", "username avatar")
       .populate("lastMessage", "content senderId")
       .exec();
@@ -227,6 +238,54 @@ export class ChatRepository implements IChatRepository {
       isGroupChat: chat.isGroupChat,
       createdAt: chat.createdAt,
     };
+  }
+
+  async deleteMessage(messageId: string): Promise<void> {
+    const deletedMessage = await MessageModel.findByIdAndDelete(messageId);
+    if (!deletedMessage) {
+      throw new Error("Message not found or could not be deleted");
+    }
+  }
+
+  async editMessage(messageId: string, newContent: string):  Promise<INormalizedMessage> {
+try {
+  const updatedMessage = await MessageModel.findByIdAndUpdate(
+    messageId,
+    { content: newContent, updatedAt: new Date() },
+    { new: true }
+  );
+  if (!updatedMessage) {
+    throw new Error("Message not found or could not be updated");
+  }else{
+    console.log("Message updated successfully:", updatedMessage,">>>>>>>>>>>>>>>>>>>>>>");
+    await updatedMessage.populate("senderId", "username avatar");
+
+    return {
+      _id: updatedMessage._id,
+      chatId: updatedMessage.chatId,
+      sender: {
+        _id: updatedMessage.senderId,
+        username: (updatedMessage.senderId as any).username,
+        avatar: (updatedMessage.senderId as any).avatar,
+      },
+      content: updatedMessage.content,
+      replyTo: updatedMessage.replyTo
+        ? {
+            _id: typeof updatedMessage.replyTo === "object" ? updatedMessage.replyTo._id : updatedMessage.replyTo,
+            content: typeof updatedMessage.replyTo === "object" ? updatedMessage.replyTo.content || "" : "",
+            sender: typeof updatedMessage.replyTo === "object" && "senderId" in updatedMessage.replyTo
+              ? updatedMessage.replyTo.senderId.toString()
+              : "",
+          }
+        : null,
+      type: updatedMessage.type || "text",
+      createdAt: updatedMessage.createdAt,
+    };
+  }
+} catch (error) {
+  console.error("Error updating message:", error);
+  throw new Error("Failed to update message");
+}
   }
 }
 

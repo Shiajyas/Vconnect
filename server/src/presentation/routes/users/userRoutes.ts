@@ -4,14 +4,16 @@ import userAuthMiddleware from "../../middleware/userAuthMiddleware";
 import { UserService } from "../../../useCase/UserService";
 import { UserRepository } from "../../../data/repositories/userRepository";
 import { PostRepository } from "../../../data/repositories/PostRepository";
+import SubscriptionUseCase from "../../../useCase/SubscriptionUseCase";
 import { upload } from "../../middleware/uploadMiddleware";
 
 const router = express.Router();
 const userRepositoryInstance = new UserRepository();
 const postRepositoryInstance = new PostRepository()
+const subscriptionUseCaseInstance =  SubscriptionUseCase
 export function userRoutes() {
     const userServiceInstance = new UserService(userRepositoryInstance,postRepositoryInstance);
-    const userController = new UserController(userServiceInstance);
+    const userController = new UserController(userServiceInstance,subscriptionUseCaseInstance);
 
     router.get("/suggestions", userAuthMiddleware.authenticate, userController.getSuggestions.bind(userController));
 
@@ -32,5 +34,30 @@ export function userRoutes() {
 
     router.get("/profile/savedPost/:id", userAuthMiddleware.authenticate, userController.getUserSavedPost.bind(userController));
 
+    router.get("/subscription/:id", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            await userController.getSubscription(req, res);
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    router.post("/subscribe/:id", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            await userController.subscribe(req, res);
+            next();
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    router.post("/confirm-subscription", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            await userController.confirmSubscription(req, res);
+            next();
+        } catch (error) {
+            next(error);
+        }
+    });
     return router;
 }

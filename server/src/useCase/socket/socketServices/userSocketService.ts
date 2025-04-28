@@ -20,14 +20,52 @@ export class UserSocketService implements IUserSocketService {
       this.notificationService = notificationService;
     }
     addUser(socket: Socket, userId: string): void {
-        try {
-            console.log(`🔹 Adding user ${userId} with socket ID ${socket.id}`);
-            this.sessionUserRepository.addUser({ id: userId, socketId: socket.id });
-            socket.emit("addUserSuccess", { userId });
-        } catch (error) {
-            this.handleError(socket, error, "addUserError");
-        }
+      try {
+        console.log(`🔹 Adding user ${userId} with socket ID ${socket.id}`);
+        
+        // Save user in memory
+        this.sessionUserRepository.addUser({ id: userId, socketId: socket.id });
+  
+        // Acknowledge the user
+        socket.emit("addUserSuccess", { userId });
+  
+        // Broadcast updated online users list
+        const onlineUsers = this.sessionUserRepository.getActiveUsers().map(user => user.id);
+        console.log("Online users: ", onlineUsers);
+        this.io.emit("updateOnlineUsers", onlineUsers);
+      } catch (error) {
+        this.handleError(socket, error, "addUserError");
+      }
     }
+  
+    async removeUser(socket: Socket, userId: string): Promise<void> {
+      try {
+        console.log(`🔹 Removing user ${userId} (Socket ID: ${socket.id})`);
+    
+        // Remove user using socket ID
+        this.sessionUserRepository.removeUser(socket.id);
+    
+        // Get updated user list
+        const onlineUsers = this.sessionUserRepository.getActiveUsers().map(user => user.id);
+        console.log("Online users: ", onlineUsers);
+        // Emit updated list to all clients
+        this.io.emit("updateOnlineUsers", onlineUsers);
+      } catch (error) {
+        this.handleError(socket, error, "removeUserError");
+      }
+    }
+
+    getOnlineUsers(socket: Socket): void {
+      try {
+        const onlineUsers = this.sessionUserRepository.getActiveUsers().map(user => user.id);
+        console.log("Online users: ", onlineUsers);
+        socket.emit("updateOnlineUsers", onlineUsers);
+      }catch (error) {
+        this.handleError(socket, error, "getOnlineUsersError");
+      }
+    }
+    
+  
     async handleFollow(socket: Socket, userId: string, followingId: string): Promise<void> {
         if (!userId || !followingId || userId === followingId) {
           throw new Error("Invalid follow request.");
@@ -99,7 +137,8 @@ export class UserSocketService implements IUserSocketService {
         this.handleError(socket, error, "followError");
       }
     }
-  
+
+
     private handleError(socket: Socket, error: unknown, event: string) {
       console.error(`❌ ${event} Error:`, error instanceof Error ? error.message : error);
       socket.emit(event, { message: error instanceof Error ? error.message : "An unknown error occurred." });

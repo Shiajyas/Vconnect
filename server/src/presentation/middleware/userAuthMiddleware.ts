@@ -13,7 +13,7 @@ export class userAuthMiddleware {
     try {
       // Extract token from Authorization header
       const token =  req.cookies.userToken;
-      // console.log("🔹 Received UserToken:", token);
+      // console.log("🔹 Received UserToken:", req.cookies);
       // console.log("🔹 Received Cookies:", JSON.stringify(req.cookies, null, 2));
       if (!token) {
         res.status(401).json({ msg: "Token is missing" });

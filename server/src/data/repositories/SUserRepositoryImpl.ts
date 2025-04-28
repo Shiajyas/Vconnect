@@ -6,9 +6,9 @@ export class SUserRepositoryImpl implements ISUserRepository {
 
   findById(id: string): SUser | undefined {
     // console.log(`🔍 Searching for user with ID: ${id}`);
-    console.log(this.users);
-    
-    let user = this.users.get(id);
+    // console.log(this.users);
+    // console.log(id,">>>>>>>>>>>")
+    let user = this.users.get(id?.toString());
 
     if (!user) {
       console.log(`⚠️ User not found: ${id}`);
@@ -24,7 +24,7 @@ export class SUserRepositoryImpl implements ISUserRepository {
     this.removeUser(user.socketId); // Ensure no duplicate socket IDs exist
     this.users.set(user.id, user);
     console.log(`✅ User added: ${user.id} (Socket ID: ${user.socketId})`);
-    this.logActiveUsers();
+    // this.logActiveUsers();
   }
 
   removeUser(socketId: string): void {

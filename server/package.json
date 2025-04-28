@@ -31,7 +31,8 @@
     "multer-s3": "^3.0.1",
     "nodemailer": "^6.9.16",
     "pg": "^8.13.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "stripe": "^17.7.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

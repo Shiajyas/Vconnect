@@ -75,7 +75,7 @@ const CallUI: React.FC<CallUIProps> = ({
         ringtone.pause();
         ringtone.currentTime = 0;
       }
-    };
+    };  
   }, [ ringback, ringtone]);
 
   useEffect(() => {

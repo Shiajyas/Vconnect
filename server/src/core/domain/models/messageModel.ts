@@ -8,8 +8,9 @@ const MessageSchema: Schema = new Schema(
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true},
     content: { type: String, required: true },
-    type: { type: String, enum: ["text", "image", "video", "file"], default: "text" },
+    type: { type: String, enum: ["text", "image", "video", "file","link"], default: "text" },
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "Message", default: null }, // Self-referencing for replies
+    
   },
   { timestamps: true }
 );

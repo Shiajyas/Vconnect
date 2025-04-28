@@ -10,4 +10,6 @@ export default interface IChatService {
   getOrCreateOneToOneChat(user1Id: string, user2Id: string): Promise<INormalizedChat>;
   getUserChats(userId: string): Promise<INormalizedChat[]>;
   getChatById(chatId: string): Promise<INormalizedChat | null>;
+  deleteMessage(messageId: string): Promise<void>
+  editMessage(messageId: string, newContent: string): Promise<INormalizedMessage> 
 }

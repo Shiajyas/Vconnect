@@ -38,9 +38,9 @@ class App {
     });
 
     this.app.use(bodyParser.json());
-    this.app.use(bodyParser.urlencoded({ extended: true }));
+    this.app.use(bodyParser.urlencoded({ extended: true, }));
     this.app.use(cookieParser());
-    // this.app.use(morgan("dev")); 
+    this.app.use(morgan("dev")); 
     
 
     // Express-Session Setup
@@ -51,8 +51,8 @@ class App {
         saveUninitialized: false,
         cookie: {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production", // Secure only in production
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", 
+          secure: false, // Secure only in production
+          sameSite: "lax" ,
           maxAge: 24 * 60 * 60 * 1000, // 1-day expiration
         },
       })
@@ -68,11 +68,11 @@ class App {
       res.status(200).json({ message: "GET route is working!" });
     });
 
-    this.app.use("/", userAuthRoutes);
-    this.app.use("/admin", adminAuthRoutes);
-    this.app.use("/users", userRoutes())
-    this.app.use("/users/notification",notificationRoutes)
-    this.app.use("/users/posts", postRoutes);
+    this.app.use("/api", userAuthRoutes);
+    this.app.use("/api/admin", adminAuthRoutes);
+    this.app.use("/api/users", userRoutes())
+    this.app.use("/api/users/notification",notificationRoutes)
+    this.app.use("/api/users/posts", postRoutes);
   }
 
   public start(): void {

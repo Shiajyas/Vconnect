@@ -132,10 +132,11 @@ export class PostSocketService implements IPostSocketService {
 
     async deletePost(socket: Socket, postId: string, userId: string) {
       try {
-      let res =  await this.postRepository.deletePost(postId, userId);
-      if(res){
-        console.log("saved post",postId)
-      }
+        console.log("delete post>>>>", postId);
+        let res = await this.postRepository.deletePost(postId, userId);
+        if (res) {
+          console.log("deleted post", postId);
+        }
         
         socket.emit("deletePost", { userId });
       } catch (error) {
