@@ -320,5 +320,5 @@ const CallUI: React.FC<CallUIProps> = ({
     </div>
   );
 };
-
+  
 export default CallUI;

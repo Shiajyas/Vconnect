@@ -67,4 +67,24 @@ export class CallSocketService implements ICallSocketService {
       console.warn(`⚠️ Cannot send call end — user ${data.to} not online.`);
     }
   }
+
+  async handleMicToggle(socket: Socket, data: { to: string; micOn: boolean }) {
+    const recipient = this.onlineUserRepository.findById(data.to);
+    if (recipient) {
+      console.log(`🎤 Toggling mic for user ${data.to}: ${data.micOn ? "ON" : "OFF"}`);
+      socket.to(recipient.socketId).emit("call:toggle-mic", { micOn: data.micOn });
+    } else {
+      console.warn(`⚠️ Cannot toggle mic — user ${data.to} not online.`);
+    }
+  }
+
+  async handleVideoToggle(socket: Socket, data: { to: string; videoOn: boolean }) {
+    const recipient = this.onlineUserRepository.findById(data.to);
+    if (recipient) {
+      console.log(`🎥 Toggling video for user ${data.to}: ${data.videoOn ? "ON" : "OFF"}`);
+      socket.to(recipient.socketId).emit("call:toggle-video", { videoOn: data.videoOn });
+    } else {
+      console.warn(`⚠️ Cannot toggle video — user ${data.to} not online.`);
+    }
+  }
 }

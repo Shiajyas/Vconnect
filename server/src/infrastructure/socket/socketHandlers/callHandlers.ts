@@ -37,4 +37,22 @@ export const callHandlers = (socket: Socket, callSocketService: ICallSocketServi
       console.error("Error handling call end:", error);
     }
   });
+
+  socket.on("call:toggle-mic", async (data) => {
+    try {
+      console.log(`🎙️ Mic toggle request from ${data.to}`);
+      await callSocketService.handleMicToggle(socket, data);
+    } catch (error) {
+      console.error("Error handling mic toggle:", error);
+    }
+  });
+
+  socket.on("call:toggle-video", async (data) => {
+    try {
+      console.log(`🎥 Video toggle request from ${data.to}`);
+      await callSocketService.handleVideoToggle(socket, data);
+    } catch (error) {
+      console.error("Error handling video toggle:", error);
+    }
+  });
 };

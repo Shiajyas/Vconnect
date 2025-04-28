@@ -5,4 +5,6 @@ export interface ICallSocketService {
   handleAnswer(socket: Socket, data: any): Promise<void>;
   handleIceCandidate(socket: Socket, data: any): Promise<void>;
   handleCallEnd(socket: Socket, data: any): Promise<void>;
+   handleMicToggle(socket: Socket, data: { to: string; micOn: boolean }): Promise<void>;
+  handleVideoToggle(socket: Socket, data: { to: string; videoOn: boolean }): Promise<void>;
 }
