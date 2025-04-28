@@ -72,7 +72,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className={`relative p-3 flex items-center w-full rounded-lg ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
+    <div className={`relative p-3 mb-2 flex items-center w-full rounded-lg ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
       {/* Reply Message UI */}
       {replyTo && (
         <div className="absolute top-0 left-0 w-full mx-0 my-0 bg-gray-200 text-sm">

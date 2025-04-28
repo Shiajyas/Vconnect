@@ -11,6 +11,8 @@ interface CallUIProps {
   isVideoOn: boolean;
   onToggleMic: () => void;
   onToggleVideo: () => void;
+  isRemoteMicOn: boolean;
+  isRemoteVideoOn: boolean;
   otherUser?: { username: string; avatar?: string; isMicMuted?: boolean };
   callActive: boolean;
   incomingCall: boolean;
@@ -26,6 +28,8 @@ const CallUI: React.FC<CallUIProps> = ({
   isVideoOn,
   onToggleMic,
   onToggleVideo,
+  isRemoteMicOn,
+  isRemoteVideoOn,
   otherUser,
   callActive,
   incomingCall,
@@ -210,6 +214,17 @@ const CallUI: React.FC<CallUIProps> = ({
               playsInline
               className="absolute bottom-2 right-2 w-24 h-24 sm:w-28 sm:h-28 border-2 border-white rounded-lg object-cover"
             />
+            {!isRemoteVideoOn && (
+              <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center text-white text-lg">
+                Camera Off
+              </div>
+            )}
+
+         { !isRemoteMicOn && (
+          <div className="absolute bottom-3 left-3 text-white text-xs bg-blue p-1 rounded-full">
+            <MicOff className="w-6 h-6" />
+          </div>
+        )}
           </div>
         )}
 
@@ -227,11 +242,9 @@ const CallUI: React.FC<CallUIProps> = ({
                   <User className="text-white w-10 h-10" />
                 </div>
               )}
-              <p className="text-base mt-2 text-gray-700 dark:text-white">
-                {otherUser?.username}
-              </p>
+            
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                On voice call...
+                {isRemoteMicOn ? "On voice call..." : "Mic Off"}
               </p>
             </div>
           </div>
@@ -284,30 +297,32 @@ const CallUI: React.FC<CallUIProps> = ({
           </button>
         </div>
 
-        {showEndCallConfirm && (
-  <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center transition-all">
-    <div className="end-call-confirm bg-white dark:bg-gray-800 p-6 rounded-lg w-[80%] sm:w-[400px] shadow-xl">
-      <p className="text-sm font-semibold text-red-600 mb-4 text-center">
-        Are you sure you want to end the call?
-      </p>
-      <div className="flex justify-center gap-4">
-        <button
-          onClick={handleEndCall}
-          className="bg-red-500 text-white py-2 px-4 rounded-full"
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => setShowEndCallConfirm(false)}
-          className="bg-gray-500 text-white py-2 px-4 rounded-full"
-        >
-          No
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        {/* Mic Status Icon */}
+    
 
+        {showEndCallConfirm && (
+          <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center transition-all">
+            <div className="end-call-confirm bg-white dark:bg-gray-800 p-6 rounded-lg w-[80%] sm:w-[400px] shadow-xl">
+              <p className="text-sm font-semibold text-blue-600 mb-4 text-center">
+                Are you sure you want to end the call?
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={handleEndCall}
+                  className="bg-blue-500 text-white py-2 px-4 rounded-full"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setShowEndCallConfirm(false)}
+                  className="bg-gray-500 text-white py-2 px-4 rounded-full"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {callType === "voice" && (
           <audio
@@ -320,5 +335,5 @@ const CallUI: React.FC<CallUIProps> = ({
     </div>
   );
 };
-  
+
 export default CallUI;

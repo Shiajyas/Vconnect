@@ -34,8 +34,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
 
   const { messages, fetchMessages, hasMore, typing, loading, deleteMessage } = useChatSockets(chatId, userId);
 
-  // console.log(messages,">>>><<<<")
-
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMode, setEditMode] = useState<Message | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
@@ -78,16 +76,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
     const fullUrl = msg.content.startsWith("http") ? msg.content : `${API_URL}/${msg.content}`;
     
     if (msg.content.startsWith("/home")) {
-      // This is an internal link (route within your app)
-      navigate(msg.content);
+      navigate(msg.content); // Handle internal link
     } else {
-      // External link, open in a new tab
-      window.open(fullUrl, "_blank");
+      window.open(fullUrl, "_blank"); // External link
     }
   };
 
   return (
     <div className="flex flex-col h-[75vh]">
+      {/* Chat Container */}
       <div
         ref={chatContainerRef}
         className={`flex flex-col-reverse flex-grow overflow-y-auto p-4 space-y-2 ${
@@ -97,6 +94,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
       >
         <style>{`::-webkit-scrollbar { display: none; }`}</style>
 
+        {/* Messages */}
         {messages.map((msg, index) => {
            const isSelf = msg?.sender?._id?._id === userId;
           const isSelected = selectedMessage === msg._id;
@@ -106,7 +104,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
               ref={(el) => (messageRefs.current[msg._id] = el)}
               className={`flex items-end gap-2 mb-2 ${isSelf ? "justify-end" : "justify-start"}`}
             >
-              {/* Avatar - Receiver */}
+              {/* Avatar */}
               {!isSelf && (
                 <img
                   src={msg.sender?.avatar || "/default-avatar.png"}
@@ -114,8 +112,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                   className="w-8 h-8 rounded-full"
                 />
               )}
-          
-              {/* Message bubble */}
+
+              {/* Message Bubble */}
               <div
                 onClick={() => handleMessageClick(msg._id)}
                 onDoubleClick={() => handleMessageClick(msg._id)}
@@ -123,7 +121,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                   isSelf ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
                 }`}
               >
-                {/* Reply preview */}
+                {/* Reply Preview */}
                 {msg.replyTo && (
                   <p
                     className="text-xs italic text-green-400 border-l-2 border-green-300 pl-2 mb-1 cursor-pointer"
@@ -135,7 +133,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                     Replying to: {msg.replyTo.content}
                   </p>
                 )}
-          
+
                 {/* Link Message */}
                 {msg.type === "link" ? (
                   <div
@@ -151,9 +149,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                       Check this out 👉
                     </p>
                     <a
-                      // href={msg.content}
-                      // target="_blank"
-                      // rel="noopener noreferrer"
                       className={`underline break-words ${
                         isSelf ? "text-blue-200 hover:text-blue-100" : "text-blue-600 hover:text-blue-800"
                       }`}
@@ -185,14 +180,14 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                     )}
                   </>
                 )}
-          
+
                 {/* Timestamp */}
                 {msg.createdAt && (
                   <p className="text-xs text-gray-400 mt-1 text-right">
                     {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                   </p>
                 )}
-          
+
                 {/* Actions on selected */}
                 {isSelected && (
                   <div className="absolute bottom-[-30px] left-0 right-0 bg-gray-800 text-white flex justify-center gap-3 py-1 text-xs rounded-b-xl">
@@ -207,7 +202,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                   </div>
                 )}
               </div>
-          
+
               {/* Avatar - Sender */}
               {isSelf && (
                 <img
@@ -218,12 +213,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
               )}
             </div>
           );
-          
         })}
 
+        {/* Typing Indicator */}
         {typing && <p className="text-sm text-gray-500 self-start">Typing...</p>}
       </div>
 
+      {/* Chat Input */}
       <ChatInput
         chatId={chatId}
         userId={userId}

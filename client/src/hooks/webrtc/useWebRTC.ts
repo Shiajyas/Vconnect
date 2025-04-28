@@ -33,6 +33,10 @@ export const useWebRTC = ({
   const callEndedRef = useRef(false);
   const [callPartnerId, setCallPartnerId] = useState<string | null>(null);
 
+  const [isRemoteMicOn, setIsRemoteMicOn] = useState(true); // Default: mic is on
+const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video is on
+
+
   const createPeerConnection = () => {
     console.log("📡 Creating RTCPeerConnection...");
     const pc = new RTCPeerConnection({
@@ -146,6 +150,8 @@ export const useWebRTC = ({
     onCallEnd();
     setCallActive(false);
     setCallPartnerId(null);
+    setIsRemoteMicOn(true); // Reset remote mic state
+    setIsRemoteVideoOn(true); // Reset remote video state
 
     // Clear video and audio elements
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -155,62 +161,86 @@ export const useWebRTC = ({
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall || !offer) return;
-
+  
     try {
       callEndedRef.current = false;
-      setCallPartnerId(incomingCall.caller._id); 
-
-      const constraints = incomingCall.callType === "video"
-        ? { audio: true, video: true }
-        : { audio: true, video: false };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setCallPartnerId(incomingCall.caller._id);
+  
+      // Get the available media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioDevices = devices.filter(device => device.kind === "audioinput");
+      const videoDevices = devices.filter(device => device.kind === "videoinput");
+  
+      if (!audioDevices.length || (incomingCall.callType === "video" && !videoDevices.length)) {
+        throw new Error("No available media devices");
+      }
+  
+      // Dynamically select devices for each browser
+      const selectedAudioDevice = audioDevices[0];  // Use the first available audio device
+      const selectedVideoDevice = incomingCall.callType === "video" ? videoDevices[0] : null;  // Use first video device if it's a video call
+  
+      const constraints = {
+        audio: {
+          deviceId: selectedAudioDevice.deviceId
+        },
+        video: selectedVideoDevice ? { deviceId: selectedVideoDevice.deviceId } : false
+      };
+  
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        if (err?.name === 'NotReadableError') {
+          alert("Your microphone or camera is in use by another application. Please close other apps using it.");
+        }
+        throw err;
+      }
+  
       setLocalStream(stream);
       setIsMicOn(true);
       setIsVideoOn(incomingCall.callType === "video");
-
+  
       if (localVideoRef.current && incomingCall.callType === "video") {
         localVideoRef.current.srcObject = stream;
       }
-
-      // Set local audio for voice call
+  
       if (localAudioRef.current && incomingCall.callType === "voice") {
         localAudioRef.current.srcObject = stream;
       }
-
+  
       const pc = createPeerConnection();
       setPeerConnection(pc);
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
+  
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       console.log("📩 Set remote description with offer");
-
+  
       socket.on("ice-candidate", ({ candidate }: any) => {
         if (pc && candidate) {
           pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
       });
-
+  
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       console.log("📤 Sending answer");
-
+  
       socket.emit("call:answer", {
         to: incomingCall.caller._id,
         answer,
       });
-
+  
       setCallActive(true);
       onCallStart();
       clearIncomingCall();
-      setOffer(null); 
-
+      setOffer(null);
+  
     } catch (err) {
       console.error("❌ Error accepting call:", err);
       onCallEnd();
     }
   }, [incomingCall, offer, onCallStart, onCallEnd]);
-
+  
   const toggleMic = () => {
     if (!localStream) return;
     localStream.getAudioTracks().forEach(track => {
@@ -278,11 +308,13 @@ export const useWebRTC = ({
     };
     const handlePartnerMicToggle = ({ micOn }: { micOn: boolean }) => {
       console.log("🎤 Partner mic toggled:", micOn ? "ON" : "OFF");
+      setIsRemoteMicOn(micOn);
       // You can show some UI state here, like a muted mic icon
     };
     
     const handlePartnerVideoToggle = ({ videoOn }: { videoOn: boolean }) => {
       console.log("🎥 Partner video toggled:", videoOn ? "ON" : "OFF");
+      setIsRemoteVideoOn(videoOn);
       if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
         const videoTracks = (remoteVideoRef.current.srcObject as MediaStream).getVideoTracks();
         videoTracks.forEach(track => {
@@ -344,6 +376,8 @@ export const useWebRTC = ({
     remoteStream,
     isMicOn,
     isVideoOn,
+    isRemoteMicOn,
+    isRemoteVideoOn,
     toggleMic,
     toggleVideo,
     startCall,

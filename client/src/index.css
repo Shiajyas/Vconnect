@@ -7,12 +7,61 @@
 /* Import Tailwind utility styles */
 @tailwind utilities;
 
-
 @layer base {
+  /* General reset for all elements */
   * {
-    @apply border-border;
+    @apply border-gray-300;
+    box-sizing: border-box; /* Ensures consistent box-sizing */
+    -webkit-font-smoothing: antialiased; /* Smoothens fonts in WebKit browsers */
+    -moz-osx-font-smoothing: grayscale; /* Smoothens fonts in Firefox */
   }
+
+  /* Body styling */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gray-900 text-white; /* Dark mode by default */
+    margin: 0; /* Remove default body margin */
+    padding: 0; /* Remove default padding */
+    font-family: 'Inter', sans-serif; /* Add default font */
+  }
+
+  /* Specific resets for form elements */
+  button,
+  input,
+  textarea {
+    @apply border-gray-300;
+    outline: none; /* Remove the default outline for buttons/inputs */
+    background-color: transparent; /* Ensure buttons/inputs have no background */
+  }
+
+  button:focus,
+  input:focus,
+  textarea:focus {
+    @apply ring-2 ring-blue-500; /* Focus ring for accessibility */
+  }
+
+  /* Links reset */
+  a {
+    @apply text-blue-500 hover:text-blue-700; /* Tailwind link styles */
+    text-decoration: none; /* Remove default underline */
+  }
+
+  /* Ensuring no default margin/padding on elements like h1, h2, etc. */
+  h1, h2, h3, h4, h5, h6, p {
+    @apply m-0 p-0;
+  }
+
+  /* Ensure list styles are consistent */
+  ul, ol {
+    @apply list-none;
+  }
+
+  /* Smooth scrolling on all pages */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Add margin and padding to the main element */
+  main {
+    padding: 20px;
   }
 }

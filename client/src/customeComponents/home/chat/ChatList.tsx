@@ -67,81 +67,94 @@ const ChatList: React.FC<ChatListProps> = ({ chats, selectedChat, setSelectedCha
   }, [selectedChat]);
 
   if (!user || loading) {
-    return <p className="text-gray-400 text-center">Loading chats...</p>;
+    return <p className="text-gray-400 text-center p-4">Loading chats...</p>;
   }
 
   return (
-    <ScrollArea className="w-1/3 border-r h-[75vh] p-4">
-      <h2 className="text-lg font-semibold mb-3">Chats</h2>
+    <div className="flex flex-col flex-grow overflow-hidden">
+      <h2 className="text-lg font-semibold p-4 pb-2">Chats</h2>
+      
+      {/* Set fixed height with flex-grow */}
+      <ScrollArea className="flex-grow overflow-y-auto">
+        <div className="p-2">
+          {normalizedChats.length > 0 ? (
+            normalizedChats.map((chat) => {
+              if (!chat || !Array.isArray(chat.users)) return null;
 
-      {normalizedChats.length > 0 ? (
-        normalizedChats.map((chat) => {
-          if (!chat || !Array.isArray(chat.users)) return null;
+              const otherUser = !chat.isGroupChat && userId
+                ? chat.users.find((u) => u._id !== userId)
+                : null;
 
-          const otherUser = !chat.isGroupChat && userId
-            ? chat.users.find((u) => u._id !== userId)
-            : null;
+              const isOnline = otherUser ? onlineUsers.includes(otherUser._id) : false;
+              const unreadCount = unreadCounts[chat._id] || 0;
 
-          const isOnline = otherUser ? onlineUsers.includes(otherUser._id) : false;
+              return (
+                <div
+                  key={chat._id}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all relative mb-1",
+                    selectedChat?._id === chat._id
+                      ? "bg-blue-500 text-white"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  )}
+                  onClick={() => {
+                    setSelectedChat(chat);
+                    setCurrentlyOpenChatId(chat._id);
+                    resetUnreadCount(chat._id);
+                  }}
+                >
+                  {/* Avatar with online dot */}
+                  <div className="relative flex-shrink-0">
+                    <Avatar>
+                      <AvatarImage
+                        src={chat.isGroupChat ? chat.groupAvatar || "/group.png" : otherUser?.avatar || "/user.png"}
+                        className="w-10 h-10"
+                      />
+                      <AvatarFallback>
+                        {chat.isGroupChat
+                          ? chat.groupName?.charAt(0) || "G"
+                          : otherUser?.username?.charAt(0) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isOnline && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
+                    )}
+                  </div>
 
-          const unreadCount = unreadCounts[chat._id] || 0;
-
-          return (
-            <div
-              key={chat._id}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all relative",
-                selectedChat?._id === chat._id
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
-              )}
-              onClick={() => {
-                setSelectedChat(chat);
-                setCurrentlyOpenChatId(chat._id);
-                resetUnreadCount(chat._id);
-              }}
-            >
-              {/* Avatar with online dot */}
-              <div className="relative">
-                <Avatar>
-                  <AvatarImage
-                    src={chat.isGroupChat ? chat.groupAvatar || "/group.png" : otherUser?.avatar || "/user.png"}
-                  />
-                  <AvatarFallback>
-                    {chat.isGroupChat
-                      ? chat.groupName?.charAt(0) || "G"
-                      : otherUser?.username?.charAt(0) || "?"}
-                  </AvatarFallback>
-                </Avatar>
-                {isOnline && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
-                )}
-              </div>
-
-              {/* Username + last message */}
-              <div className="flex-1">
-                <p className="font-medium truncate">
-                  {chat.isGroupChat ? chat.groupName || "Group Chat" : otherUser?.username || "Unknown"}
-                </p>
-                <p className="text-sm text-green-500 truncate">
-                  {chat.lastMessage?.text || chat.lastMessage?.content || "No messages yet"}
-                </p>
-              </div>
-
-              {/* Unread Count Badge */}
-              {unreadCount > 0 && (
-  <div className="bg-green-600 text-white text-[11px] px-2 py-[2px] rounded-full min-w-[20px] text-center shadow-md font-semibold">
-    {unreadCount > 99 ? "99+" : unreadCount}
-  </div>
-)}
-
-            </div>
-          );
-        })
-      ) : (
-        <p className="text-gray-400 text-center">No active chats</p>
-      )}
-    </ScrollArea>
+                  {/* Username + last message */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium text-sm truncate mr-2">
+                        {chat.isGroupChat ? chat.groupName || "Group Chat" : otherUser?.username || "Unknown"}
+                      </p>
+                      {chat.lastMessage?.createdAt && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-green-500 truncate pr-2">
+                        {chat.lastMessage?.text || chat.lastMessage?.content || "No messages yet"}
+                      </p>
+                      
+                      {/* Unread Count Badge */}
+                      {unreadCount > 0 && (
+                        <div className="bg-green-600 text-white text-[10px] px-2 py-[2px] rounded-full min-w-[20px] text-center shadow-md font-semibold flex-shrink-0">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-gray-400 text-center py-4">No active chats</p>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 

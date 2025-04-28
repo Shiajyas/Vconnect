@@ -34,10 +34,12 @@ const IncomingCallUI = () => {
   const {
     acceptCall,
     endCall,
-    toggleMute,
+    toggleMic,
     toggleVideo,
     localStream,
     remoteStream,
+    isRemoteMicOn,
+    isRemoteVideoOn,
     isMicOn,
     isVideoOn,
   } = useWebRTC({
@@ -107,16 +109,18 @@ const IncomingCallUI = () => {
         isMicOn={isMicOn}
         isVideoOn={isVideoOn}
         onToggleMic={() => {
-          toggleMute();
+          toggleMic()
           // setIsMuted((prev) => !prev);
         }}
         onToggleVideo={() => {
-          toggleVideo();
+          toggleVideo()
           // setIsVideoOf((prev) => !prev);
         }}
         otherUser={activeCall.caller}
         callActive={true}
         incomingCall={false}
+        isRemoteMicOn={isRemoteMicOn}
+        isRemoteVideoOn={isRemoteVideoOn}
       />
     );
   }
