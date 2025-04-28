@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";;
 import { useQueryClient } from "@tanstack/react-query";
-import { img_Url } from "../../images/image";
 import { useUserAuth } from "../../hooks/useUserAuth";
 
 
@@ -91,7 +90,7 @@ const OtpVerification: React.FC = () => {
       className="flex flex-col items-center justify-center h-screen bg-gray-100"
     >
       <img
-        src= {img_Url} // Replace with your app logo path
+        src= "/logo.png" // Replace with your app logo path
         alt="App Logo"
         className="w-16 h-16 mb-6"
       />

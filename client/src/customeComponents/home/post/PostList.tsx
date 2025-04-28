@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { postService } from "@/services/postService";
 import PostCard from "./PostItem";
 import { socket } from "@/utils/Socket";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { useNavigate } from "react-router-dom";
 
 const PostList: React.FC = () => {

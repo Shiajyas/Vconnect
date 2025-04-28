@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 // import { useAuth } from "../hooks/useAuth";
 import { useUserAuth } from "../hooks/useUserAuth";
 import { useLocation, useNavigate } from "react-router-dom";
-import { img_Url } from "../images/image";
+
 
 interface ForgotPasswordFormInputs {
   email?: string;
@@ -135,7 +135,7 @@ const ForgotPasswordPage: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
-            src={img_Url}
+            src="/logo.png"
             alt="Logo"
             className="h-12"
           />

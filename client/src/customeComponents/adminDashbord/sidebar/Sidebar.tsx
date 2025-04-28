@@ -6,8 +6,7 @@ import Spam from "../spamManagement/Spam";
 import UsersManagement from "../usersManagemen/UsersManagemen";
 import Spinner from "../../common/Spinner";
 import Header from "../Header";
-import { img_Url } from "../../../images/image";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { useNavigate } from "react-router-dom";
 
 // Define the type for menu items
@@ -85,7 +84,7 @@ const {logout} = useAuthStore()
             {/* Logo and Text Combined */}
             <div className="flex items-center space-x-2">
               <img
-                src={img_Url}
+                src= "/logo.png"
                 alt="Logo"
                 className="w-10 h-10 rounded-full" // Adjusted size and border radius
               />

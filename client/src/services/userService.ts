@@ -1,5 +1,6 @@
 import { fetchData } from "@/utils/axiosHelpers";
 
+
 export const userService = {
     // Fetch user suggestions (paginated)
     getSuggestions: (page: number = 1) => {
@@ -120,5 +121,37 @@ export const userService = {
             },
             "failed to get savedPost"
         )
-    }
+    },
+
+    getSubcriptiontDetails: (userId: string) => {
+        return fetchData(
+            `/users/subscription/${userId}`,
+            {
+                method: "GET",
+                data: { userId },
+            },
+            "Failed to fetch payment details"
+        );
+    },
+
+    subscribe: (userId: string, token: string) => {
+        return fetchData(
+            `/users/subscribe/${userId}`,
+            {
+                method: "POST",
+                data: { userId, token },
+            },
+            "Failed to subscribe"
+        );
+    },
+    confirmSubscription: (userId: string) => {
+        return fetchData(
+          `/users/confirm-subscription`,
+          {
+            method: "POST",
+            data: { userId },
+          },
+          "Failed to confirm subscription"
+        );
+      },
 };

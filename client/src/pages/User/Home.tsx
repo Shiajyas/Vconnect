@@ -7,7 +7,7 @@ import RightSideBar from "@/customeComponents/home/RightSideBar";
 import BottomNav from "@/customeComponents/home/BottomNav";
 import Header from "@/customeComponents/home/Header";
 import useNotificationStore from "@/store/notificationStore";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { socket } from "@/utils/Socket";
 import Status from "@/customeComponents/home/Status";
 
@@ -21,6 +21,8 @@ const HomeLayout: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState(
     localStorage.getItem("selectedItem") || "Home"
   );
+
+  
 
   useEffect(() => {
     if (!userId) return;
@@ -43,12 +45,17 @@ const HomeLayout: React.FC = () => {
 
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden">
-      <Header unreadCount={unreadCount} />
+      <Header unreadCount={unreadCount} openRightSidebar={() => { /* Add logic to open the right sidebar */ }} />
   
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Hidden on small screens */}
+        
         <div className="hidden lg:flex w-[260px] h-full">
-          <LeftSideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem} />
+          <LeftSideBar 
+            selectedItem={selectedItem} 
+            setSelectedItem={setSelectedItem} 
+            unreadNotifications={unreadCount} 
+          />
         </div>
   
         {/* Main Content - Full Width on small screens */}

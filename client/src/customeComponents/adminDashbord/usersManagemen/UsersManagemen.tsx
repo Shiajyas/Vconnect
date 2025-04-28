@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../../../services/authService";
 import Spinner from "../../common/Spinner";
 import { toast } from "react-toastify";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 interface User {
   _id: string;

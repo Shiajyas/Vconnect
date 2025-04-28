@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useAdminAuth } from "../../hooks/useAdminAuth";
-import { img_Url } from "../../images/image";
 import LoginPage from "../../customeComponents/auth/Login";
 import { useNavigate } from "react-router-dom";
 
@@ -30,7 +29,7 @@ const AdminLoginPage: React.FC = () => {
       role="admin"
       redirectPath="/admin/dashboard"
       title="Admin Login"
-      logoUrl={img_Url}
+      logoUrl= "/logo.png"
       forgotPasswordLink="/admin/forgot-password"
       onSubmit={handleSubmit}
       isLoading={isLoading}

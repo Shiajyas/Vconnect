@@ -1,5 +1,7 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
 import { socket } from "@/utils/Socket";
+import useMessageStore from "@/appStore/useMessageStore";
+
 
 interface SocketContextType {
   unreadNotifications: number;
@@ -24,6 +26,28 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
+  useEffect(() => {
+    const handleMessage = (newMessage: any) => {
+      const { currentlyOpenChatId, incrementUnreadCount } = useMessageStore.getState();
+  
+      // console.log("📩 Global listener: New message received:", newMessage);
+
+      // console.log("📩 Global listener: Currently open chat ID:", currentlyOpenChatId);
+
+      // console.log("📩 Global listener: newMessage i:",newMessage.chatId);
+  
+      if (newMessage.chatId !== currentlyOpenChatId) {
+        incrementUnreadCount(newMessage.chatId);
+      }
+    };
+  
+    socket.on("chatUpdated", handleMessage);
+  
+    return () => {
+      socket.off("chatUpdated", handleMessage);
+    };
+  }, []);
+  
   return (
     <SocketContext.Provider value={{ unreadNotifications, setUnreadNotifications }}>
       {children}

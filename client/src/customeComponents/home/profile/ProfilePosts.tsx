@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Image as ImageIcon, Video as VideoIcon, List as ListIcon, Bookmark as BookmarkIcon, Grid as GridIcon } from "lucide-react";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 interface ProfilePostsProps {
   userId: string;

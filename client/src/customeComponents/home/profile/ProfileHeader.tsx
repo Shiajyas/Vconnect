@@ -8,14 +8,13 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useMutation } from "@tanstack/react-query";
 import { userService } from "@/services/userService";
 import FollowBtn from "@/customeComponents/FollowBtn";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react"; 
+import { useSubscription } from "@/hooks/stripeHooks/useSubscription";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import SubscriptionStatus from "@/customeComponents/common/SubscriptionModal";
+import { useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 interface ProfileHeaderProps {
   user: {
@@ -36,11 +35,83 @@ interface ProfileHeaderProps {
   parentUserId: string;
 }
 
+
+const Modal = ({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) => (
+  <AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-center items-center"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ duration: 0.25 }}
+        className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl max-w-lg w-full relative border border-gray-200"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+          aria-label="Close modal"
+        >
+          <span className="text-xl font-bold">×</span>
+        </button>
+        <div className="space-y-4">{children}</div>
+      </motion.div>
+    </motion.div>
+  </AnimatePresence>
+);
+
+
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, parentUserId }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  const { data: subscription, isLoading: subscriptionLoading , refreshSubscription} = useSubscription({ parentUserId });
+
+  const confirmSubscription = async () => {
+    try {
+      await userService.confirmSubscription(userId);
+    
+      refreshSubscription(); // refresh only here
+   
+    } catch (err) {
+
+    }
+  };
+
+
+  useEffect(() => {
+    const clientSecret = searchParams.get("payment_intent_client_secret");
+    const redirectStatus = searchParams.get("redirect_status");
+  
+    // Only trigger after navigation type is 'navigate' or 'reload' (i.e., full page load)
+    const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+    const isRedirect = navEntry?.type === "navigate" || navEntry?.type === "reload";
+  
+    if (isRedirect && clientSecret) {
+      if (redirectStatus === "succeeded") {
+        confirmSubscription();
+        toast.success("Payment successful! Subscription confirmed.");
+      } else {
+        toast.error("Payment failed! Please try again.");
+      }
+    }
+  }, [searchParams]);
+  
+  
 
   const [profileData, setProfileData] = useState({
     fullname: user?.fullname || "",
@@ -54,7 +125,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
     avatar: user?.avatar || "",
   });
 
-  // Update state when user data changes
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -71,7 +141,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
     }
   }, [user]);
 
-  // Validate form
   const validateForm = () => {
     let newErrors: Record<string, string> = {};
 
@@ -89,26 +158,22 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle profile update
   const updateProfile = useMutation({
     mutationFn: async () => {
       setLoading(true);
       const formData = new FormData();
       Object.entries(profileData).forEach(([key, value]) => formData.append(key, value));
-
       if (avatarFile) formData.append("avatar", avatarFile);
-
       await userService.updateUserProfile(userId, formData);
     },
     onSuccess: () => {
       setLoading(false);
-      refetch(); // Refetch to get updated data
+      refetch();
       setEditing(false);
     },
     onError: () => setLoading(false),
   });
 
-  // Handle file selection
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setAvatarFile(e.target.files[0]);
@@ -116,23 +181,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
     }
   };
 
-  // Check if the logged-in user is following the profile user
   const isFollowing =
     (user?.followers ?? []).includes(parentUserId) || (user?.following ?? []).includes(parentUserId);
 
   return (
     <Card className="max-w-3xl mx-auto">
       <CardContent className="p-6 relative overflow-visible">
-        {/* Profile Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Profile Picture Upload */}
             <div className="relative">
               <Avatar className="h-14 w-14">
                 <AvatarImage src={profileData.avatar} alt={user?.fullname || "User"} />
                 <AvatarFallback>{user?.fullname?.slice(0, 2).toUpperCase() || "NA"}</AvatarFallback>
               </Avatar>
-
               {editing && (
                 <input
                   type="file"
@@ -159,76 +220,75 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
 
         <Separator className="my-4" />
 
-        {/* Edit Profile Form */}
+        <Button onClick={() => setShowSubscriptionModal(true)} variant="outline" className="mb-4">
+          View Subscription Details
+        </Button>
+
+        {showSubscriptionModal && (
+          <Modal onClose={() => setShowSubscriptionModal(false)}>
+     
+          <SubscriptionStatus
+            subscription={subscription}
+            isLoading={subscriptionLoading}
+            userId={userId}
+            refreshSubscription={refreshSubscription}
+          />
+        </Modal>
+        )}
+
         {editing ? (
           <div className="space-y-4">
-            <Input
-              value={profileData.fullname}
-              onChange={(e) => setProfileData({ ...profileData, fullname: e.target.value })}
-              placeholder="Full Name"
-            />
-            {errors.fullname && <p className="text-red-500 text-sm">{errors.fullname}</p>}
+              {[
+      { label: "Full Name", key: "fullname", required: true },
+      { label: "Username", key: "username", required: true },
+      { label: "Bio", key: "bio", textarea: true },
+      { label: "Email", key: "email", disabled: true },
+      { label: "Mobile", key: "mobile", required: true },
+      { label: "Address", key: "address" },
+      { label: "Website", key: "website" },
+    ].map(({ label, key, textarea, disabled, required }) => (
+      <div key={key}>
+        <label className="block text-sm font-medium text-gray-700">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+                {textarea ? (
+                  <Textarea
+                    value={profileData[key as keyof typeof profileData]}
+                    onChange={(e) => setProfileData({ ...profileData, [key]: e.target.value })}
+                    placeholder={`Enter your ${label.toLowerCase()}`}
+                  />
+                ) : (
+                  <Input
+                    value={profileData[key as keyof typeof profileData]}
+                    onChange={(e) => setProfileData({ ...profileData, [key]: e.target.value })}
+                    placeholder={`Enter your ${label.toLowerCase()}`}
+                    disabled={disabled}
+                  />
+                )}
+                {errors[key] && <p className="text-red-500 text-sm">{errors[key]}</p>}
+              </div>
+            ))}
 
-            <Input
-              value={profileData.username}
-              onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-              placeholder="Username"
-            />
-            {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
-
-            <Textarea
-              value={profileData.bio}
-              onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-              placeholder="Bio"
-            />
-
-            <Input
-              type="email"
-              value={profileData.email}
-              onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-              placeholder="Email"
-              disabled
-            />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-
-            <Input
-              type="tel"
-              value={profileData.mobile}
-              onChange={(e) => setProfileData({ ...profileData, mobile: e.target.value })}
-              placeholder="Mobile"
-            />
-            {errors.mobile && <p className="text-red-500 text-sm">{errors.mobile}</p>}
-
-            <Input
-              value={profileData.address}
-              onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
-              placeholder="Address"
-            />
-
-            <Input
-              value={profileData.website}
-              onChange={(e) => setProfileData({ ...profileData, website: e.target.value })}
-              placeholder="Website"
-            />
-            {errors.website && <p className="text-red-500 text-sm">{errors.website}</p>}
-
-            <Select
-              value={profileData.gender}
-              onValueChange={(value) => setProfileData({ ...profileData, gender: value })}
-            >
-              <SelectTrigger>
-                <SelectValue>{profileData.gender}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-slate-400">
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Gender</label>
+              <Select
+                value={profileData.gender}
+                onValueChange={(value) => setProfileData({ ...profileData, gender: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue>{profileData.gender}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <Button
               onClick={() => validateForm() && updateProfile.mutate()}
-              className="w-full"
+              className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition duration-200"
               disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
@@ -239,7 +299,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
             <p>{user?.bio || "No bio available"}</p>
             {user?.website && (
               <p>
-                🌐 <a href={user.website} target="_blank" className="text-blue-500">{user.website}</a>
+                🌐{" "}
+                <a href={user.website} target="_blank" className="text-blue-500" rel="noreferrer">
+                  {user.website}
+                </a>
               </p>
             )}
           </div>
@@ -248,6 +311,5 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
     </Card>
   );
 };
-
 
 export default ProfileHeader;

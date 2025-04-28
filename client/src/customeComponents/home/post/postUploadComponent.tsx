@@ -5,6 +5,7 @@ import { socket } from "@/utils/Socket";
 import { useUploadPost } from "@/hooks/usePost";
 import { useParams } from "react-router-dom";
 import { Camera, Upload, Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
 
 const PostUpload = () => {
   const [media, setMedia] = useState<File | null>(null);
@@ -13,12 +14,15 @@ const PostUpload = () => {
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
 
+  const [errors, setErrors] = useState<{ caption?: string; media?: string }>({});
+
   const { userId } = useParams();
   const { mutate: uploadPost, status } = useUploadPost();
 
   const handleMediaCaptured = (file: File, previewUrl: string) => {
     setMedia(file);
     setPreview(previewUrl);
+    setErrors((prev) => ({ ...prev, media: undefined }));
   };
 
   const handleRemoveMedia = () => {
@@ -26,45 +30,48 @@ const PostUpload = () => {
     setPreview(null);
   };
 
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!media) newErrors.media = "Please select or capture a file.";
+    if (!caption.trim()) newErrors.caption = "Caption is required.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleUpload = () => {
-    if (!media) {
-      alert("Please select or capture a file first!");
-      return;
-    }
+    if (!validateForm()) return;
 
     const formData = new FormData();
-    formData.append("mediaUrls", media);
+    formData.append("mediaUrls", media!);
     formData.append("title", caption);
     formData.append("description", description);
     formData.append("userId", userId || "");
     formData.append("visibility", visibility);
 
-    console.log("🔹 FormData Entries:");
-    for (const pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
-
     uploadPost(formData, {
       onSuccess: (data) => {
-        console.log(data.post._id, ">>>321");
         const postId = data.post._id;
 
-        alert("Post uploaded successfully!");
+        toast.success("Post uploaded successfully!");
         socket.emit("postUploaded", { userId, postId });
 
+        // Reset form
         handleRemoveMedia();
         setCaption("");
         setDescription("");
         setVisibility("public");
+        setErrors({});
       },
       onError: () => {
-        alert("Upload failed!");
+        toast.error("Upload failed!");
       },
     });
   };
 
   return (
-    <div className="max-w-lg mx-auto  rounded-xl shadow-lg p-6 flex flex-col space-y-4 h-[calc(100vh-4rem)] md:h-auto">
+    <div className="max-w-lg mx-auto rounded-xl shadow-lg p-6 flex flex-col space-y-4 h-[calc(100vh-4rem)] md:h-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800 flex items-center space-x-2">
@@ -80,17 +87,25 @@ const PostUpload = () => {
         ) : (
           <MediaPreview previewUrl={preview} onRemove={handleRemoveMedia} />
         )}
+        {errors.media && <p className="text-red-500 text-sm mt-2">{errors.media}</p>}
       </div>
 
       {/* Input Fields */}
       <div className="space-y-4">
-        <input
-          type="text"
-          placeholder="Add a caption..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-        />
+        <div>
+          <input
+            type="text"
+            placeholder="Add a caption..."
+            value={caption}
+            onChange={(e) => {
+              setCaption(e.target.value);
+              if (e.target.value.trim()) setErrors((prev) => ({ ...prev, caption: undefined }));
+            }}
+            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+          />
+          {errors.caption && <p className="text-red-500 text-sm mt-1">{errors.caption}</p>}
+        </div>
+
         <textarea
           placeholder="What's on your mind?"
           value={description}

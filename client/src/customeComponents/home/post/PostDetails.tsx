@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { postService } from "@/services/postService";
 import PostItem from "./PostItem";
 import { useLikePost, useUnlikePost } from "@/hooks/usePost";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { socket } from "@/utils/Socket";
 import PostSocketService from "@/services/postSocketService";
 import { useParams } from "react-router-dom";

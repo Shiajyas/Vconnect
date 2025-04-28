@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { socket } from "@/utils/Socket";
 import { NormalizedChat } from "@/utils/normalizeChat";
 import { normalizeChat } from "@/utils/normalizeChat";
@@ -39,7 +39,7 @@ export const useFetchChats = () => {
     if (!socket || !userId) return;
 
     const handleNewChat = (newChat: any) => {
-      // console.log("📥 Received new chat:", newChat);
+      console.log("📥 Received new chat:", newChat);
 
       let actualChat = newChat.chat || newChat;
 

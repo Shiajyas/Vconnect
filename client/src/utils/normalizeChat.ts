@@ -14,7 +14,7 @@ export interface NormalizedChat {
   }
 
   export const normalizeChat = (chat: any): NormalizedChat => {
-    console.log("📥 Normalizing chat data:", JSON.stringify(chat, null, 2));
+    // console.log("📥 Normalizing chat data:", JSON.stringify(chat, null, 2));
   
     const normalizedChat: NormalizedChat = {
       _id: chat._id,

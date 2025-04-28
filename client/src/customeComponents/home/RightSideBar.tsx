@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area"; // Import ScrollArea
 import { LoaderIcon } from "lucide-react";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { userService } from "@/services/userService";
 import FollowBtn from "../FollowBtn";
 import { IUser } from "@/types/userTypes";
@@ -34,6 +34,7 @@ const RightSideBar = () => {
     initialPageParam: 1,
     enabled: !!isUserAuthenticated,
   });
+  
 
   useEffect(() => {
     if (inView && hasNextPage) {
@@ -88,32 +89,39 @@ const RightSideBar = () => {
 
       {/* Scrollable Suggestions List */}
       <ScrollArea className="flex-1 overflow-y-auto px-2">
-        {data?.pages.map((page, pageIndex) =>
-          page.map((suggestedUser: IUser, index) => (
-            <motion.div
-              key={suggestedUser._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: (pageIndex * 5 + index) * 0.05 }}
-            >
-              <Card className="mb-3 rounded-lg p-4 transition-all hover:scale-105 hover:shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 cursor-pointer" onClick={() => handleNavigate(suggestedUser._id)}>
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={suggestedUser.avatar} alt={suggestedUser.username} />
-                      <AvatarFallback>{suggestedUser.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{suggestedUser.username}</span>
-                      <span className="text-sm text-muted-foreground">{suggestedUser.fullname}</span>
-                    </div>
-                  </div>
-                  <FollowBtn followingId={suggestedUser._id} isFollowing={suggestedUser.isFollowing} userId={user?._id || ""} />
+      {data?.pages?.length
+  ? data.pages.map((page, pageIndex) =>
+      page.map((suggestedUser: IUser, index) => (
+        <motion.div
+          key={suggestedUser._id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: (pageIndex * 5 + index) * 0.05 }}
+        >
+          <Card className="mb-3 rounded-lg p-4 transition-all hover:scale-105 hover:shadow-lg">
+            <div className="flex items-center justify-between">
+              <div
+                className="flex items-center space-x-4 cursor-pointer"
+                onClick={() => handleNavigate(suggestedUser._id)}
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={suggestedUser?.avatar} alt={suggestedUser?.username || "User"} />
+                  <AvatarFallback>
+                    {suggestedUser?.username ? suggestedUser.username.slice(0, 2).toUpperCase() : "??"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="font-medium">{suggestedUser?.username || "Unknown User"}</span>
+                  <span className="text-sm text-muted-foreground">{suggestedUser?.fullname || "No name provided"}</span>
                 </div>
-              </Card>
-            </motion.div>
-          ))
-        )}
+              </div>
+              <FollowBtn followingId={suggestedUser?._id} isFollowing={suggestedUser?.isFollowing} userId={user?._id || ""} />
+            </div>
+          </Card>
+        </motion.div>
+      ))
+    )
+  : <p>No suggested users available.</p>}
 
         {isFetchingNextPage && (
           <div className="flex justify-center my-4">

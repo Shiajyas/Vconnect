@@ -3,7 +3,7 @@ import useNotificationStore from "@/store/notificationStore"; // Import the stor
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const SOCKET_URL = "http://localhost:3009";
+const SOCKET_URL = "http://localhost:3009";;
 
 export const socket = io(SOCKET_URL, {
   withCredentials: true,

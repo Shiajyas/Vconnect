@@ -1,7 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
-import { img_Url } from "../../images/image";
 import { handleGoogleLogin } from "../../features/handleGoogleLogin";
 import GoogleAuthProvider from "../../features/GoogleAuthProvider";
 
@@ -27,7 +26,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
   onSubmit,
   redirectPath = role === "admin" ? "/admin/dashboard" : "/home",
   title = "Login",
-  logoUrl = img_Url,
+  logoUrl = logo,
   forgotPasswordLink = "/forgot-password",
   registerLink = "/register",
   isLoading = false,
@@ -49,7 +48,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={logoUrl} alt="Logo" className="w-16 h-16" />
+          <img src= "/logo.png" alt="Logo" className="w-16 h-16" />
         </div>
 
         <h2 className="mb-6 text-2xl font-bold text-center text-gray-800">

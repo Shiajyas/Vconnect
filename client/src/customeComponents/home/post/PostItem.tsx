@@ -1,15 +1,19 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { userService } from "@/services/userService";
 import {
-  Heart, MessageCircle, Share2, Bookmark, MoreVertical, Edit, Trash2, X
+  Heart, MessageCircle, Share2, Bookmark, MoreVertical, Edit, Trash2, X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { socket } from "@/utils/Socket";
-import CommentSection from "../comments/CommentSection";
-import { useAuthStore } from "@/context/AuthContext";
+import CommentSection from "@/customeComponents/home/comments/CommentSection";
+import { useAuthStore } from "@/appStore/AuthStore";
 import ConfirmModal from "@/customeComponents/common/confirmationModel";
+import FriendsListModal from "@/customeComponents/home/chat/FriendsListModal";
+import { useChat } from "@/hooks/chatHooks/useChat";
+import { useQuery } from "@tanstack/react-query";
 
 interface Post {
   _id: string;
@@ -31,19 +35,28 @@ interface PostCardProps {
   onClick: () => void;
 }
 
-const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen,onClick }: PostCardProps) => {
+interface User {
+  _id: string;
+  username: string;
+  avatar?: string;
+}
+
+const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen, onClick }: PostCardProps) => {
   const [localCommentCount, setLocalCommentCount] = useState(post.commendCount);
   const { user } = useAuthStore();
   const userId = user?._id;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState<boolean>(post.saved.includes(userId));
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSaved, setIsSaved] = useState(post.saved.includes(userId));
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const MAX_LENGTH = 150;
+  const [isShareModalOpen, setShareModalOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const { sharePostWithUser } = useChat(userId);
+
+  const MAX_LENGTH = 150;
 
   useEffect(() => {
     setIsSaved(post.saved.includes(userId));
@@ -52,8 +65,6 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
   useEffect(() => {
     setLocalCommentCount(post.commendCount);
   }, [post.commendCount]);
-
-  console.log(post,">>>>>>>>>>>>>>>>>>>>321")
 
   const handleSavePost = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,6 +94,36 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
     setIsFullscreen(true);
   };
 
+  const { data: followers } = useQuery({
+    queryKey: ["followers", userId],
+    queryFn: () => userService.getFollowers(userId),
+    enabled: !!userId,
+  });
+
+  const { data: following } = useQuery({
+    queryKey: ["following", userId],
+    queryFn: () => userService.getFollowing(userId),
+    enabled: !!userId,
+  });
+
+  const allUsers: User[] = useMemo(() => {
+    if (!followers && !following) return [];
+    const userMap = new Map<string, User>();
+    [...(followers || []), ...(following || [])].forEach((user) => {
+      userMap.set(user._id, user);
+    });
+    return Array.from(userMap.values());
+  }, [followers, following]);
+
+  const handleShare = () => {
+    if (!userId) {
+      console.warn("🛑 Cannot share post: no logged-in user.");
+      return;
+    }
+    console.log("📤 Opening share modal for post:", post._id);
+    setShareModalOpen(true);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 mb-4 cursor-pointer relative">
       {/* User Info */}
@@ -94,32 +135,22 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
             className="w-10 h-10 rounded-full cursor-pointer"
             onClick={(e) => handleProfileClick(e, post.userId._id)}
           />
-          <h3
-            className="font-semibold cursor-pointer"
-            onClick={(e) => handleProfileClick(e, post.userId._id)}
-          >
+          <h3 className="font-semibold cursor-pointer" onClick={(e) => handleProfileClick(e, post.userId._id)}>
             {post.userId?.fullname}
           </h3>
         </div>
-
-        {userId === post?.userId?._id && (
+        {userId === post.userId?._id && (
           <div className="relative">
             <button className="p-2" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
               <MoreVertical className="w-5 h-5 text-gray-500" />
             </button>
-
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-28 bg-white shadow-lg rounded-lg p-2 z-10">
                 <button className="flex items-center space-x-2 w-full p-2 hover:bg-gray-100 rounded-md" onClick={handleEditPost}>
-                  <Edit className="w-4 h-4 text-gray-600" />
-                  <span>Edit</span>
+                  <Edit className="w-4 h-4 text-gray-600" /><span>Edit</span>
                 </button>
-                <button
-                  className="flex items-center space-x-2 w-full p-2 hover:bg-gray-100 rounded-md text-red-500"
-                  onClick={(e) => { e.stopPropagation(); setDeleteModalOpen(true); }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete</span>
+                <button className="flex items-center space-x-2 w-full p-2 hover:bg-gray-100 rounded-md text-red-500" onClick={(e) => { e.stopPropagation(); setDeleteModalOpen(true); }}>
+                  <Trash2 className="w-4 h-4" /><span>Delete</span>
                 </button>
               </div>
             )}
@@ -132,8 +163,8 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
       </span>
 
       <p className="mt-2" onClick={onClick}>
-        {isExpanded ? post?.description : post?.description?.slice(0, MAX_LENGTH)}
-        {post?.description.length > MAX_LENGTH && (
+        {isExpanded ? post.description : post.description.slice(0, MAX_LENGTH)}
+        {post.description.length > MAX_LENGTH && (
           <button
             className="text-blue-500 ml-1"
             onClick={(e) => {
@@ -145,13 +176,11 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
           </button>
         )}
       </p>
-  
+
       {/* Media Preview */}
-      {post?.mediaUrls?.length > 0 && (
-       
+      {post.mediaUrls?.length > 0 && (
         <div className="mt-2">
           {post.mediaUrls[0].endsWith(".mp4") || post.mediaUrls[0].endsWith(".webm") ? (
-            
             <video className="w-full h-[300px] object-cover rounded-lg" controls onClick={handleMediaClick}>
               <source src={post.mediaUrls[0]} type="video/mp4" />
             </video>
@@ -164,14 +193,12 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
       {/* Actions */}
       <div className="flex items-center mt-3 space-x-4">
         <Button variant="ghost" onClick={(e) => { e.stopPropagation(); onLike(post._id); }}>
-          <Heart className={`w-5 h-5 ${isLiked ? "text-red-500" : "text-gray-500"}`} />
-          <span>{post.likes.length}</span>
+          <Heart className={`w-5 h-5 ${isLiked ? "text-red-500" : "text-gray-500"}`} /><span>{post.likes.length}</span>
         </Button>
         <Button variant="ghost" onClick={(e) => { e.stopPropagation(); onToggleComments(); }}>
-          <MessageCircle className="w-5 h-5 text-gray-500" />
-          <span>{localCommentCount}</span>
+          <MessageCircle className="w-5 h-5 text-gray-500" /><span>{localCommentCount}</span>
         </Button>
-        <Button variant="ghost">
+        <Button variant="ghost" onClick={(e) => { e.stopPropagation(); handleShare(); }}>
           <Share2 className="w-5 h-5 text-gray-500" />
         </Button>
         <Button variant="ghost" onClick={handleSavePost}>
@@ -191,13 +218,12 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
         />
       )}
 
-      {/* Fullscreen Modal */}
       {isFullscreen && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
           <button className="absolute top-4 right-4 text-white text-3xl" onClick={() => setIsFullscreen(false)}>
             <X />
           </button>
-          {post.mediaUrls?.[0]?.endsWith(".mp4") || post.mediaUrls?.[0]?.endsWith(".webm") ? (
+          {post.mediaUrls[0].endsWith(".mp4") || post.mediaUrls[0].endsWith(".webm") ? (
             <video className="max-w-full max-h-full" controls autoPlay>
               <source src={post.mediaUrls[0]} type="video/mp4" />
             </video>
@@ -205,6 +231,28 @@ const PostCard = memo(({ post, onLike, onToggleComments, isLiked, isCommentsOpen
             <img src={post.mediaUrls[0]} alt="Fullscreen" className="max-w-full max-h-full" />
           )}
         </div>
+      )}
+
+      {isShareModalOpen && (
+        <FriendsListModal
+          isOpen={isShareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          users={allUsers}
+          onSelectUser={async (receiverId) => {
+            console.log("📨 Sharing post with:", receiverId);
+            try {
+              await sharePostWithUser({
+                senderId: userId!,
+                receiverId,
+                postContent: `/home/post/${post._id}`,
+              });
+              console.log("✅ Done calling sharePostWithUser");
+            } catch (err) {
+              console.error("❌ Error calling sharePostWithUser", err);
+            }
+            setShareModalOpen(false);
+          }}
+        />
       )}
     </div>
   );

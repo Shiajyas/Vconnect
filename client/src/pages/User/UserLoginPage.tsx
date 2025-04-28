@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LoginPage from "../../customeComponents/auth/Login";
 import { useUserAuth } from "../../hooks/useUserAuth";
-import { img_Url } from "../../images/image";
 import { socket } from "@/utils/Socket"; // Import the socket instance
 
 export const UserLoginPage: React.FC = () => {
@@ -38,7 +37,7 @@ export const UserLoginPage: React.FC = () => {
       role="user"
       redirectPath="/home"
       title="User Login"
-      logoUrl={img_Url}
+      logoUrl="/logo.png"
       forgotPasswordLink="/forgot-password"
       onSubmit={handleSubmit}
       isLoading={isLoading}

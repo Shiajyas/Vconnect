@@ -1,13 +1,12 @@
 import React, { useRef, useEffect, useCallback } from "react";
-
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/services/userService";
-import { Loader2, Trash2 , Bell} from "lucide-react";
+import { Loader2, Trash2, Bell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import useNotificationStore from "@/store/notificationStore";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { useNavigate } from "react-router-dom";
 
 interface Notification {
@@ -23,7 +22,7 @@ interface Notification {
 
 const Notification: React.FC = () => {
   const queryClient = useQueryClient();
-  const { unreadCount, setUnreadCount } = useNotificationStore();
+  const { unreadCount, setUnreadCount, resetUnreadCount } = useNotificationStore();
   const { user } = useAuthStore();
   const userId = user?._id || null;
   const navigate = useNavigate();
@@ -44,9 +43,16 @@ const Notification: React.FC = () => {
     getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
     initialPageParam: 1,
     enabled: !!userId,
-    refetchInterval: 60000, // Auto refresh notifications every minute
   });
 
+  // ✅ Reset unread count once when component mounts
+  useEffect(() => {
+    if (unreadCount > 0) {
+      resetUnreadCount();
+    }
+  }, []);
+
+  // ✅ Optionally refetch when there were unread notifications
   useEffect(() => {
     if (unreadCount > 0) {
       refetch();
@@ -56,9 +62,6 @@ const Notification: React.FC = () => {
   /** Handles notification click */
   const handleNotificationClick = (notification: Notification) => {
     console.log("Notification clicked:", notification);
-
-    // Reset unread count
-    setUnreadCount(0);
 
     // Redirect based on notification type
     if (notification.senderId) {

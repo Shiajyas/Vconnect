@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAdminAuth } from "../../hooks/useAdminAuth";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 const Header = () => {
   const { admin, logout } = useAuthStore()

@@ -2,7 +2,6 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
-import { img_Url } from "../../images/image";
 import { useUserAuth } from "../../hooks/useUserAuth";
 
 const RegisterPage = () => {
@@ -33,7 +32,7 @@ const RegisterPage = () => {
       >
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={img_Url} alt="Logo" className="w-24 h-24" />
+          <img src="/logo.png" alt="Logo" className="w-24 h-24" />
         </div>
 
         <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">

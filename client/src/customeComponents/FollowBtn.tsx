@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"; // ShadCN Button
 import { socket } from "../utils/Socket";
 import useNotificationStore from "@/store/notificationStore";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 interface FollowBtnProps {
   userId: string; // The current logged-in user

@@ -6,7 +6,7 @@ import FollowList from "./FollowList";
 import ProfilePosts from "./ProfilePosts";
 import { userService } from "@/services/userService";
 import { socket } from "@/utils/Socket";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 const ProfilePage: React.FC = () => {
   const { userId } = useParams(); // ✅ Get userId from URL

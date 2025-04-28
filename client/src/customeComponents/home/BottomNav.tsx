@@ -2,7 +2,7 @@ import { Home, Search, MessageSquare, Bell, User, PlusCircle } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import useNotificationStore from "@/store/notificationStore";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 
 interface BottomNavProps {
   selectedItem: string;

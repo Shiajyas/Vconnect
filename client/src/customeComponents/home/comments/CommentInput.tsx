@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { socket } from "@/utils/Socket";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { Send, Smile, X } from "lucide-react";
 import Picker from "@emoji-mart/react";
 import { useQueryClient } from "@tanstack/react-query";

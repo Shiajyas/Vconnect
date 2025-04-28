@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAuthStore } from "@/context/AuthContext";
+import { useAuthStore } from "@/appStore/AuthStore";
 import { socket } from "@/utils/Socket";
 import { Trash2, Heart, ChevronDown, ChevronUp } from "lucide-react";
 import CommentInput from "./CommentInput";
