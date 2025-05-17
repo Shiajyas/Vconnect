@@ -24,17 +24,24 @@ export class ChatService implements IChatService {
     socket: Socket,
     chatId: string,
     senderId: string,
-    message: { message: string; replyTo?: { _id: string } | null; type: "link" | "text" | "image" | "file" },
+    message: {
+      message: string;
+      replyTo?: { _id: string } | null;
+      type: "link" | "text" | "image" | "file";
+      files?: { fileUrls: string[] }[];
+    }
+    
    
   ): Promise<void> {
     try {
-      console.log(message, "from sendMessage 465");
+      console.log(message, "from sendMessage 461");
   
       // Fetch the chat to check if it's a group chat
       const chat = await this.chatRepository.getChatById(chatId);
       if (!chat) {
         socket.emit("error", { message: "Chat not found" });
         return;
+
       }
   
       // Determine receiverId (null for group chat, specific user for direct chat)
@@ -44,6 +51,7 @@ export class ChatService implements IChatService {
         receiverId = foundUser ? foundUser._id.toString() : senderId; // Ensure senderId is assigned if no other user found
       }
 
+      console.log(typeof message?.message, "message type");
     
       // Validate message content
       if (typeof message?.message !== "string") {
@@ -51,16 +59,22 @@ export class ChatService implements IChatService {
         socket.emit("error", { message: "Message content must be a string" });
         return;
       }
-  
+      
+      const files = message?.files?.[0]?.fileUrls?.map((url: string) => ({
+        url,
+      })) || [];
+      
       // Create and save the new message
       const newMessage = await this.chatRepository.saveMessage({
         chatId,
         senderId,
         receiverId,
-        content: message.message,
+        content: message?.message || "",
         replyTo: message.replyTo?._id ? message.replyTo._id.toString() : null,
         type: message.type || "text",
+        files,
       });
+      
   
       // Update last message in chat
       await this.chatRepository.updateLastMessage(chatId, newMessage._id);

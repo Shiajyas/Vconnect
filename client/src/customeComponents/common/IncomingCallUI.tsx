@@ -12,24 +12,18 @@ const IncomingCallUI = () => {
     setActiveCall,
     clearIncomingCall,
     clearActiveCall,
+    
   } = useIncomingCallStore();
   const { user } = useAuthStore();
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [callEnded, setCallEnded] = useState(false);
+  const [endedDuration, setEndedDuration] = useState<string | null>(null);
+  const callStartTimeRef = useRef<number | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const offset = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
-  // const [isMuted, setIsMuted] = useState(false);
-  // const [isVideoON, setIsVideoOf] = useState(false);
-
-  console.log("activeCall", activeCall);
-
-  useEffect(() => {
-    // Reset the mute state when the component is mounted or when incoming call changes
-    // setIsVideoOf(false);
-    // setIsMuted(false);
-  }, [incomingCall]);
 
   const {
     acceptCall,
@@ -44,13 +38,34 @@ const IncomingCallUI = () => {
     isVideoOn,
   } = useWebRTC({
     userId: user?._id || "",
-    chatId: activeCall?.chatId || "", // << use activeCall
+    chatId: activeCall?.chatId || "",
     onCallEnd: () => {
+      const endTime = Date.now();
+      if (callStartTimeRef.current) {
+        const durationInSeconds = Math.floor(
+          (endTime - callStartTimeRef.current) / 1000
+        );
+        const minutes = Math.floor(durationInSeconds / 60);
+        const seconds = durationInSeconds % 60;
+        setEndedDuration(`${minutes}m ${seconds}s`);
+      } else {
+        setEndedDuration(null);
+      }
+
       clearActiveCall();
-      clearIncomingCall(); // extra safety
+      clearIncomingCall();
+      setCallEnded(true);
+
+      // Hide "Call Ended" message after 3 seconds
+      setTimeout(() => {
+        setCallEnded(false);
+        setEndedDuration(null);
+      }, 3000);
     },
-    onCallStart: () => {},
-    setCallActive: () => {}, // You'll want to ensure this function does something if needed
+    onCallStart: () => {
+      callStartTimeRef.current = Date.now();
+    },
+    setCallActive: () => {},
   });
 
   useEffect(() => {
@@ -92,7 +107,7 @@ const IncomingCallUI = () => {
     };
   }, []);
 
-  if (!incomingCall && !activeCall) return null; // << no data? don't show
+  if (!incomingCall && !activeCall && !callEnded) return null;
 
   // === If Call Accepted, Render Full CallUI ===
   if (activeCall) {
@@ -108,16 +123,10 @@ const IncomingCallUI = () => {
         remoteStream={remoteStream}
         isMicOn={isMicOn}
         isVideoOn={isVideoOn}
-        onToggleMic={() => {
-          toggleMic()
-          // setIsMuted((prev) => !prev);
-        }}
-        onToggleVideo={() => {
-          toggleVideo()
-          // setIsVideoOf((prev) => !prev);
-        }}
+        onToggleMic={() => toggleMic()}
+        onToggleVideo={() => toggleVideo()}
         otherUser={activeCall.caller}
-        callActive={true}
+        callActive={!!activeCall}
         incomingCall={false}
         isRemoteMicOn={isRemoteMicOn}
         isRemoteVideoOn={isRemoteVideoOn}
@@ -155,34 +164,52 @@ const IncomingCallUI = () => {
 
       {!isMinimized && (
         <div className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {incomingCall?.caller.username}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-            wants to start a {incomingCall?.callType} call
-          </p>
+          {incomingCall ? (
+            <>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {incomingCall?.caller.username}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                wants to start a {incomingCall?.callType} call
+              </p>
 
-          <div className="mt-4 flex gap-3 justify-center">
-            <button
-              onClick={() => {
-                acceptCall();
-                setActiveCall(incomingCall!);
-                clearIncomingCall();
-              }}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm"
-            >
-              <Phone className="w-4 h-4" /> Accept
-            </button>
-            <button
-              onClick={() => {
-                endCall();
-                clearIncomingCall();
-              }}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm"
-            >
-              <PhoneOff className="w-4 h-4" /> Reject
-            </button>
-          </div>
+              <div className="mt-4 flex gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    acceptCall();
+                    setActiveCall(incomingCall!);
+                    clearIncomingCall();
+                  }}
+                  className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm"
+                >
+                  <Phone className="w-4 h-4" /> Accept
+                </button>
+                <button
+                  onClick={() => {
+                    endCall(); // just in case a stream started
+                    clearIncomingCall();
+                    setCallEnded(true);
+                    setTimeout(() => {
+                      setCallEnded(false);
+                    }, 3000);
+                  }}
+                  className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm"
+                >
+                  <PhoneOff className="w-4 h-4" /> Reject
+                </button>
+              </div>
+            </>
+          ) : (
+            // Call Ended Message
+            callEnded && (
+              <div className="text-center mt-2 transition-opacity duration-500">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Call Ended
+                </p>
+               
+              </div>
+            )
+          )}
         </div>
       )}
     </div>

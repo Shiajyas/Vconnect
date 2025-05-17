@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "@/appStore/AuthStore";
-import { Moon, Sun, Search, Phone, Video, ArrowLeft } from "lucide-react";
+import { Moon, Sun, Search, Phone, Video, ArrowLeft, History } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { userService } from "@/services/userService";
 import { useFetchChats } from "@/hooks/chatHooks/useFetchChats";
@@ -12,6 +12,9 @@ import FriendsListModal from "./FriendsListModal";
 import CallUI from "../chat/CallUI";
 import { useWebRTC } from "@/hooks/webrtc/useWebRTC";
 import { socket } from "@/utils/Socket";
+import { CallHistoryList } from "./CallHistoryList";
+
+import { useIncomingCallStore } from "@/appStore/useIncomingCallStore";
 
 interface User {
   _id: string;
@@ -30,25 +33,31 @@ const ChatSection = () => {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [isMobileView, setIsMobileView] = useState(false);
   const [showChatList, setShowChatList] = useState(true);
+  const [showCallHistory, setShowCallHistory] = useState(false); 
 
   const { chats } = useFetchChats();
   const { selectedChat, setSelectedChat, createChatWithUser } = useChat(userId);
   const { handleUserSelect } = useChatHandler(userId, chats, setSelectedChat, setShowFriendsList, createChatWithUser);
 
-  const [callActive, setCallActive] = useState(false);
+    const {
+      // incomingCall,
+      activeCall,
+
+    } = useIncomingCallStore();
+
+  
+  const [callActive, setCallActive] = useState(!!activeCall);
 
   const {
     startCall,
     endCall,
     localStream,
     remoteStream,
-    localAudioRef,
     toggleMic,
     toggleVideo,
     isMicOn,
     isVideoOn,
     incomingCall,
-    acceptCall,
     isRemoteMicOn,
     isRemoteVideoOn,
   } = useWebRTC({
@@ -61,7 +70,9 @@ const ChatSection = () => {
     onCallStart: () => {
       setInCall(true);
     },
-    setCallActive
+    setCallActive,
+    callType: callType || "voice",
+    activeChatId: selectedChat?._id,
   });
 
   const { data: followers } = useQuery({
@@ -162,6 +173,7 @@ const ChatSection = () => {
           </div>
         </div>
 
+
         <div className="flex items-center gap-2">
           {selectedChat && otherUser && (!isMobileView || !showChatList) && (
             <div className="hidden sm:flex flex-col items-end mr-2">
@@ -174,24 +186,27 @@ const ChatSection = () => {
 
           {selectedChat && (!isMobileView || !showChatList) && (
             <>
-              <button
-                onClick={() => handleStartCall("voice")}
-                className="p-2 rounded-full hover:bg-blue-500 hover:text-white transition"
-                title="Start Voice Call"
-              >
-                <Phone className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => handleStartCall("video")}
-                className="p-2 rounded-full hover:bg-green-500 hover:text-white transition"
-                title="Start Video Call"
-              >
-                <Video className="w-5 h-5" />
-              </button>
-            </>
+            <button
+              onClick={() => handleStartCall("voice")}
+              className="p-2 rounded-full hover:bg-blue-500 hover:text-white transition"
+              title="Start Voice Call"
+            >
+              <Phone className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => handleStartCall("video")}
+              className="p-2 rounded-full hover:bg-green-500 hover:text-white transition"
+              title="Start Video Call"
+            >
+              <Video className="w-5 h-5" />
+            </button>
+
+            {/* Call History Button */}
+     
+          </>
           )}
 
-          <button
+          {/* <button
             className="p-2 rounded-full"
             onClick={() => {
               setDarkMode((prev) => {
@@ -202,7 +217,19 @@ const ChatSection = () => {
             }}
           >
             {darkMode ? <Sun className="text-yellow-400 w-6 h-6" /> : <Moon className="text-gray-600 w-6 h-6" />}
-          </button>
+          </button> */}
+        
+          <button
+              onClick={() => {
+                setShowCallHistory(true);
+                console.log("Call history button clicked");
+              }}
+              className="p-2 rounded-full hover:bg-gray-300 hover:text-gray-700 transition"
+              title="Call History"
+            >
+              <History className="text-gray-800 w-5 h-5" />
+            </button>
+          
         </div>
       </div>
 
@@ -286,6 +313,16 @@ const ChatSection = () => {
           isRemoteVideoOn={isRemoteVideoOn}
         />
       )}
+
+{showCallHistory && (
+  <CallHistoryList
+    isOpen={showCallHistory}
+    onClose={() => setShowCallHistory(false)}
+    chatId={selectedChat?._id}
+    darkMode={darkMode}
+  />
+)}
+
     </div>
   );
 };

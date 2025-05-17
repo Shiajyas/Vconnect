@@ -110,6 +110,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
       }
     }
   }, [searchParams]);
+
+  const handleSubscritionModelClose = async () => {
+    // refreshSubscription();
+    setShowSubscriptionModal(false);
+  }
+
+  const handleSubscriptionModalOpen = () => {
+    refreshSubscription();
+    setShowSubscriptionModal(true);
+  };
   
   
 
@@ -220,12 +230,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, userId, refetch, pa
 
         <Separator className="my-4" />
 
-        <Button onClick={() => setShowSubscriptionModal(true)} variant="outline" className="mb-4">
+        <Button onClick={handleSubscriptionModalOpen} variant="outline" className="mb-4">
           View Subscription Details
         </Button>
 
         {showSubscriptionModal && (
-          <Modal onClose={() => setShowSubscriptionModal(false)}>
+          <Modal onClose={handleSubscritionModelClose}>
      
           <SubscriptionStatus
             subscription={subscription}

@@ -108,6 +108,7 @@ export class CommentSocketService implements ICommentSocketService {
   
 
   async deleteComment(socket: Socket, commentId: string) {
+    console.log(commentId,">>>>>>>")
     try {
       if (!commentId) throw new Error("Invalid request. Comment ID is required.");
   

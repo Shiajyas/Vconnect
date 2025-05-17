@@ -134,9 +134,14 @@ const ChatList: React.FC<ChatListProps> = ({ chats, selectedChat, setSelectedCha
                       )}
                     </div>
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-green-500 truncate pr-2">
-                        {chat.lastMessage?.text || chat.lastMessage?.content || "No messages yet"}
-                      </p>
+                    <p className="text-xs text-green-500 truncate pr-2">
+  {chat.lastMessage
+    ? chat.lastMessage.type === "file"
+      ? "📎 File attachment"
+      : chat.lastMessage.text || chat.lastMessage.content
+    : "No messages yet"}
+</p>
+
                       
                       {/* Unread Count Badge */}
                       {unreadCount > 0 && (

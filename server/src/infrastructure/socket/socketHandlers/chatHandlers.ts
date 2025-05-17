@@ -78,4 +78,27 @@ export const chatHandlers = (socket: Socket, chatSocketHandlers :  IChatService)
     socket.leave(chatId);
     chatRooms.delete(socket.id);
   });
+
+  socket.on("sendFileMessage", async (data) => {
+    const { chatId, senderId, message = "sheard file", replyTo, files,type } = data;
+  
+    console.log("📩 Received files via socket:", files);
+  
+    try {
+      // Files are already uploaded; just forward the message
+      const newMessage = {
+        senderId,
+        message: message,
+        files, // already contains { name, type, url }
+        replyTo,
+        type: type || "file",
+      };
+  
+      await chatSocketHandlers.sendMessage(socket, chatId, senderId, newMessage);
+    } catch (err) {
+      console.error("❌ File message handling error:", err);
+      socket.emit("error", { message: "Failed to send file message." });
+    }
+  });
+  
 };

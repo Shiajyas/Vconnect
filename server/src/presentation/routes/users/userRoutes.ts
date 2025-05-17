@@ -5,15 +5,18 @@ import { UserService } from "../../../useCase/UserService";
 import { UserRepository } from "../../../data/repositories/userRepository";
 import { PostRepository } from "../../../data/repositories/PostRepository";
 import SubscriptionUseCase from "../../../useCase/SubscriptionUseCase";
+import { CallHistoryRepository } from "../../../data/repositories/CallHistoryRepository";
 import { upload } from "../../middleware/uploadMiddleware";
+
 
 const router = express.Router();
 const userRepositoryInstance = new UserRepository();
 const postRepositoryInstance = new PostRepository()
+const callHistoryRepositoryInstance = new CallHistoryRepository()
 const subscriptionUseCaseInstance =  SubscriptionUseCase
 export function userRoutes() {
     const userServiceInstance = new UserService(userRepositoryInstance,postRepositoryInstance);
-    const userController = new UserController(userServiceInstance,subscriptionUseCaseInstance);
+    const userController = new UserController(userServiceInstance,subscriptionUseCaseInstance,callHistoryRepositoryInstance );
 
     router.get("/suggestions", userAuthMiddleware.authenticate, userController.getSuggestions.bind(userController));
 
@@ -59,5 +62,35 @@ export function userRoutes() {
             next(error);
         }
     });
+
+    // subscription history
+
+    router.get("/subscription/history/:id", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            await userController.getSubscriptionHistory(req, res);
+            next();
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    router.get("/call_history/:id", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            await userController.getCallHistory(req, res);
+            next();
+        }catch (error) {
+            next(error);
+        }
+    })
+
+    router.post("/upload",upload.any(),  async (req, res, next) => {
+        try {
+            await userController.uploadMedia(req, res);
+            next();
+        } catch (error) {
+            next(error);
+        }
+    })
+
     return router;
 }

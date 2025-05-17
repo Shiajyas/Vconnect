@@ -10,6 +10,7 @@ import { SUserRepositoryImpl } from "../../data/repositories/SUserRepositoryImpl
 import { PostRepository } from "../../data/repositories/PostRepository";
 import { CommentRepository } from "../../data/repositories/CommentRepository";
 import { ChatRepository } from "../../data/repositories/ChatRepository";
+import {CallHistoryRepository} from "../../data/repositories/CallHistoryRepository";
 
 // Import Handlers
 import { postHandlers } from "./socketHandlers/postHandlers";
@@ -54,7 +55,8 @@ export const initializeSocket = (server: ReturnType<typeof createServer>): Serve
   const userSocketService = new UserSocketService(io, userRepository, mainUserRepository, notificationService);
   const postSocketService = new PostSocketService(io, userRepository, postRepository, notificationService);
   const commentSocketService = new CommentSocketService(io, commentRepository, userRepository, notificationService, postRepository);
-  const callSocketService = new CallSocketService(mainUserRepository,userRepository);
+  const callHistoryRepository = new CallHistoryRepository();
+  const callSocketService = new CallSocketService(mainUserRepository, userRepository, callHistoryRepository);
   
   io.on("connection", (socket: Socket) => {
     console.log(`[${new Date().toISOString()}] 🔌 Client connected: ${socket.id}`);

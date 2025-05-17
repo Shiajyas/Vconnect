@@ -13,7 +13,7 @@ export class UserService implements IUserService {
         this.postRepository = postRepository;
     }
 
-    async getSuggestions(userId: string): Promise<IUser[]> {
+    async getSuggestions(userId: string): Promise<IUser[]> { 
         const currentUser = await this.userRepository.findById(userId);
         if (!currentUser) {
             throw new Error("User not found");

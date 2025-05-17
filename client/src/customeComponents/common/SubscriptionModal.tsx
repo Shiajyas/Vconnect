@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { CheckCircleIcon, XCircleIcon, ClockIcon } from "@heroicons/react/24/solid";
+import { CheckCircleIcon, XCircleIcon, ClockIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import SubscriptionPlanPreview from "./SubscriptionPlanPreview";
 import StripePayment from "@/features/StripePayment";
+import { useSubscriptionHistory } from "@/hooks/stripeHooks/useSubscriptionHistory";
+import clsx from "clsx";
 
 interface Props {
   subscription: {
@@ -15,7 +17,63 @@ interface Props {
 
 const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, refreshSubscription }) => {
   const [step, setStep] = useState<"plan" | "payment" | "success">("plan");
+  const [showHistory, setShowHistory] = useState(false);
 
+  const {
+    data: history,
+    isLoading: isHistoryLoading,
+    refetch: fetchHistory,
+  } = useSubscriptionHistory(userId); // fetch only on toggle
+
+  console.log("subscription", subscription);
+  console.log("history", history);
+
+  const now = new Date();
+  const isExpired = subscription && new Date(subscription.endDate) < now;
+
+  const handleToggleHistory = () => {
+    if (!showHistory) fetchHistory(); // fetch on open only
+    setShowHistory((prev) => !prev);
+  };
+
+  const renderHistory = () => (
+    <div className="transition-all duration-300 ease-in-out">
+      <button
+        className="flex items-center gap-1 text-sm text-purple-600 hover:underline mt-4"
+        onClick={handleToggleHistory}
+      >
+        {showHistory ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+        {showHistory ? "Hide Subscription History" : "View Subscription History"}
+      </button>
+  
+      {showHistory && (
+        <div className="mt-2 border border-gray-200 rounded-md p-2 bg-gray-50 shadow-inner text-sm relative max-h-48 overflow-y-auto scrollbar-hide">
+          {isHistoryLoading ? (
+            <p className="text-gray-500">Loading history...</p>
+          ) : history?.length > 0 ? (
+            <ul className="space-y-1">
+              {history.map((sub: any, idx: number) => (
+                <li
+                  key={idx}
+                  className="flex justify-between border-b border-dashed border-gray-200 pb-1"
+                >
+                  <span>
+                    {new Date(sub.startDate).toLocaleDateString()} → {new Date(sub.endDate).toLocaleDateString()}
+                  </span>
+                  <span className={clsx("font-semibold", sub.isSubscribed ? "text-green-500" : "text-red-500")}>
+                    {sub.isSubscribed ? "Active" : "Expired"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500">No subscription history found.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+  
   if (isLoading) {
     return (
       <div className="h-[500px] flex items-center justify-center text-gray-600">
@@ -25,7 +83,7 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
     );
   }
 
-  if (subscription?.isSubscribed) {
+  if (subscription?.isSubscribed && !isExpired) {
     return (
       <div className="h-[500px] overflow-y-auto p-6 bg-white shadow-md border border-green-200 rounded-lg space-y-6">
         <div className="flex flex-col justify-center items-center space-y-3 text-green-700">
@@ -36,27 +94,31 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
           </span>
         </div>
 
-        <div className="pt-4">
+        <div>
           <h3 className="text-md font-semibold text-gray-800 mb-2 text-center">
             🎁 Enjoy your Pro benefits:
           </h3>
           <SubscriptionPlanPreview />
         </div>
+
+        {renderHistory()}
       </div>
     );
   }
 
   return (
-    <div className="h-[500px] overflow-y-auto p-6 bg-white shadow-md border border-gray-200 rounded-lg space-y-6">
+    <div className="h-[500px] overflow-y-auto p-6 bg-white shadow-md  rounded-lg space-y-6">
       {step === "plan" && (
         <>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-red-600 font-medium">
               <XCircleIcon className="h-6 w-6" />
-              <p> Not Subscribed</p>
+              <p>{subscription ? "Subscription expired" : "Not Subscribed"}</p>
             </div>
             <p className="text-gray-700 text-sm">
-              Subscribe to access premium features.
+              {subscription
+                ? "Renew your subscription to continue enjoying premium features."
+                : "Subscribe to access premium features."}
             </p>
           </div>
 
@@ -66,19 +128,19 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
             className="w-full py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
             onClick={() => setStep("payment")}
           >
-            Continue to Payment
+            {subscription ? "Renew Subscription" : "Subscribe Now"}
           </button>
+
+          {renderHistory()}
         </>
       )}
 
       {step === "payment" && (
-        <>
-          <StripePayment
-            userId={userId}
-            onSuccess={() => setStep("success")}
-            refreshSubscription={refreshSubscription}
-          />
-        </>
+        <StripePayment
+          userId={userId}
+          onSuccess={() => setStep("success")}
+          refreshSubscription={refreshSubscription}
+        />
       )}
 
       {step === "success" && (

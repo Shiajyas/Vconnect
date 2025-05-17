@@ -8,18 +8,22 @@ interface UseWebRTCProps {
   onCallEnd: () => void;
   onCallStart: () => void;
   setCallActive: (active: boolean) => void;
+  callType?: "voice" | "video"; 
+  activeChatId?: string;       
 }
-
 export const useWebRTC = ({
   userId,
   chatId,
   onCallEnd,
   onCallStart,
   setCallActive,
+  callType,
+  activeChatId
 }: UseWebRTCProps) => {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const localAudioRef = useRef<HTMLAudioElement | null>(null); // For local audio stream
+  const localAudioRef = useRef<HTMLAudioElement | null>(null); 
+  const callStartTimeRef = useRef<Date | null>(null);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -71,7 +75,13 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
       if (!chatId) throw new Error("chatId is undefined");
       callEndedRef.current = false;
       setCallPartnerId(chatId);
-      console.log("📞 Starting call with", chatId);
+      // console.log("📞 Starting call with", chatId);
+
+      
+      // callStartTimeRef.current = new Date(); 
+
+      console.log(callStartTimeRef.current, "call start time 1");
+  
 
       const constraints = type === "video" ? { audio: true, video: true } : { audio: true, video: false };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -114,35 +124,46 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
 
   const endCall = useCallback(() => {
     callEndedRef.current = true;
-
     console.log("📴 Ending call...");
+  
+    const endedAt = new Date();
+    const startedAt = callStartTimeRef.current ?? endedAt;
 
-    // Close peer connection
+    console.log("start time 3", startedAt);
+    console.log("end time", endedAt);
+  
+    // Send call:end to the partner
+    if (callPartnerId) {
+      console.log("📤 Sending call:end to", callPartnerId);
+  
+      socket.emit("call:end", {
+        to: callPartnerId,
+        from: userId,        
+        type: callType,             
+        startedAt: startedAt.toISOString(),
+        endedAt: endedAt.toISOString(),
+        chatId: activeChatId ?? null 
+      });
+    } else {
+      console.warn("⚠️ Tried to end call, but no partner ID found");
+    }
+  
+    // --- Cleanup (same as before) ---
     if (peerConnection) {
       peerConnection.close();
       setPeerConnection(null);
     }
-
-    // Stop local and remote streams
+  
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
       setLocalStream(null);
     }
-
+  
     if (remoteStream) {
       remoteStream.getTracks().forEach(track => track.stop());
       setRemoteStream(null);
     }
-
-    // Send call:end to the partner (either caller or receiver)
-    if (callPartnerId) {
-      console.log("📤 Sending call:end to", callPartnerId);
-      socket.emit("call:end", { to: callPartnerId });
-    } else {
-      console.warn("⚠️ Tried to end call, but no partner ID found");
-    }
-
-    // Reset state variables
+  
     setIsMicOn(true);
     setIsVideoOn(true);
     setOffer(null);
@@ -150,22 +171,37 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
     onCallEnd();
     setCallActive(false);
     setCallPartnerId(null);
-    setIsRemoteMicOn(true); // Reset remote mic state
-    setIsRemoteVideoOn(true); // Reset remote video state
-
-    // Clear video and audio elements
+    setIsRemoteMicOn(true);
+    setIsRemoteVideoOn(true);
+  
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    if (localAudioRef.current) localAudioRef.current.srcObject = null; // Clear local audio
-  }, [peerConnection, localStream, remoteStream, callPartnerId, clearIncomingCall, onCallEnd, setCallActive]);
-
+    if (localAudioRef.current) localAudioRef.current.srcObject = null;
+  }, [
+    peerConnection,
+    localStream,
+    remoteStream,
+    callPartnerId,
+    clearIncomingCall,
+    onCallEnd,
+    setCallActive,
+    userId,
+    callType,
+    activeChatId
+  ]);
+  
   const acceptCall = useCallback(async () => {
     if (!incomingCall || !offer) return;
   
     try {
       callEndedRef.current = false;
       setCallPartnerId(incomingCall.caller._id);
+
+      callStartTimeRef.current = new Date(); 
+
+      console.log(callStartTimeRef.current, "call start time 2");
   
+
       // Get the available media devices
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioDevices = devices.filter(device => device.kind === "audioinput");
@@ -190,7 +226,7 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err) {
-        if (err?.name === 'NotReadableError') {
+        if ((err as any)?.name === 'NotReadableError') {
           alert("Your microphone or camera is in use by another application. Please close other apps using it.");
         }
         throw err;
@@ -213,7 +249,7 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
   
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      console.log("📩 Set remote description with offer");
+      // console.log("📩 Set remote description with offer");
   
       socket.on("ice-candidate", ({ candidate }: any) => {
         if (pc && candidate) {
@@ -223,7 +259,7 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
   
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      console.log("📤 Sending answer");
+      // console.log("📤 Sending answer");
   
       socket.emit("call:answer", {
         to: incomingCall.caller._id,
@@ -298,7 +334,7 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
 
     const handleRemoteCandidate = ({ candidate }: any) => {
       if (!peerConnection) return;
-      console.log("🧊 Adding received ICE candidate", candidate);
+      // console.log("🧊 Adding received ICE candidate", candidate);
       peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     };
 
@@ -307,13 +343,13 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
       endCall();
     };
     const handlePartnerMicToggle = ({ micOn }: { micOn: boolean }) => {
-      console.log("🎤 Partner mic toggled:", micOn ? "ON" : "OFF");
+      // console.log("🎤 Partner mic toggled:", micOn ? "ON" : "OFF");
       setIsRemoteMicOn(micOn);
       // You can show some UI state here, like a muted mic icon
     };
     
     const handlePartnerVideoToggle = ({ videoOn }: { videoOn: boolean }) => {
-      console.log("🎥 Partner video toggled:", videoOn ? "ON" : "OFF");
+      // console.log("🎥 Partner video toggled:", videoOn ? "ON" : "OFF");
       setIsRemoteVideoOn(videoOn);
       if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
         const videoTracks = (remoteVideoRef.current.srcObject as MediaStream).getVideoTracks();
@@ -351,19 +387,19 @@ const [isRemoteVideoOn, setIsRemoteVideoOn] = useState(true); // Default: video 
     };
   }, [peerConnection, endCall, setCallActive]);
 
-  useEffect(() => {
-    return () => {
-      console.log("🧹 Component unmounted, ending call...");
-      endCall();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     console.log("🧹 Component unmounted, ending call...");
+  //     endCall();
+  //   };
+  // }, []);
 
   const toggleMute = () => {
     if (!localStream) return;
     localStream.getAudioTracks().forEach(track => {
       track.enabled = !isMicOn;
     });
-    console.log("🎙️ Toggled mic to", !isMicOn);
+    // console.log("🎙️ Toggled mic to", !isMicOn);
     setIsMicOn(prev => !prev);
   };
   

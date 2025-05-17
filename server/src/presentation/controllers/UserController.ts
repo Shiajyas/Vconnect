@@ -3,7 +3,10 @@ import { IUserService } from "../../useCase/interfaces/IUserService";
 import { getErrorMessage } from "../../infrastructure/utils/errorHelper";
 import { IUser } from "../../core/domain/interfaces/IUser";
 import { ISubscriptionUseCase } from "../../useCase/interfaces/ISubscriptionUseCase";
+import { CallHistoryRepository } from "../../data/repositories/CallHistoryRepository";
+import { ICallHistoryRepository } from "../../data/interfaces/ICallHistoryRepository";
 import stripePackage from "stripe";
+import axios from 'axios';
 
 const stripe = new stripePackage(process.env.STRIPE_SECRET_KEY as string, { apiVersion: "2025-02-24.acacia" });
 
@@ -11,7 +14,9 @@ const stripe = new stripePackage(process.env.STRIPE_SECRET_KEY as string, { apiV
 export class UserController {
     private userService: IUserService;
     private SubscriptionUseCase: ISubscriptionUseCase;
-    constructor(userService: IUserService, SubscriptionUseCase: ISubscriptionUseCase) {
+    private callHistoryRepository: ICallHistoryRepository;
+    constructor(userService: IUserService, SubscriptionUseCase: ISubscriptionUseCase, callHistoryRepository: ICallHistoryRepository) {
+        this.callHistoryRepository = callHistoryRepository;
         this.userService = userService;
         this.SubscriptionUseCase = SubscriptionUseCase
     }
@@ -179,26 +184,74 @@ export class UserController {
       }
 
 
-      async confirmSubscription(req: Request, res: Response) {
-        const { userId } = req.body;
-        console.log(`🔄 Confirming subscription for user: ${userId}`);
       
+
+async confirmSubscription(req: Request, res: Response) {
+  const { userId } = req.body;
+  console.log(`🔄 Confirming subscription for user: ${userId}`);
+
+  try {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(startDate.getMonth() + 1);
+
+    const subscription = await this.SubscriptionUseCase.createOrUpdateSubscription(userId, startDate, endDate);
+
+    //  Call n8n webhook asynchronously
+    // axios.post('http://localhost:5678/webhook/subscription-confirmed', {
+    //   userId,
+    //   subscription,
+    // }).catch(err => {
+    //   console.error("⚠️ Failed to send n8n webhook:", err.message);
+    // });
+
+    return res.status(200).json({ 
+      message: "✅ Subscription confirmed successfully!",
+      subscription,
+    });
+  } catch (error) {
+    console.error("❌ Subscription update failed:", error);
+    return res.status(500).json({ message: "Subscription update failed", error });
+  }
+}
+
+      // get subscription history
+      async getSubscriptionHistory(req: Request, res: Response) {
+        const userId = req.params.id;
+        console.log(userId, "userId in subscription history controller");
         try {
-          // Set subscription start & end dates
-          const startDate = new Date();
-          const endDate = new Date();
-          endDate.setMonth(startDate.getMonth() + 1); // Subscription valid for 1 month
-      
-          // Call createOrUpdateSubscription with all required arguments
-          const subscription = await this.SubscriptionUseCase.createOrUpdateSubscription(userId, startDate, endDate);
-      
-          return res.status(200).json({
-            message: "✅ Subscription confirmed successfully!",
-            subscription,
-          });
+            const subscriptionHistory = await this.SubscriptionUseCase.getUserSubscriptionHistory(userId);
+            // console.log(subscriptionHistory, ">>>>>>>>>>>>subscription")
+            res.status(200).json(subscriptionHistory);
         } catch (error) {
-          console.error("❌ Subscription update failed:", error);
-          return res.status(500).json({ message: "Subscription update failed", error });
+            console.error("Error fetching subscription history:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+      }
+
+      getCallHistory = async (req: Request, res: Response) => {
+        const userId = req.params.id;
+        console.log(userId, "userId in call history controller");
+        try {
+            const callHistory = await this.callHistoryRepository.getUserCallHistory(userId);
+            res.status(200).json(callHistory);
+        } catch (error) {
+            console.error("Error fetching call history:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+      }
+
+      async uploadMedia(req: Request, res: Response) {
+        try {
+            const files = req.files as Express.Multer.File[];
+            console.log(req, "files in upload media 2");
+            console.log(files, "files in upload media");
+            const fileUrls = files?.map(file => (file as unknown as { location: string }).location);
+            console.log(fileUrls, "file urls");
+            res.status(200).json({ fileUrls });
+        } catch (error) {
+            console.error("Error uploading media:", error);
+            res.status(500).json({ message: "Internal server error" });
         }
       }
       

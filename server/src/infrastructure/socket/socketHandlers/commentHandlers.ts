@@ -13,7 +13,7 @@ export const commentHandlers = (socket: Socket, commendSocketHandlers: ICommentS
 
   socket.on("deleteComment", async (data) => {
     try {
-      await commendSocketHandlers.deleteComment(socket, data);
+      await commendSocketHandlers.deleteComment(socket, data?.commentId);
     } catch (error) {
       console.error("Error deleting comment:", error);
     }
@@ -22,7 +22,7 @@ export const commentHandlers = (socket: Socket, commendSocketHandlers: ICommentS
   socket.on("likeComment", async (data) => {
     try {
       const { userId, commentId } = data;
-      await commendSocketHandlers.likeComment(socket, userId, commentId);
+      await commendSocketHandlers.likeComment(socket, userId, commentId);  
     } catch (error) {
       console.error("Error liking comment:", error);
     }

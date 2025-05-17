@@ -12,4 +12,6 @@ export interface IMessage extends Document {
   createdAt: Date;
   replyTo?: IMessage | string | null; 
   replayContent?: string | null;
+  files?: { url: string; name?: string; type?: string }[];
+
 }

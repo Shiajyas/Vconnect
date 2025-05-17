@@ -2,14 +2,18 @@ import { Socket } from "socket.io";
 import { ICallSocketService } from "./socketServices/Interface/ICallSocketService";
 import { ISUserRepository } from "../../data/interfaces/ISUserRepository"; 
 import { IUserRepository } from "../../data/interfaces/IUserRepository";
+import { CallHistoryRepository } from "../../data/repositories/CallHistoryRepository";
+import { ICallHistoryRepository } from "../../data/interfaces/ICallHistoryRepository";
 
 export class CallSocketService implements ICallSocketService {
   private onlineUserRepository: ISUserRepository;
   private mainUserReopository: IUserRepository
+  private CallHistoryRepository: ICallHistoryRepository 
 
-  constructor(onlineUserRepository: ISUserRepository, mainUserReopository: IUserRepository) {
+  constructor(onlineUserRepository: ISUserRepository, mainUserReopository: IUserRepository, CallHistoryRepository: ICallHistoryRepository ) {
     this.onlineUserRepository = onlineUserRepository;
     this.mainUserReopository = mainUserReopository
+    this.CallHistoryRepository = CallHistoryRepository
   }
 
   async handleOffer(socket: Socket, data: any) {
@@ -58,15 +62,35 @@ export class CallSocketService implements ICallSocketService {
   }
 
   async handleCallEnd(socket: Socket, data: any) {
+    
     const recipient = this.onlineUserRepository.findById(data.to);
     if (recipient) {
-      console.log("call end data", data);
-      console.log("call end recipient", recipient);
       socket.to(recipient.socketId).emit("call:ended", data);
-    } else {
-      console.warn(`⚠️ Cannot send call end — user ${data.to} not online.`);
+    }
+  
+    // Save call history
+    try {
+      const { from, to, type, startedAt, endedAt, chatId } = data;
+  
+      const duration = Math.floor((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+  
+if(chatId){
+  console.log(data, "data end>>>>>>>>>>>>>");
+  await this.CallHistoryRepository.saveCallHistory({
+    callerId: from,
+    receiverId: to,
+    callType: type,
+    startedAt: new Date(startedAt),
+    endedAt: new Date(endedAt),
+    duration,
+    chatId,
+  });
+}
+    } catch (error) {
+      console.error("Failed to save call history:", error);
     }
   }
+  
 
   async handleMicToggle(socket: Socket, data: { to: string; micOn: boolean }) {
     const recipient = this.onlineUserRepository.findById(data.to);

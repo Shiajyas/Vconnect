@@ -58,21 +58,24 @@ const UsersManagement = () => {
   // Total number of users
   const totalUsers = allUsers.length;
 
+  // console.log("allUsers", allUsers);
+
   // Filter users based on search term
-  const filteredUsers = allUsers.filter((user: User) =>
+  const filteredUsers = allUsers?.filter((user: User) =>
+   
     [user.username, user.email, user.fullname].some((field) =>
-      field.toLowerCase().includes(searchTerm.toLowerCase())
+      field?.toLowerCase()?.includes(searchTerm.toLowerCase())
     )
   );
 
   // Sort users
-  const sortedUsers = filteredUsers.sort((a, b) => {
+  const sortedUsers = filteredUsers?.sort((a, b) => {
     if (sortBy.column === "isBlocked") {
       return sortBy.order === "asc" ? Number(a.isBlocked) - Number(b.isBlocked) : Number(b.isBlocked) - Number(a.isBlocked);
     } else {
       return sortBy.order === "asc"
-        ? a[sortBy.column].localeCompare(b[sortBy.column])
-        : b[sortBy.column].localeCompare(a[sortBy.column]);
+        ? a[sortBy.column]?.localeCompare(b[sortBy.column])
+        : b[sortBy.column]?.localeCompare(a[sortBy.column]);
     }
   });
 
@@ -136,7 +139,7 @@ const UsersManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {displayedUsers.map((user) => (
+            {displayedUsers?.map((user) => (
               <tr key={user._id} className="hover:bg-gray-100">
                 <td className="border border-gray-300 px-4 py-2">{user.username}</td>
                 <td className="border border-gray-300 px-4 py-2">{user.fullname}</td>

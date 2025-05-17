@@ -153,7 +153,7 @@ const PostDetails: React.FC = () => {
     return <p>Post not found.</p>;
   }
 
-  console.log("🎉 Rendering PostItem with post data:", data.post);
+  console.log("🎉 Rendering PostItem with post data:", data);
 
   return (
     <div className="w-full min-w-full max-w-2xl mx-auto p-4 sm:max-w-full sm:px-2">
@@ -170,7 +170,8 @@ const PostDetails: React.FC = () => {
         isCommentsOpen={isCommentsOpen} 
         onToggleComments={handleToggleComments} 
         userId={userId }
-        isLiked={data.post.likes.includes(userId)} 
+        isLiked={Array.isArray(data.post.likes) ? data.post.likes.includes(userId) : false}
+
       />
     </div>
   );

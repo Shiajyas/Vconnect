@@ -1,4 +1,5 @@
 import { fetchData } from "@/utils/axiosHelpers";
+import { get } from "react-hook-form";
 
 
 export const userService = {
@@ -152,6 +153,30 @@ export const userService = {
             data: { userId },
           },
           "Failed to confirm subscription"
+        );
+      },
+
+      getSubscriptionHistory: (userId: string) => {
+        return fetchData(
+            `/users/subscription/history/${userId}`,
+            {
+                method: "GET",
+                data: { userId },
+            },
+            "Failed to fetch subscription history"
+        );
+    },
+
+    uploadMedia: (formData: FormData) => {
+        return fetchData(
+          "/users/upload",
+          {
+            method: "POST",
+            data: 
+            formData
+            ,
+          },
+          "Failed to upload media"
         );
       },
 };

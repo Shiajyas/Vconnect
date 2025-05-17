@@ -4,11 +4,14 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 let accessToken: string | null = null; // Keep latest token in memory
 
+// const isSelf = msg?.sender?._id?._id === userId;
 export const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+
+    
   },
   withCredentials: true,
 });

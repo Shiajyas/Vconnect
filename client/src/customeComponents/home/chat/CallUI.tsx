@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, Mic, MicOff, Video, VideoOff, PhoneOff, User } from "lucide-react";
 import gsap from "gsap";
-
 interface CallUIProps {
   callType: "voice" | "video";
   onClose: () => void;
@@ -33,14 +32,17 @@ const CallUI: React.FC<CallUIProps> = ({
   otherUser,
   callActive,
   incomingCall,
-  onCallAccepted,
+
 }) => {
   const [seconds, setSeconds] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
   const [ringback, setRingback] = useState<HTMLAudioElement | null>(null);
   const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
   const [micLoading, setMicLoading] = useState(false);
-  const [showEndCallConfirm, setShowEndCallConfirm] = useState(false);
+  // const [showEndCallConfirm, setShowEndCallConfirm] = useState(false);
+  // const [activeCall, setActiveCall] = useState(callActive);
+  const [callEnded, setCallEnded] = useState(false);
+// const [endedDuration, setEndedDuration] = useState("");
 
   useEffect(() => {
     if (!callActive) return;
@@ -146,13 +148,34 @@ const CallUI: React.FC<CallUIProps> = ({
     }
   };
 
+  // const handleEndCall = () => {
+  //   if (showEndCallConfirm) {
+  //     onClose(); // Close call when confirmed
+  //   } else {
+  //     setShowEndCallConfirm(true); // Show confirmation
+  //   }
+  // };
+
   const handleEndCall = () => {
-    if (showEndCallConfirm) {
-      onClose(); // Close call when confirmed
-    } else {
-      setShowEndCallConfirm(true); // Show confirmation
-    }
+
+    // setEndedDuration(formatted);
+    
+    setCallEnded(true);
+    // setActiveCall(false);
+  
+    setTimeout(() => {
+      onClose(); // closes modal after a delay
+    }, 2000); // show ended message for 2 seconds
   };
+
+//use useffect for handling the end call with calling handleEndCall 
+
+  useEffect(() => {
+    if (callEnded) {
+     handleEndCall();
+    }
+  }, [callEnded,callActive]);
+
 
   // GSAP animations for better UI experience
   const animateModal = () => {
@@ -175,11 +198,11 @@ const CallUI: React.FC<CallUIProps> = ({
     animateModal();
   }, []);
 
-  useEffect(() => {
-    if (showEndCallConfirm) {
-      animateEndCallConfirm();
-    }
-  }, [showEndCallConfirm]);
+  // useEffect(() => {
+  //   if (showEndCallConfirm) {
+  //     animateEndCallConfirm();
+  //   }
+  // }, [showEndCallConfirm]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center transition-all">
@@ -299,7 +322,7 @@ const CallUI: React.FC<CallUIProps> = ({
 
         {/* Mic Status Icon */}
     
-
+{/* 
         {showEndCallConfirm && (
           <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center transition-all">
             <div className="end-call-confirm bg-white dark:bg-gray-800 p-6 rounded-lg w-[80%] sm:w-[400px] shadow-xl">
@@ -322,7 +345,18 @@ const CallUI: React.FC<CallUIProps> = ({
               </div>
             </div>
           </div>
-        )}
+        )} */}
+{/* {callEnded && !activeCall && (
+  <div className="text-center mt-4">
+    <p className="text-sm text-gray-600 dark:text-gray-300">
+      Call Ended
+    </p>
+    <p className="text-xs text-gray-500 dark:text-gray-400">
+      Duration: {endedDuration}
+    </p>
+  </div>
+)} */}
+
 
         {callType === "voice" && (
           <audio

@@ -9,7 +9,7 @@ import Header from "@/customeComponents/home/Header";
 import useNotificationStore from "@/store/notificationStore";
 import { useAuthStore } from "@/appStore/AuthStore";
 import { socket } from "@/utils/Socket";
-import Status from "@/customeComponents/home/Status";
+import Status from "@/customeComponents/home/LIve/Status";
 
 const HomeLayout: React.FC = () => {
   const { unreadCount } = useNotificationStore();

@@ -19,10 +19,11 @@ export const useSubscription = (user: any) => {
 
   const query = useQuery({
     queryKey: ["subscription", stableUserId],
-    queryFn: fetchSubscription,
+    queryFn: () =>  userService.getSubcriptiontDetails(stableUserId),
     enabled: !!stableUserId, // Only fetch if we have a valid userId
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchOnWindowFocus: false, // Optionally disable refetching on window focus
+    // staleTime: 5 * 60 * 1000,
+    // refetchOnReconnect: true,
+    
   });
 
   useEffect(() => {

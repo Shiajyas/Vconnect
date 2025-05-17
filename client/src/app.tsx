@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SocketProvider } from "@/features/SocketProvider";
 import IncomingCallUI from "@/customeComponents/common/IncomingCallUI";
 import AppRoutes from "@/routes/AppRoutes";
+import RouteWatcher from "@/utils/RouteWatcher";
 
 const queryClient = new QueryClient();
 
@@ -11,6 +12,8 @@ const App = () => {
     <div className="bg-white">
       <QueryClientProvider client={queryClient}>
         <SocketProvider>
+          <RouteWatcher />
+    
           <ToastContainer
             position="top-center"
             autoClose={3000}

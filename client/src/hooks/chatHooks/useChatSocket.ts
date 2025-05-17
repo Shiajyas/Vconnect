@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { socket } from "@/utils/Socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { NormalizedChat } from "@/utils/normalizeChat";
+import { userService } from "@/services/userService";
 
 interface Message {
   _id: string;
@@ -173,6 +174,41 @@ const useChatSockets = (chatId: string, userId: string) => {
     handleTyping: () => {
       socket.emit("typing", { chatId, senderId: userId });
     },
+
+    sendFileMessage: async (file: File, message = "", replyTo?: Message | null) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("message", message);
+      if (replyTo) formData.append("replyTo", JSON.stringify(replyTo));
+    
+      try {
+        const uploaded = await userService.uploadMedia(formData);
+    
+        console.log("File uploaded:", uploaded);
+    
+        const newMessage = normalizeMessage({
+          chatId: chatId,
+          senderId: userId,
+          message: message,
+          replyTo,
+          files: uploaded, // Return uploaded file data with URL, name, type
+          type: "file",
+        });
+    
+        setMessages((prev) => [...prev, newMessage]);
+    
+        socket.emit("sendFileMessage", {
+          chatId,
+          senderId: userId,
+          message,
+          replyTo,
+          files: [uploaded], // Only URL, name, type
+        });
+      } catch (err) {
+        console.error("Upload failed", err);
+      }
+    }
+    
   };
 };
 

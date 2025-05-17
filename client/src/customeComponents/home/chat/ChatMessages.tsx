@@ -57,6 +57,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
     }
   };
 
+  function getFileExtension(filenameOrUrl: string) {
+    return filenameOrUrl.split('.').pop()?.toLowerCase() || "";
+  }
   const handleReply = (message: Message) => {
     setReplyTo(message);
     setEditMode(null);
@@ -93,10 +96,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
         style={{ scrollbarWidth: "none" }}
       >
         <style>{`::-webkit-scrollbar { display: none; }`}</style>
-
+  
         {/* Messages */}
         {messages.map((msg, index) => {
-           const isSelf = msg?.sender?._id?._id === userId;
+          const isSelf = msg?.sender?._id?._id === userId;
           const isSelected = selectedMessage === msg._id;
           return (
             <div
@@ -112,7 +115,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                   className="w-8 h-8 rounded-full"
                 />
               )}
-
+  
               {/* Message Bubble */}
               <div
                 onClick={() => handleMessageClick(msg._id)}
@@ -133,8 +136,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                     Replying to: {msg.replyTo.content}
                   </p>
                 )}
-
-                {/* Link Message */}
+  
+                {/* LINK MESSAGE */}
                 {msg.type === "link" ? (
                   <div
                     onClick={(e) => {
@@ -160,8 +163,127 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                       {msg.content}
                     </a>
                   </div>
+  
+                ) : msg.type === "file" ? (
+                  <>
+                  {/* Text content preview if msg.content exists */}
+                  {msg.content && (
+                    <p className="mb-1">
+                      {expandedMessages[msg._id] || msg.content.length <= MAX_PREVIEW_LENGTH
+                        ? msg.content
+                        : `${msg.content.slice(0, MAX_PREVIEW_LENGTH)}...`}
+                      {msg.content.length > MAX_PREVIEW_LENGTH && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReadMore(msg._id);
+                          }}
+                          className="text-blue-300 underline ml-2"
+                        >
+                          {expandedMessages[msg._id] ? "Show Less" : "Read More"}
+                        </button>
+                      )}
+                    </p>
+                  )}
+                
+                  {/* File previews if msg.type === "file" or files exist */}
+                  {(msg.type === "file" || msg.files?.length > 0) && (
+                    <div className="mt-2 space-y-3">
+
+
+
+
+{msg?.files.map((file, idx) => {
+  const extension = getFileExtension(file.name || file.url);
+
+  // Download button styled as a small pill
+  const DownloadButton = () => (
+    <a
+      href={file.url}
+      download={file.name}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block px-3 py-1 text-sm font-semibold text-blue-600 border border-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition"
+    >
+      Download
+    </a>
+  );
+
+  const previewSize = "w-72 h-48"; // fixed width 18rem (288px), height 12rem (192px)
+
+  if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(extension)) {
+    return (
+      <div
+        key={idx}
+        className="mb-4 flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg shadow-md p-3"
+      >
+        <img
+          src={file.url}
+          alt={file.name || "image"}
+          className={`${previewSize} rounded-md border border-gray-300 dark:border-gray-700 object-contain`}
+        />
+        <div className="mt-2">
+          <DownloadButton />
+        </div>
+      </div>
+    );
+  } else if (["mp4", "webm", "ogg"].includes(extension)) {
+    return (
+      <div
+        key={idx}
+        className="mb-4 flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg shadow-md p-3"
+      >
+        <video
+          src={file.url}
+          controls
+          className={`${previewSize} rounded-md border border-gray-300 dark:border-gray-700 object-contain`}
+        />
+        <div className="mt-2">
+          <DownloadButton />
+        </div>
+      </div>
+    );
+  } else if (extension === "pdf") {
+    return (
+      <div
+        key={idx}
+        className="mb-4 flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md p-3"
+      >
+        <iframe
+          src={file.url}
+          title={file.name || "PDF Preview"}
+          className={`${previewSize} rounded-md border border-gray-300 dark:border-gray-700`}
+          style={{ overflow: "auto" }}
+        />
+        <div className="mt-3 self-end">
+          <DownloadButton />
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div
+        key={idx}
+        className="mb-4 flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          <img src="/file-icon.png" alt="File icon" className="w-6 h-6" />
+          <span className="text-sm font-medium truncate max-w-xs">{file.name || "Unknown file"}</span>
+        </div>
+        <DownloadButton />
+      </div>
+    );
+  }
+})}
+
+
+                    </div>
+                  )}
+                </>
+                
                 ) : (
                   <>
+                    {/* Default Text Message */}
                     <p>
                       {expandedMessages[msg._id] || msg.content.length <= MAX_PREVIEW_LENGTH
                         ? msg.content
@@ -180,30 +302,36 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
                     )}
                   </>
                 )}
-
+  
                 {/* Timestamp */}
                 {msg.createdAt && (
                   <p className="text-xs text-gray-400 mt-1 text-right">
                     {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                   </p>
                 )}
-
-                {/* Actions on selected */}
+  
+                {/* Actions */}
                 {isSelected && (
                   <div className="absolute bottom-[-30px] left-0 right-0 bg-gray-800 text-white flex justify-center gap-3 py-1 text-xs rounded-b-xl">
                     {isSelf ? (
                       <>
-                        <button onClick={() => setEditMode(msg)} className="text-yellow-300 hover:underline">Edit</button>
-                        <button onClick={() => deleteMessage(msg._id)} className="text-red-400 hover:underline">Delete</button>
+                        <button onClick={() => setEditMode(msg)} className="text-yellow-300 hover:underline">
+                          Edit
+                        </button>
+                        <button onClick={() => deleteMessage(msg._id)} className="text-red-400 hover:underline">
+                          Delete
+                        </button>
                       </>
                     ) : (
-                      <button onClick={() => handleReply(msg)} className="text-blue-300 hover:underline">Reply</button>
+                      <button onClick={() => handleReply(msg)} className="text-blue-300 hover:underline">
+                        Reply
+                      </button>
                     )}
                   </div>
                 )}
               </div>
-
-              {/* Avatar - Sender */}
+  
+              {/* Avatar */}
               {isSelf && (
                 <img
                   src={msg.sender?.avatar || "/default-avatar.png"}
@@ -214,11 +342,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
             </div>
           );
         })}
-
+  
         {/* Typing Indicator */}
         {typing && <p className="text-sm text-gray-500 self-start">Typing...</p>}
       </div>
-
+  
       {/* Chat Input */}
       <ChatInput
         chatId={chatId}
@@ -234,6 +362,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ chatId, userId, darkMode })
       />
     </div>
   );
+  
 };
 
 export default ChatMessages;
