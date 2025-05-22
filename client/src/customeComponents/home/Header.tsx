@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Bell, MessageSquare } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import useMessageStore from "@/appStore/useMessageStore";
+import { Button } from '@/components/ui/button';
+import { Bell, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import useMessageStore from '@/appStore/useMessageStore';
 
 interface HeaderProps {
   unreadCount: number; // notifications
@@ -12,7 +12,7 @@ const Header: React.FC<HeaderProps> = ({ unreadCount }) => {
   const navigate = useNavigate();
 
   const totalUnreadMessages = useMessageStore((state) =>
-    Object.values(state.unreadCounts).reduce((acc, count) => acc + count, 0)
+    Object.values(state.unreadCounts).reduce((acc, count) => acc + count, 0),
   );
 
   return (
@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ unreadCount }) => {
       <div className="flex items-center gap-3 relative">
         {/* Messages Icon with badge */}
         <div className="relative">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/home/messages")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/home/messages')}>
             <MessageSquare className="w-5 h-5 text-white hover:text-gray-300" />
           </Button>
           {totalUnreadMessages > 0 && (
@@ -34,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ unreadCount }) => {
 
         {/* Notifications Icon with badge */}
         <div className="relative">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/home/notifications")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/home/notifications')}>
             <Bell className="w-5 h-5 text-white hover:text-gray-300" />
           </Button>
           {unreadCount > 0 && (

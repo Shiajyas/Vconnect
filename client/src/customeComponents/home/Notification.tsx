@@ -1,13 +1,13 @@
-import React, { useRef, useEffect, useCallback } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { userService } from "@/services/userService";
-import { Loader2, Trash2, Bell } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import useNotificationStore from "@/store/notificationStore";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { useAuthStore } from "@/appStore/AuthStore";
-import { useNavigate } from "react-router-dom";
+import React, { useRef, useEffect, useCallback } from 'react';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService } from '@/services/userService';
+import { Loader2, Trash2, Bell } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import useNotificationStore from '@/store/notificationStore';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useAuthStore } from '@/appStore/AuthStore';
+import { useNavigate } from 'react-router-dom';
 
 interface Notification {
   _id: string;
@@ -27,23 +27,17 @@ const Notification: React.FC = () => {
   const userId = user?._id || null;
   const navigate = useNavigate();
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-    isLoading,
-  } = useInfiniteQuery({
-    queryKey: ["notifications", userId],
-    queryFn: async ({ pageParam = 1 }) => {
-      if (!userId) throw new Error("User ID is null");
-      return await userService.getNotifications({ pageParam, userId });
-    },
-    getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
-    initialPageParam: 1,
-    enabled: !!userId,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
+    useInfiniteQuery({
+      queryKey: ['notifications', userId],
+      queryFn: async ({ pageParam = 1 }) => {
+        if (!userId) throw new Error('User ID is null');
+        return await userService.getNotifications({ pageParam, userId });
+      },
+      getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
+      initialPageParam: 1,
+      enabled: !!userId,
+    });
 
   // ✅ Reset unread count once when component mounts
   useEffect(() => {
@@ -61,7 +55,7 @@ const Notification: React.FC = () => {
 
   /** Handles notification click */
   const handleNotificationClick = (notification: Notification) => {
-    console.log("Notification clicked:", notification);
+    console.log('Notification clicked:', notification);
 
     // Redirect based on notification type
     if (notification.senderId) {
@@ -78,7 +72,7 @@ const Notification: React.FC = () => {
       return await userService.deleteNotification(notificationId);
     },
     onSuccess: (_, notificationId) => {
-      queryClient.setQueryData(["notifications", userId], (oldData: any) => {
+      queryClient.setQueryData(['notifications', userId], (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -89,10 +83,10 @@ const Notification: React.FC = () => {
         };
       });
       refetch();
-      toast.success("Successfully deleted notification");
+      toast.success('Successfully deleted notification');
     },
     onError: (error) => {
-      console.error("Error deleting notification:", error);
+      console.error('Error deleting notification:', error);
     },
   });
 
@@ -109,7 +103,7 @@ const Notification: React.FC = () => {
       });
       if (node) observer.current.observe(node);
     },
-    [isFetchingNextPage, fetchNextPage, hasNextPage]
+    [isFetchingNextPage, fetchNextPage, hasNextPage],
   );
 
   return (
@@ -132,54 +126,56 @@ const Notification: React.FC = () => {
           </div>
         ) : (
           <ul className="space-y-3">
-            {data?.pages?.flatMap((page) => page.notifications).map((notification, index, arr) => (
-              <li
-                key={notification._id}
-                ref={index === arr.length - 1 ? lastNotificationRef : null}
-                onClick={() => handleNotificationClick(notification)}
-                className={`relative flex items-start p-4 rounded-lg shadow-sm transition-all duration-200 cursor-pointer
-                  ${notification.read ? "bg-gray-200" : "bg-gray-50 border-l-4 border-gray-300"}
+            {data?.pages
+              ?.flatMap((page) => page.notifications)
+              .map((notification, index, arr) => (
+                <li
+                  key={notification._id}
+                  ref={index === arr.length - 1 ? lastNotificationRef : null}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`relative flex items-start p-4 rounded-lg shadow-sm transition-all duration-200 cursor-pointer
+                  ${notification.read ? 'bg-gray-200' : 'bg-gray-50 border-l-4 border-gray-300'}
                   hover:bg-gray-100 hover:shadow-md`}
-              >
-                <div className="flex-1">
-                  <p className="text-sm">
-                    <span
-                      className="font-semibold text-blue-600 hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/home/profile/${notification.senderId}`);
-                      }}
-                    >
-                      {notification.senderName}
-                    </span>{" "}
-                    {notification.message.replace(notification.senderName, "")}{" "}
-                    {notification.postId && (
+                >
+                  <div className="flex-1">
+                    <p className="text-sm">
                       <span
                         className="font-semibold text-blue-600 hover:underline"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/home/post/${notification.postId}`);
+                          navigate(`/home/profile/${notification.senderId}`);
                         }}
                       >
-                        Post
-                      </span>
-                    )}
-                  </p>
-                  <span className="text-xs text-gray-400">
-                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteMutation.mutate(notification._id);
-                  }}
-                  className="ml-3 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </li>
-            ))}
+                        {notification.senderName}
+                      </span>{' '}
+                      {notification.message.replace(notification.senderName, '')}{' '}
+                      {notification.postId && (
+                        <span
+                          className="font-semibold text-blue-600 hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/home/post/${notification.postId}`);
+                          }}
+                        >
+                          Post
+                        </span>
+                      )}
+                    </p>
+                    <span className="text-xs text-gray-400">
+                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteMutation.mutate(notification._id);
+                    }}
+                    className="ml-3 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </li>
+              ))}
           </ul>
         )}
         {isFetchingNextPage && (

@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
-import { socket } from "@/utils/Socket";
-import { useQueryClient } from "@tanstack/react-query";
-import { NormalizedChat } from "@/utils/normalizeChat";
-import { userService } from "@/services/userService";
+import { useEffect, useState, useCallback } from 'react';
+import { socket } from '@/utils/Socket';
+import { useQueryClient } from '@tanstack/react-query';
+import { NormalizedChat } from '@/utils/normalizeChat';
+import { userService } from '@/services/userService';
 
 interface Message {
   _id: string;
@@ -17,7 +17,7 @@ const MESSAGES_PER_PAGE = 20;
 const normalizeMessage = (message: any): Message => ({
   _id: message._id || Date.now().toString(),
   senderId: message.senderId,
-  content: message.content || "",
+  content: message.content || '',
   replyTo: message.replyTo || null,
   createdAt: message.createdAt || new Date().toISOString(),
 });
@@ -40,10 +40,10 @@ const useChatSockets = (chatId: string, userId: string) => {
     setHasMore(true);
     setLoading(false);
 
-    console.log("🔄 Joining chat room:", chatId);
+    console.log('🔄 Joining chat room:', chatId);
 
-    socket.emit("leaveChat", chatId);
-    socket.emit("joinChat", chatId);
+    socket.emit('leaveChat', chatId);
+    socket.emit('joinChat', chatId);
     fetchMessages();
 
     const handleMessagesFetched = ({ messages: newMessages }: { messages: Message[] }) => {
@@ -54,27 +54,27 @@ const useChatSockets = (chatId: string, userId: string) => {
         const uniqueMessages = new Map(prev.map((msg) => [msg._id, msg]));
         newMessages.forEach((msg) => uniqueMessages.set(msg._id, msg));
         return Array.from(uniqueMessages.values()).sort(
-          (b,a) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()
+          (b, a) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime(),
         );
       });
     };
 
     const handleMessageReceived = (newMessage: any) => {
-      console.log("💬 useChatSockets: Message in active chat:", newMessage);
-    
+      console.log('💬 useChatSockets: Message in active chat:', newMessage);
+
       setMessages((prev) => {
         if (prev.some((m) => m._id === newMessage._id)) return prev;
         return [newMessage, ...prev];
       });
-    
+
       // Update lastMessage in the chat list
-      queryClient.setQueryData(["chats", userId], (prevChats: NormalizedChat[] = []) => {
+      queryClient.setQueryData(['chats', userId], (prevChats: NormalizedChat[] = []) => {
         if (!Array.isArray(prevChats)) return [];
-    
+
         const chatIndex = prevChats.findIndex((chat) => chat._id === newMessage.chatId);
-    
+
         let updatedChats = [...prevChats];
-    
+
         if (chatIndex > -1) {
           const updatedChat = { ...updatedChats[chatIndex], lastMessage: newMessage };
           updatedChats.splice(chatIndex, 1);
@@ -86,28 +86,26 @@ const useChatSockets = (chatId: string, userId: string) => {
             participants: [],
           });
         }
-    
+
         return updatedChats;
       });
     };
-      
 
     const handleMessageDeleted = (messageId: string) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
     };
 
     const handleMessageEdited = (updatedMessage: Message) => {
-      console.log("Received Edited Message:", updatedMessage);
-    
-   
+      console.log('Received Edited Message:', updatedMessage);
+
       setMessages((prev) =>
-        prev.map((msg) => (msg._id === updatedMessage._id ? updatedMessage : msg))
+        prev.map((msg) => (msg._id === updatedMessage._id ? updatedMessage : msg)),
       );
-    
-      queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
-      queryClient.invalidateQueries({ queryKey: ["chats", chatId] });
+
+      queryClient.invalidateQueries({ queryKey: ['messages', chatId] });
+      queryClient.invalidateQueries({ queryKey: ['chats', chatId] });
     };
-    
+
     const handleUserTyping = ({ senderId }: { senderId: string }) => {
       if (senderId !== userId) {
         setTyping(true);
@@ -116,33 +114,33 @@ const useChatSockets = (chatId: string, userId: string) => {
     };
 
     // Remove previous listeners
-    socket.off("messagesFetched", handleMessagesFetched);
-    socket.off("messageReceived", handleMessageReceived);
-    socket.off("messageDeleted", handleMessageDeleted);
-    socket.off("messageEdited", handleMessageEdited);
-    socket.off("userTyping", handleUserTyping);
+    socket.off('messagesFetched', handleMessagesFetched);
+    socket.off('messageReceived', handleMessageReceived);
+    socket.off('messageDeleted', handleMessageDeleted);
+    socket.off('messageEdited', handleMessageEdited);
+    socket.off('userTyping', handleUserTyping);
 
     // Add event listeners
-    socket.on("messagesFetched", handleMessagesFetched);
-    socket.on("messageReceived", handleMessageReceived);
-    socket.on("messageDeleted", handleMessageDeleted);
-    socket.on("messageEdited", handleMessageEdited);
-    socket.on("userTyping", handleUserTyping);
+    socket.on('messagesFetched', handleMessagesFetched);
+    socket.on('messageReceived', handleMessageReceived);
+    socket.on('messageDeleted', handleMessageDeleted);
+    socket.on('messageEdited', handleMessageEdited);
+    socket.on('userTyping', handleUserTyping);
 
     return () => {
-      socket.emit("leaveChat", chatId);
-      socket.off("messagesFetched", handleMessagesFetched);
-      socket.off("messageReceived", handleMessageReceived);
-      socket.off("messageDeleted", handleMessageDeleted);
-      socket.off("messageEdited", handleMessageEdited);
-      socket.off("userTyping", handleUserTyping);
+      socket.emit('leaveChat', chatId);
+      socket.off('messagesFetched', handleMessagesFetched);
+      socket.off('messageReceived', handleMessageReceived);
+      socket.off('messageDeleted', handleMessageDeleted);
+      socket.off('messageEdited', handleMessageEdited);
+      socket.off('userTyping', handleUserTyping);
     };
   }, [chatId]);
 
   const fetchMessages = useCallback(() => {
     if (!hasMore || loading) return;
     setLoading(true);
-    socket.emit("fetchMessages", { chatId, page, limit: MESSAGES_PER_PAGE });
+    socket.emit('fetchMessages', { chatId, page, limit: MESSAGES_PER_PAGE });
     setPage((prev) => prev + 1);
   }, [chatId, hasMore, loading, page]);
 
@@ -153,7 +151,7 @@ const useChatSockets = (chatId: string, userId: string) => {
       const newMessage = normalizeMessage({ senderId: userId, content: message, replyTo });
 
       setMessages((prev) => [...prev, newMessage]);
-      socket.emit("sendMessage", { chatId, message, senderId: userId, replyTo });
+      socket.emit('sendMessage', { chatId, message, senderId: userId, replyTo });
     },
     fetchMessages,
     hasMore,
@@ -161,43 +159,41 @@ const useChatSockets = (chatId: string, userId: string) => {
     loading,
     editMessage: (messageId: string, newContent: string) => {
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === messageId ? { ...msg, content: newContent } : msg
-        )
+        prev.map((msg) => (msg._id === messageId ? { ...msg, content: newContent } : msg)),
       );
-      socket.emit("editMessage", { chatId, messageId, newContent });
+      socket.emit('editMessage', { chatId, messageId, newContent });
     },
     deleteMessage: (messageId: string) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
-      socket.emit("deleteMessage", { chatId, messageId });
+      socket.emit('deleteMessage', { chatId, messageId });
     },
     handleTyping: () => {
-      socket.emit("typing", { chatId, senderId: userId });
+      socket.emit('typing', { chatId, senderId: userId });
     },
 
-    sendFileMessage: async (file: File, message = "", replyTo?: Message | null) => {
+    sendFileMessage: async (file: File, message = '', replyTo?: Message | null) => {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("message", message);
-      if (replyTo) formData.append("replyTo", JSON.stringify(replyTo));
-    
+      formData.append('file', file);
+      formData.append('message', message);
+      if (replyTo) formData.append('replyTo', JSON.stringify(replyTo));
+
       try {
         const uploaded = await userService.uploadMedia(formData);
-    
-        console.log("File uploaded:", uploaded);
-    
+
+        console.log('File uploaded:', uploaded);
+
         const newMessage = normalizeMessage({
           chatId: chatId,
           senderId: userId,
           message: message,
           replyTo,
           files: uploaded, // Return uploaded file data with URL, name, type
-          type: "file",
+          type: 'file',
         });
-    
+
         setMessages((prev) => [...prev, newMessage]);
-    
-        socket.emit("sendFileMessage", {
+
+        socket.emit('sendFileMessage', {
           chatId,
           senderId: userId,
           message,
@@ -205,10 +201,9 @@ const useChatSockets = (chatId: string, userId: string) => {
           files: [uploaded], // Only URL, name, type
         });
       } catch (err) {
-        console.error("Upload failed", err);
+        console.error('Upload failed', err);
       }
-    }
-    
+    },
   };
 };
 

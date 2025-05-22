@@ -1,7 +1,6 @@
-
-import { Route } from "react-router-dom";
-import AdminDashBord from "@/pages/Admin/DashBord";
-import AdminPrivateRoute from "./AdminPrivateRoute";
+import { Route } from 'react-router-dom';
+import AdminDashBord from '@/pages/Admin/DashBord';
+import AdminPrivateRoute from './AdminPrivateRoute';
 
 const AdminRoutes = () => (
   <Route

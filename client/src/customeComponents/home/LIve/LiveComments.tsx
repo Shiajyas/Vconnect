@@ -1,15 +1,15 @@
 // components/LiveComments.tsx
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 
 type Props = {
-  comments: string[]
-  onSend: (msg: string) => void
-}
+  comments: string[];
+  onSend: (msg: string) => void;
+};
 
 const LiveComments = ({ comments, onSend }: Props) => {
-  console.log('LiveComments', comments)
-  console.log('LiveComments', onSend)
-  const [text, setText] = useState('')
+  console.log('LiveComments', comments);
+  console.log('LiveComments', onSend);
+  const [text, setText] = useState('');
   return (
     <div className="p-2">
       <div className="h-40 overflow-y-auto bg-white rounded p-2">
@@ -21,10 +21,10 @@ const LiveComments = ({ comments, onSend }: Props) => {
       </div>
       <form
         onSubmit={(e) => {
-          e.preventDefault()
-          if (!text.trim()) return
-          onSend(text)
-          setText('')
+          e.preventDefault();
+          if (!text.trim()) return;
+          onSend(text);
+          setText('');
         }}
       >
         <input
@@ -35,7 +35,7 @@ const LiveComments = ({ comments, onSend }: Props) => {
         />
       </form>
     </div>
-  )
-}
+  );
+};
 
-export default LiveComments
+export default LiveComments;

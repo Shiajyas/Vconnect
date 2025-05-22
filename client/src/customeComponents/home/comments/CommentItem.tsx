@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { useAuthStore } from "@/appStore/AuthStore";
-import { socket } from "@/utils/Socket";
-import { Trash2, Heart, ChevronDown, ChevronUp } from "lucide-react";
-import CommentInput from "./CommentInput";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '@/appStore/AuthStore';
+import { socket } from '@/utils/Socket';
+import { Trash2, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import CommentInput from './CommentInput';
+import { useNavigate } from 'react-router-dom';
 
 export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: any[] }) => {
   const { user } = useAuthStore();
   const [likesCount, setLikesCount] = useState<number>(comment?.likes?.length || 0);
   const [liked, setLiked] = useState<boolean>(
-    Array.isArray(comment?.likes) && comment.likes.includes(user?._id)
+    Array.isArray(comment?.likes) && comment.likes.includes(user?._id),
   );
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -29,22 +29,22 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
   useEffect(() => {
     const handleLikeUpdate = ({ commentId, likes }: { commentId: string; likes: string[] }) => {
       if (comment._id === commentId) {
-        // console.log("Received like update:", likes); 
-        // console.log("Previous likesCount:", likesCount); 
-  
+        // console.log("Received like update:", likes);
+        // console.log("Previous likesCount:", likesCount);
+
         setLikesCount(likes.length);
         setLiked(likes.includes(user?._id));
-  
-        console.log("Updated likesCount:", likes.length);
+
+        console.log('Updated likesCount:', likes.length);
       }
     };
-  
-    socket.on("commentLiked", handleLikeUpdate);
+
+    socket.on('commentLiked', handleLikeUpdate);
     return () => {
-      socket.off("commentLiked", handleLikeUpdate);
+      socket.off('commentLiked', handleLikeUpdate);
     };
   }, [comment._id, user?._id]);
-  
+
   // Listen for comment deletion
   useEffect(() => {
     const handleDeleteUpdate = ({ commentId }: { commentId: string }) => {
@@ -55,9 +55,9 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
       }
     };
 
-    socket.on("delete_comment", handleDeleteUpdate);
+    socket.on('delete_comment', handleDeleteUpdate);
     return () => {
-      socket.off("delete_comment", handleDeleteUpdate);
+      socket.off('delete_comment', handleDeleteUpdate);
     };
   }, [comment._id]);
 
@@ -66,14 +66,14 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
     setLiked(newLikedState);
     setLikesCount((prev) => (newLikedState ? prev + 1 : prev - 1));
 
-    socket.emit(newLikedState ? "likeComment" : "unLikeComment", {
+    socket.emit(newLikedState ? 'likeComment' : 'unLikeComment', {
       commentId: comment._id,
       userId: user?._id,
     });
   };
 
   const handleDelete = () => {
-    socket.emit("deleteComment", { commentId: comment._id });
+    socket.emit('deleteComment', { commentId: comment._id });
   };
 
   const handleProfileClick = () => {
@@ -98,20 +98,20 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
       <div className="flex items-start p-2 space-x-3">
         <button onClick={handleProfileClick} className="focus:outline-none">
           <img
-            src={comment?.userId?.avatar || "/default-avatar.png"}
+            src={comment?.userId?.avatar || '/default-avatar.png'}
             className="w-8 h-8 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
             alt="User"
           />
         </button>
         <div className="bg-gray-100 p-3 rounded-lg w-full shadow-sm">
-          <p className="text-sm font-medium">{comment?.content || "Comment unavailable"}</p>
+          <p className="text-sm font-medium">{comment?.content || 'Comment unavailable'}</p>
 
           <div className="flex items-center mt-2 space-x-4 text-xs text-gray-600">
             {/* Like Button */}
             <button
               onClick={handleLikeToggle}
               className={`flex items-center gap-1 transition-colors duration-200 ${
-                liked ? "text-red-500 hover:text-red-700" : "hover:text-gray-700"
+                liked ? 'text-red-500 hover:text-red-700' : 'hover:text-gray-700'
               }`}
             >
               <Heart size={16} /> <span>{likesCount}</span>
@@ -132,7 +132,9 @@ export const CommentItem = ({ comment, replies = [] }: { comment: any; replies: 
                 className="flex items-center gap-1 text-blue-500 hover:text-blue-700 transition-colors duration-200"
               >
                 {showReplies ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                <span>{showReplies ? "Hide Replies" : `Show Replies (${localReplies.length})`}</span>
+                <span>
+                  {showReplies ? 'Hide Replies' : `Show Replies (${localReplies.length})`}
+                </span>
               </button>
             )}
 

@@ -1,19 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Phone, PhoneOff, ChevronDown, ChevronUp } from "lucide-react";
-import { useIncomingCallStore } from "@/appStore/useIncomingCallStore";
-import { useWebRTC } from "@/hooks/webrtc/useWebRTC";
-import { useAuthStore } from "@/appStore/AuthStore";
-import CallUI from "../home/chat/CallUI";
+import React, { useState, useRef, useEffect } from 'react';
+import { Phone, PhoneOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { useIncomingCallStore } from '@/appStore/useIncomingCallStore';
+import { useWebRTC } from '@/hooks/webrtc/useWebRTC';
+import { useAuthStore } from '@/appStore/AuthStore';
+import CallUI from '../home/chat/CallUI';
 
 const IncomingCallUI = () => {
-  const {
-    incomingCall,
-    activeCall,
-    setActiveCall,
-    clearIncomingCall,
-    clearActiveCall,
-    
-  } = useIncomingCallStore();
+  const { incomingCall, activeCall, setActiveCall, clearIncomingCall, clearActiveCall } =
+    useIncomingCallStore();
   const { user } = useAuthStore();
 
   const [isMinimized, setIsMinimized] = useState(false);
@@ -37,14 +31,12 @@ const IncomingCallUI = () => {
     isMicOn,
     isVideoOn,
   } = useWebRTC({
-    userId: user?._id || "",
-    chatId: activeCall?.chatId || "",
+    userId: user?._id || '',
+    chatId: activeCall?.chatId || '',
     onCallEnd: () => {
       const endTime = Date.now();
       if (callStartTimeRef.current) {
-        const durationInSeconds = Math.floor(
-          (endTime - callStartTimeRef.current) / 1000
-        );
+        const durationInSeconds = Math.floor((endTime - callStartTimeRef.current) / 1000);
         const minutes = Math.floor(durationInSeconds / 60);
         const seconds = durationInSeconds % 60;
         setEndedDuration(`${minutes}m ${seconds}s`);
@@ -99,11 +91,11 @@ const IncomingCallUI = () => {
       isDragging.current = false;
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
 
@@ -113,7 +105,7 @@ const IncomingCallUI = () => {
   if (activeCall) {
     return (
       <CallUI
-        callType={activeCall?.callType || "voice"}
+        callType={activeCall?.callType || 'voice'}
         onClose={() => {
           endCall();
           clearActiveCall();
@@ -140,12 +132,12 @@ const IncomingCallUI = () => {
       ref={dragRef}
       onMouseDown={startDragging}
       style={{
-        position: "fixed",
+        position: 'fixed',
         left: `${position.x}px`,
         top: `${position.y}px`,
         zIndex: 9999,
-        cursor: "move",
-        width: "320px",
+        cursor: 'move',
+        width: '320px',
       }}
       className="shadow-xl rounded-xl overflow-hidden bg-white dark:bg-gray-900 transition-all"
     >
@@ -203,10 +195,7 @@ const IncomingCallUI = () => {
             // Call Ended Message
             callEnded && (
               <div className="text-center mt-2 transition-opacity duration-500">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Call Ended
-                </p>
-               
+                <p className="text-sm text-gray-600 dark:text-gray-300">Call Ended</p>
               </div>
             )
           )}

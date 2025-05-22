@@ -1,13 +1,12 @@
-import { fetchData } from "../utils/axiosHelpers";
+import { fetchData } from '../utils/axiosHelpers';
 
 export const messageService = {
-  
   getMessages: (chatId: any, page: number = 1, limit: number = 20) =>
     fetchData(
       `/user/messages/${chatId}?page=${page}&limit=${limit}`,
       {
-        method: "GET",
+        method: 'GET',
       },
-      "Failed to fetch messages"
+      'Failed to fetch messages',
     ),
 };

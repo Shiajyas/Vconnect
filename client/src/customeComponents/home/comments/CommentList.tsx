@@ -1,8 +1,7 @@
-import React from "react";
-import CommentItem from "./CommentItem";
+import React from 'react';
+import CommentItem from './CommentItem';
 
 const CommentList = ({ comments }: { comments: any[] }) => {
-
   // Step 1: Organize comments into a nested structure
   const commentMap = new Map();
 
@@ -26,10 +25,8 @@ const CommentList = ({ comments }: { comments: any[] }) => {
     }
   });
 
-  
-
   return (
-    <div >
+    <div>
       {nestedComments.map((comment) => (
         <CommentItem key={comment._id} comment={comment} replies={comment.replies} />
       ))}

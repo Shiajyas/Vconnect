@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { socket } from "@/utils/Socket";
-import { useGetComments } from "@/hooks/useComment";
-import CommentList from "./CommentList";
-import CommentInput from "./CommentInput";
-import { X } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { socket } from '@/utils/Socket';
+import { useGetComments } from '@/hooks/useComment';
+import CommentList from './CommentList';
+import CommentInput from './CommentInput';
+import { X } from 'lucide-react';
 
 const MAX_VISIBLE_COMMENTS = 5;
 
@@ -15,35 +15,39 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
 
   const [isFixed, setIsFixed] = useState(false);
 
-  useEffect(() => { 
+  useEffect(() => {
     setIsFixed(comments.length > MAX_VISIBLE_COMMENTS);
 
-    socket.emit("joinPostRoom", postId);
+    socket.emit('joinPostRoom', postId);
 
-    const handleNewComment = () => queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-    const handleNewReply = () => queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-    const handleDeleteComment = () => queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-    const handleCommentLiked = () => queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    const handleNewComment = () =>
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    const handleNewReply = () => queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    const handleDeleteComment = () =>
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    const handleCommentLiked = () =>
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
 
-    socket.on("newComment", handleNewComment);
-    socket.on("newReply", handleNewReply);
-    socket.on("delete_comment", handleDeleteComment);
-    socket.on("commentLiked", handleCommentLiked);
-    socket.on("delete_reply", handleNewReply);
-    
+    socket.on('newComment', handleNewComment);
+    socket.on('newReply', handleNewReply);
+    socket.on('delete_comment', handleDeleteComment);
+    socket.on('commentLiked', handleCommentLiked);
+    socket.on('delete_reply', handleNewReply);
+
     return () => {
-      socket.emit("leavePostRoom", postId);
-      socket.off("newComment", handleNewComment);
-      socket.off("newReply", handleNewReply);
-      socket.off("delete_comment", handleDeleteComment);
-      socket.off("commentLiked", handleCommentLiked);
-      socket.off("delete_reply", handleNewReply);
+      socket.emit('leavePostRoom', postId);
+      socket.off('newComment', handleNewComment);
+      socket.off('newReply', handleNewReply);
+      socket.off('delete_comment', handleDeleteComment);
+      socket.off('commentLiked', handleCommentLiked);
+      socket.off('delete_reply', handleNewReply);
     };
   }, [postId, queryClient, comments.length]);
 
   return (
-    <div className="relative w-full  bg-white shadow-md rounded-lg"
-    onClick={(e) => e.stopPropagation()} 
+    <div
+      className="relative w-full  bg-white shadow-md rounded-lg"
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Mobile View */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white shadow-lg rounded-t-lg z-50">
@@ -73,7 +77,7 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
 
         <div
           className={`p-2 bg-white rounded-md shadow-sm overflow-y-auto transition-all duration-300 ${
-            isFixed ? "h-96" : "max-h-[80vh]"
+            isFixed ? 'h-96' : 'max-h-[80vh]'
           }`}
         >
           {comments.length > 0 ? (
@@ -84,7 +88,7 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
         </div>
 
         <div className="p-2 border-t mt-2">
-          <CommentInput  postId={postId} />
+          <CommentInput postId={postId} />
         </div>
       </div>
     </div>
@@ -92,4 +96,3 @@ const CommentSection = ({ postId, onClose }: { postId: string; onClose: () => vo
 };
 
 export default CommentSection;
-

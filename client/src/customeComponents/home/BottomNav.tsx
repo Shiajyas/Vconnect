@@ -1,8 +1,8 @@
-import { Home, Search, MessageSquare, Bell, User, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import useNotificationStore from "@/store/notificationStore";
-import { useAuthStore } from "@/appStore/AuthStore";
+import { Home, Search, MessageSquare, Bell, User, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import useNotificationStore from '@/store/notificationStore';
+import { useAuthStore } from '@/appStore/AuthStore';
 
 interface BottomNavProps {
   selectedItem: string;
@@ -15,11 +15,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ selectedItem, setSelectedItem }) 
   const { user } = useAuthStore();
 
   const menuItems = [
-    { name: "Home", icon: <Home className="w-6 h-6" />, path: "/home" },
-    { name: "Search", icon: <Search className="w-6 h-6" />, path: "/home/search" },
-    { name: "Create", icon: <PlusCircle className="w-6 h-6" />, path: `/home/create/${user?._id}` },
-    { name: "Notifications", icon: <Bell className="w-6 h-6" />, path: "/home/notifications", hasBadge: true },
-    { name: "Profile", icon: <User className="w-6 h-6" />, path: `/home/profile/${user?._id}` },
+    { name: 'Home', icon: <Home className="w-6 h-6" />, path: '/home' },
+    { name: 'Search', icon: <Search className="w-6 h-6" />, path: '/home/search' },
+    { name: 'Create', icon: <PlusCircle className="w-6 h-6" />, path: `/home/create/${user?._id}` },
+    {
+      name: 'Notifications',
+      icon: <Bell className="w-6 h-6" />,
+      path: '/home/notifications',
+      hasBadge: true,
+    },
+    { name: 'Profile', icon: <User className="w-6 h-6" />, path: `/home/profile/${user?._id}` },
   ];
 
   return (
@@ -30,7 +35,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ selectedItem, setSelectedItem }) 
           variant="ghost"
           size="icon"
           className={`relative flex flex-col items-center text-gray-600 ${
-            selectedItem === item.name ? "text-primary font-bold" : "hover:text-primary"
+            selectedItem === item.name ? 'text-primary font-bold' : 'hover:text-primary'
           }`}
           onClick={() => {
             setSelectedItem(item.name);

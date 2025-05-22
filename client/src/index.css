@@ -46,12 +46,19 @@
   }
 
   /* Ensuring no default margin/padding on elements like h1, h2, etc. */
-  h1, h2, h3, h4, h5, h6, p {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p {
     @apply m-0 p-0;
   }
 
   /* Ensure list styles are consistent */
-  ul, ol {
+  ul,
+  ol {
     @apply list-none;
   }
 

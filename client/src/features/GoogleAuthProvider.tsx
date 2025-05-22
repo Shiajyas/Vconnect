@@ -16,15 +16,15 @@ const GoogleAuthProvider = ({ onGoogleSignIn }: { onGoogleSignIn: (user: any) =>
     try {
       const idToken = response.credential;
 
-    //   console.log(idToken,">>>>>>");
+      //   console.log(idToken,">>>>>>");
 
       // Send user data to the backend
       googleAuthMutation.mutate({ idToken });
 
-    //   toast.success('Google login successful');
+      //   toast.success('Google login successful');
     } catch (error) {
       console.error('Google login failed', error);
-    //   toast.error('Google login failed');
+      //   toast.error('Google login failed');
     }
   };
 
@@ -33,13 +33,13 @@ const GoogleAuthProvider = ({ onGoogleSignIn }: { onGoogleSignIn: (user: any) =>
     const initializeGis = () => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id:  import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           callback: handleGoogleLogin,
         });
-  
+
         window.google.accounts.id.renderButton(
           document.getElementById('google-signin-button'),
-          { theme: 'outline', size: 'large' } // Button customization options
+          { theme: 'outline', size: 'large' }, // Button customization options
         );
       } else {
         console.error('Google API script not loaded');

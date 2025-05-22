@@ -1,5 +1,5 @@
-import { X, Search } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { X, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface User {
   _id: string;
@@ -22,31 +22,29 @@ const FriendsListModal: React.FC<FriendsListModalProps> = ({
   onSelectUser,
   darkMode = false,
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Close modal on Escape key press
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         onClose();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   // Memoized filtered users
   const filteredUsers = useMemo(
     () =>
       searchTerm
-        ? users.filter((user) =>
-            user.username.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+        ? users.filter((user) => user.username.toLowerCase().includes(searchTerm.toLowerCase()))
         : users,
-    [searchTerm, users]
+    [searchTerm, users],
   );
 
   if (!isOpen) return null;
@@ -55,7 +53,11 @@ const FriendsListModal: React.FC<FriendsListModalProps> = ({
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 z-50">
       <div
         className={`w-full max-w-md shadow-lg rounded-lg p-4 border transition-all
-          ${darkMode ? "bg-gray-800 text-white border-gray-700" : "bg-white text-black border-gray-300"}
+          ${
+            darkMode
+              ? 'bg-gray-800 text-white border-gray-700'
+              : 'bg-white text-black border-gray-300'
+          }
         `}
         role="dialog"
         aria-modal="true"
@@ -89,7 +91,7 @@ const FriendsListModal: React.FC<FriendsListModalProps> = ({
               <div
                 key={user._id}
                 className={`p-3 flex items-center justify-between rounded-lg cursor-pointer transition-all 
-                  ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                  ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 onClick={() => {
                   onSelectUser(user._id);
                   onClose(); // Close after selecting a user
@@ -100,7 +102,7 @@ const FriendsListModal: React.FC<FriendsListModalProps> = ({
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={user.avatar || "/user.png"}
+                    src={user.avatar || '/user.png'}
                     className="w-10 h-10 rounded-full"
                     alt={user.username}
                   />

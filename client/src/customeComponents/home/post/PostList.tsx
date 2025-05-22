@@ -1,22 +1,22 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { postService } from "@/services/postService";
-import PostCard from "./PostItem";
-import { socket } from "@/utils/Socket";
-import { useAuthStore } from "@/appStore/AuthStore";
-import { useNavigate } from "react-router-dom";
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { postService } from '@/services/postService';
+import PostCard from './PostItem';
+import { socket } from '@/utils/Socket';
+import { useAuthStore } from '@/appStore/AuthStore';
+import { useNavigate } from 'react-router-dom';
 
 const PostList: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const observerRef = useRef<HTMLDivElement | null>(null);
   const { user, isUserAuthenticated } = useAuthStore();
-  const userId = user?._id?.toString() || "";
+  const userId = user?._id?.toString() || '';
 
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["posts"],
+    queryKey: ['posts'],
     queryFn: ({ pageParam = 1 }) => postService.getPosts(pageParam, 10),
     getNextPageParam: (lastPage) => lastPage?.nextPage || undefined,
     initialPageParam: 1,
@@ -29,11 +29,11 @@ const PostList: React.FC = () => {
   };
 
   const updateLikeCache = async (postId: string, liked: boolean) => {
-    await queryClient.cancelQueries({ queryKey: ["posts"] });
+    await queryClient.cancelQueries({ queryKey: ['posts'] });
 
-    const previousData = queryClient.getQueryData(["posts"]);
+    const previousData = queryClient.getQueryData(['posts']);
 
-    queryClient.setQueryData(["posts"], (oldData: any) => {
+    queryClient.setQueryData(['posts'], (oldData: any) => {
       if (!oldData) return oldData;
 
       return {
@@ -44,11 +44,9 @@ const PostList: React.FC = () => {
             post._id === postId
               ? {
                   ...post,
-                  likes: liked
-                    ? [...post.likes, userId]
-                    : post.likes.filter((id) => id !== userId),
+                  likes: liked ? [...post.likes, userId] : post.likes.filter((id) => id !== userId),
                 }
-              : post
+              : post,
           ),
         })),
       };
@@ -58,40 +56,40 @@ const PostList: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log("Setting up socket listeners...");
-    
+    console.log('Setting up socket listeners...');
+
     const handleNewComment = (data: { postId: string }) => {
-      console.log("New comment received:", data);
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-      queryClient.invalidateQueries({ queryKey: ["comments", data.postId] });
+      console.log('New comment received:', data);
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['comments', data.postId] });
     };
-  
-    socket.on("newComment", handleNewComment);
-    socket.on("delete_comment", handleNewComment);
-    socket.on("update_like_count", handleNewComment);
-  
+
+    socket.on('newComment', handleNewComment);
+    socket.on('delete_comment', handleNewComment);
+    socket.on('update_like_count', handleNewComment);
+
     return () => {
-      console.log("Removing socket listeners...");
-      socket.off("newComment", handleNewComment);
-      socket.off("delete_comment", handleNewComment);
-      socket.off("update_like_count", handleNewComment);
+      console.log('Removing socket listeners...');
+      socket.off('newComment', handleNewComment);
+      socket.off('delete_comment', handleNewComment);
+      socket.off('update_like_count', handleNewComment);
     };
   }, [queryClient]);
-  
+
   const likeMutation = useMutation({
     mutationFn: (postId: string) => postService.likePost(postId),
     onMutate: async (postId) => updateLikeCache(postId, true),
-    onSuccess: (_, postId) => socket.emit("like_post", { userId, postId, type: "like" }),
+    onSuccess: (_, postId) => socket.emit('like_post', { userId, postId, type: 'like' }),
     onError: (_error, _postId, context: any) =>
-      queryClient.setQueryData(["posts"], context.previousData),
+      queryClient.setQueryData(['posts'], context.previousData),
   });
 
   const unlikeMutation = useMutation({
     mutationFn: (postId: string) => postService.unLikePost(postId),
     onMutate: async (postId) => updateLikeCache(postId, false),
-    onSuccess: (_, postId) => socket.emit("like_post", { userId, postId, type: "unlike" }),
+    onSuccess: (_, postId) => socket.emit('like_post', { userId, postId, type: 'unlike' }),
     onError: (_error, _postId, context: any) =>
-      queryClient.setQueryData(["posts"], context.previousData),
+      queryClient.setQueryData(['posts'], context.previousData),
   });
 
   const handleLike = (postId: string, isLiked: boolean) => {
@@ -108,7 +106,7 @@ const PostList: React.FC = () => {
         fetchNextPage();
       }
     },
-    [fetchNextPage, hasNextPage, isFetchingNextPage]
+    [fetchNextPage, hasNextPage, isFetchingNextPage],
   );
 
   useEffect(() => {
@@ -133,7 +131,7 @@ const PostList: React.FC = () => {
             isCommentsOpen={openPostId === post._id}
             onClick={() => handlePostClick(post._id)}
           />
-        ))
+        )),
       )}
 
       <div ref={observerRef} className="h-10"></div>

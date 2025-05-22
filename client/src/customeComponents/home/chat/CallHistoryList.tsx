@@ -1,6 +1,6 @@
-import { CallHistoryItem } from "./CallHistoryItem";
-import { useCallHistory } from "@/hooks/callHooks/useCallHistory";
-import { useAuthStore } from "@/appStore/AuthStore";
+import { CallHistoryItem } from './CallHistoryItem';
+import { useCallHistory } from '@/hooks/callHooks/useCallHistory';
+import { useAuthStore } from '@/appStore/AuthStore';
 
 interface CallHistoryListProps {
   onClose: () => void;
@@ -8,7 +8,7 @@ interface CallHistoryListProps {
 
 export const CallHistoryList = ({ onClose }: CallHistoryListProps) => {
   const { user } = useAuthStore();
-  const userId = user?._id || "";
+  const userId = user?._id || '';
   const { data: history, isLoading } = useCallHistory(userId);
 
   return (
@@ -51,8 +51,7 @@ export const CallHistoryList = ({ onClose }: CallHistoryListProps) => {
                   startedAt={call.startedAt}
                   endedAt={call.endedAt}
                   onCall={(user, type) => {
-                    console.log("Calling", user.name, "with", type, "call");
-                    
+                    console.log('Calling', user.name, 'with', type, 'call');
                   }}
                 />
               ))}

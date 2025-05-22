@@ -15,7 +15,7 @@
     "noEmit": false,
     "composite": true,
     "jsx": "react-jsx",
-    
+
     "types": ["vite/client"],
     /* Linting */
     "strict": true,
@@ -28,5 +28,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src","global.d.ts"]
+  "include": ["src", "global.d.ts"]
 }

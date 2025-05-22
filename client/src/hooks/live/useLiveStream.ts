@@ -1,76 +1,87 @@
-import { useEffect, useRef, useState } from 'react'
-import { socket } from '@/utils/Socket'
-import { createSendTransport, createRecvTransport, closeTransports } from '@/services/mediaSoup'
-import { useLiveStore } from '@/appStore/useLiveStore'
+import { useEffect, useRef, useState } from 'react';
+import mediaSocket from '@/utils/mediaSocket';
+import { createSendTransport, createRecvTransport, closeTransports } from '@/services/mediaSoup';
+import { useLiveStore } from '@/appStore/useLiveStore';
 
 const useLiveStream = (isHost: boolean, streamId: string, active: boolean) => {
-  const [comments, setComments] = useState<string[]>([])
-  const [viewers, setViewers] = useState<number>(0)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const setLive = useLiveStore((s) => s.setLive)
+  const [comments, setComments] = useState<string[]>([]);
+  const [viewers, setViewers] = useState<number>(0);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const setLive = useLiveStore((s) => s.setIsLive);
 
-  // Handle stream lifecycle (start, join, leave)
+  // Stream lifecycle events
   useEffect(() => {
-    if (!active) return
+    if (!active) return;
 
-    socket.emit(isHost ? 'live:start' : 'live:join', { streamId })
-    if (isHost) setLive(true)
+    const joinPayload = { streamId };
 
-    socket.on('live:comment', (msg: string) => {
-      setComments((prev) => [...prev, msg])
-    })
+    mediaSocket.emit(isHost ? 'live:started' : 'live:joined', joinPayload);
+    if (isHost) setLive(true);
 
-    socket.on('live:viewers', (count: number) => {
-      setViewers(count)
-    })
+    const handleComment = (msg: string) => {
+      setComments((prev) => [...prev, msg]);
+    };
+
+    const handleViewers = (count: number) => {
+      setViewers(count);
+    };
+
+    mediaSocket.on('stream:comment', handleComment);
+    mediaSocket.on('stream:viewers', handleViewers);
 
     return () => {
-      socket.emit('live:leave', { streamId })
-      socket.off('live:comment')
-      socket.off('live:viewers')
-      setLive(false)
+      mediaSocket.emit('live:left', { streamId });
+      mediaSocket.off('stream:comment', handleComment);
+      mediaSocket.off('stream:viewers', handleViewers);
 
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+      setLive(false);
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
 
-      closeTransports()
-    }
-  }, [isHost, streamId, active])
+      closeTransports();
+    };
+  }, [isHost, streamId, active]);
 
-  // Handle Media and MediaSoup
+  // Media stream setup
   useEffect(() => {
-    if (!active) return
+    if (!active) return;
 
     const setupStream = async () => {
       try {
         if (isHost) {
-          const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          setStream(localStream)
-          await createSendTransport(socket, localStream)
+          const localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          setStream(localStream);
+          streamRef.current = localStream;
+          await createSendTransport(mediaSocket, localStream);
         } else {
-          await createRecvTransport(socket, streamId, videoRef)
+          await createRecvTransport(mediaSocket, streamId, videoRef);
         }
       } catch (error) {
-        console.error('Error setting up stream:', error)
+        console.error('Error setting up stream:', error);
       }
-    }
+    };
 
-    setupStream()
-  }, [isHost, streamId, active])
+    setupStream();
+  }, [isHost, streamId, active]);
 
   const sendComment = (text: string) => {
-    socket.emit('live:comment', { streamId, message: text })
-  }
+    mediaSocket.emit('stream:comment', { streamId, message: text });
+  };
 
   return {
     stream,
     viewers,
     comments,
     sendComment,
-    videoRef, // for viewer to use
-  }
-}
+    videoRef,
+  };
+};
 
-export default useLiveStream
+export default useLiveStream;

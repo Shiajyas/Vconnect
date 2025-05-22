@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface SubscriptionState {
   isAuthenticated: boolean;
@@ -16,10 +16,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       isSubscribed: false,
       startDate: null,
       endDate: null,
-      setSubscription: (status, start, end) => set({ isSubscribed: status, startDate: start, endDate: end }),
+      setSubscription: (status, start, end) =>
+        set({ isSubscribed: status, startDate: start, endDate: end }),
     }),
-    { name: "subscription-storage" } // Stored in localStorage
-  )
+    { name: 'subscription-storage' }, // Stored in localStorage
+  ),
 );
-
-

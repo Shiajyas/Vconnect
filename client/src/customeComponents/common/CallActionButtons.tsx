@@ -1,9 +1,9 @@
-import { Phone, Video } from "lucide-react";
-import React from "react";
+import { Phone, Video } from 'lucide-react';
+import React from 'react';
 
 interface CallActionButtonsProps {
-  onStartCall: (type: "voice" | "video") => void;
-  compact?: boolean; 
+  onStartCall: (type: 'voice' | 'video') => void;
+  compact?: boolean;
 }
 
 export const CallActionButtons: React.FC<CallActionButtonsProps> = ({
@@ -13,7 +13,7 @@ export const CallActionButtons: React.FC<CallActionButtonsProps> = ({
   return (
     <div className="flex gap-3">
       <button
-        onClick={() => onStartCall("voice")}
+        onClick={() => onStartCall('voice')}
         className="flex items-center gap-2 px-3 py-2 rounded-full bg-blue-100 hover:bg-blue-500 hover:text-white transition"
         title="Start Voice Call"
       >
@@ -21,7 +21,7 @@ export const CallActionButtons: React.FC<CallActionButtonsProps> = ({
         {!compact && <span className="hidden sm:inline">Voice</span>}
       </button>
       <button
-        onClick={() => onStartCall("video")}
+        onClick={() => onStartCall('video')}
         className="flex items-center gap-2 px-3 py-2 rounded-full bg-green-100 hover:bg-green-500 hover:text-white transition"
         title="Start Video Call"
       >

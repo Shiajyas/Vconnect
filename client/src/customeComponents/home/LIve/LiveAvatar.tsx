@@ -1,17 +1,17 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import clsx from 'clsx'
+import React from 'react';
+import { motion } from 'framer-motion';
+import clsx from 'clsx';
 
 type Props = {
-  avatarUrl: string
-  username: string
-  isLive: boolean
-  onClick?: () => void
-  isStartButton?: boolean
-}
+  avatarUrl: string;
+  username: string;
+  isLive: boolean;
+  onClick?: () => void;
+  isStartButton?: boolean;
+};
 
-const LiveAvatar = ({ avatarUrl, username, isLive , onClick, isStartButton }: Props) => {
-    // const isLiveClass = isLive ? 'bg-gradient-to-tr from-blue-500 to-blue-600' : ''
+const LiveAvatar = ({ avatarUrl, username, isLive, onClick, isStartButton }: Props) => {
+  // const isLiveClass = isLive ? 'bg-gradient-to-tr from-blue-500 to-blue-600' : ''
   return (
     <div className="flex flex-col items-center cursor-pointer" onClick={onClick}>
       <div className="relative">
@@ -23,7 +23,7 @@ const LiveAvatar = ({ avatarUrl, username, isLive , onClick, isStartButton }: Pr
             transition={{
               duration: 1.3,
               repeat: Infinity,
-              ease: "circInOut",
+              ease: 'circInOut',
             }}
             style={{
               background: 'linear-gradient(to right, #00f, #00f)',
@@ -35,15 +35,11 @@ const LiveAvatar = ({ avatarUrl, username, isLive , onClick, isStartButton }: Pr
         <div
           className={clsx(
             'relative z-10 rounded-full p-[2px]',
-            isLive ? 'bg-gradient-to-tr from-blue-500 to-blue-600' : ''
+            isLive ? 'bg-gradient-to-tr from-blue-500 to-blue-600' : '',
           )}
         >
           <div className="bg-white rounded-full p-1">
-            <img
-              src={avatarUrl}
-              alt={username}
-              className="w-16 h-16 rounded-full object-cover"
-            />
+            <img src={avatarUrl} alt={username} className="w-16 h-16 rounded-full object-cover" />
           </div>
         </div>
       </div>
@@ -51,7 +47,7 @@ const LiveAvatar = ({ avatarUrl, username, isLive , onClick, isStartButton }: Pr
         {isStartButton ? '+' : isLive ? 'LIVE' : username}
       </span>
     </div>
-  )
-}
+  );
+};
 
-export default LiveAvatar
+export default LiveAvatar;

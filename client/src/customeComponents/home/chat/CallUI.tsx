@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { X, Mic, MicOff, Video, VideoOff, PhoneOff, User } from "lucide-react";
-import gsap from "gsap";
+import React, { useEffect, useState } from 'react';
+import { X, Mic, MicOff, Video, VideoOff, PhoneOff, User } from 'lucide-react';
+import gsap from 'gsap';
 interface CallUIProps {
-  callType: "voice" | "video";
+  callType: 'voice' | 'video';
   onClose: () => void;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
@@ -32,7 +32,6 @@ const CallUI: React.FC<CallUIProps> = ({
   otherUser,
   callActive,
   incomingCall,
-
 }) => {
   const [seconds, setSeconds] = useState(0);
   const [audioStarted, setAudioStarted] = useState(false);
@@ -42,7 +41,7 @@ const CallUI: React.FC<CallUIProps> = ({
   // const [showEndCallConfirm, setShowEndCallConfirm] = useState(false);
   // const [activeCall, setActiveCall] = useState(callActive);
   const [callEnded, setCallEnded] = useState(false);
-// const [endedDuration, setEndedDuration] = useState("");
+  // const [endedDuration, setEndedDuration] = useState("");
 
   useEffect(() => {
     if (!callActive) return;
@@ -90,7 +89,7 @@ const CallUI: React.FC<CallUIProps> = ({
       try {
         ringtone?.play();
       } catch (err) {
-        console.warn("Failed to play ringtone", err);
+        console.warn('Failed to play ringtone', err);
       }
     } else {
       if (ringtone) {
@@ -104,7 +103,7 @@ const CallUI: React.FC<CallUIProps> = ({
         ringback?.play();
       } catch (err) {
         setRingback(null);
-        console.warn("Failed to play ringback", err);
+        console.warn('Failed to play ringback', err);
       }
     } else {
       if (ringback) {
@@ -117,22 +116,22 @@ const CallUI: React.FC<CallUIProps> = ({
   const formatTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
     const remainingSeconds = secs % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
   useEffect(() => {
-    const localVideo = document.getElementById("local-video") as HTMLVideoElement | null;
-    const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
-    const localAudio = document.getElementById("local-audio") as HTMLAudioElement | null;
+    const localVideo = document.getElementById('local-video') as HTMLVideoElement | null;
+    const remoteVideo = document.getElementById('remote-video') as HTMLVideoElement | null;
+    const localAudio = document.getElementById('local-audio') as HTMLAudioElement | null;
 
-    if (localVideo && localStream && callType === "video") {
+    if (localVideo && localStream && callType === 'video') {
       localVideo.srcObject = localStream;
     }
-    if (localAudio && localStream && callType === "voice") {
+    if (localAudio && localStream && callType === 'voice') {
       localAudio.srcObject = localStream;
     }
 
-    if (remoteVideo && remoteStream && callType === "video") {
+    if (remoteVideo && remoteStream && callType === 'video') {
       remoteVideo.srcObject = remoteStream;
     }
   }, [localStream, remoteStream, callType]);
@@ -142,7 +141,7 @@ const CallUI: React.FC<CallUIProps> = ({
     try {
       await onToggleMic();
     } catch (error) {
-      console.error("Error toggling mic:", error);
+      console.error('Error toggling mic:', error);
     } finally {
       setMicLoading(false);
     }
@@ -157,41 +156,31 @@ const CallUI: React.FC<CallUIProps> = ({
   // };
 
   const handleEndCall = () => {
-
     // setEndedDuration(formatted);
-    
+
     setCallEnded(true);
     // setActiveCall(false);
-  
+
     setTimeout(() => {
       onClose(); // closes modal after a delay
     }, 2000); // show ended message for 2 seconds
   };
 
-//use useffect for handling the end call with calling handleEndCall 
+  //use useffect for handling the end call with calling handleEndCall
 
   useEffect(() => {
     if (callEnded) {
-     handleEndCall();
+      handleEndCall();
     }
-  }, [callEnded,callActive]);
-
+  }, [callEnded, callActive]);
 
   // GSAP animations for better UI experience
   const animateModal = () => {
-    gsap.fromTo(
-      ".call-modal",
-      { opacity: 0, scale: 0.8 },
-      { opacity: 1, scale: 1, duration: 0.3 }
-    );
+    gsap.fromTo('.call-modal', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.3 });
   };
 
   const animateEndCallConfirm = () => {
-    gsap.fromTo(
-      ".end-call-confirm",
-      { opacity: 0, y: 50 },
-      { opacity: 1, y: 0, duration: 0.3 }
-    );
+    gsap.fromTo('.end-call-confirm', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.3 });
   };
 
   useEffect(() => {
@@ -217,19 +206,14 @@ const CallUI: React.FC<CallUIProps> = ({
 
         <div className="text-center mb-4">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-            {callType === "voice" ? "Voice Call" : "Video Call"}
+            {callType === 'voice' ? 'Voice Call' : 'Video Call'}
           </h2>
         </div>
 
-        {callType === "video" && (
+        {callType === 'video' && (
           <div className="relative w-full h-64 mb-2 rounded-lg overflow-hidden bg-black flex items-center justify-center">
             {!remoteStream && <p className="text-white absolute">Connecting...</p>}
-            <video
-              id="remote-video"
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
+            <video id="remote-video" autoPlay playsInline className="w-full h-full object-cover" />
             <video
               id="local-video"
               autoPlay
@@ -243,15 +227,15 @@ const CallUI: React.FC<CallUIProps> = ({
               </div>
             )}
 
-         { !isRemoteMicOn && (
-          <div className="absolute bottom-3 left-3 text-white text-xs bg-blue p-1 rounded-full">
-            <MicOff className="w-6 h-6" />
-          </div>
-        )}
+            {!isRemoteMicOn && (
+              <div className="absolute bottom-3 left-3 text-white text-xs bg-blue p-1 rounded-full">
+                <MicOff className="w-6 h-6" />
+              </div>
+            )}
           </div>
         )}
 
-        {callType === "voice" && (
+        {callType === 'voice' && (
           <div className="w-full h-48 flex items-center justify-center rounded-lg mb-2 bg-gray-100 dark:bg-gray-800">
             <div className="flex flex-col items-center">
               {otherUser?.avatar ? (
@@ -265,9 +249,9 @@ const CallUI: React.FC<CallUIProps> = ({
                   <User className="text-white w-10 h-10" />
                 </div>
               )}
-            
+
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {isRemoteMicOn ? "On voice call..." : "Mic Off"}
+                {isRemoteMicOn ? 'On voice call...' : 'Mic Off'}
               </p>
             </div>
           </div>
@@ -282,7 +266,9 @@ const CallUI: React.FC<CallUIProps> = ({
         <div className="flex justify-center items-center gap-4 mt-2">
           <button
             onClick={handleMicToggle}
-            className={`p-3 rounded-full ${micLoading ? 'bg-gray-400' : 'bg-gray-200 dark:bg-gray-700'} hover:scale-110 transition`}
+            className={`p-3 rounded-full ${
+              micLoading ? 'bg-gray-400' : 'bg-gray-200 dark:bg-gray-700'
+            } hover:scale-110 transition`}
             aria-label="Toggle Microphone"
             disabled={micLoading}
           >
@@ -295,7 +281,7 @@ const CallUI: React.FC<CallUIProps> = ({
             )}
           </button>
 
-          {callType === "video" && (
+          {callType === 'video' && (
             <button
               onClick={onToggleVideo}
               className="p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:scale-110 transition"
@@ -321,8 +307,8 @@ const CallUI: React.FC<CallUIProps> = ({
         </div>
 
         {/* Mic Status Icon */}
-    
-{/* 
+
+        {/* 
         {showEndCallConfirm && (
           <div className="fixed inset-0 z-60 bg-black bg-opacity-50 flex items-center justify-center transition-all">
             <div className="end-call-confirm bg-white dark:bg-gray-800 p-6 rounded-lg w-[80%] sm:w-[400px] shadow-xl">
@@ -346,7 +332,7 @@ const CallUI: React.FC<CallUIProps> = ({
             </div>
           </div>
         )} */}
-{/* {callEnded && !activeCall && (
+        {/* {callEnded && !activeCall && (
   <div className="text-center mt-4">
     <p className="text-sm text-gray-600 dark:text-gray-300">
       Call Ended
@@ -357,14 +343,7 @@ const CallUI: React.FC<CallUIProps> = ({
   </div>
 )} */}
 
-
-        {callType === "voice" && (
-          <audio
-            id="local-audio"
-            autoPlay
-            className="hidden"
-          />
-        )}
+        {callType === 'voice' && <audio id="local-audio" autoPlay className="hidden" />}
       </div>
     </div>
   );

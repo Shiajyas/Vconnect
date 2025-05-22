@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface NotificationStore {
   unreadCount: number;
@@ -11,8 +11,7 @@ const useNotificationStore = create<NotificationStore>((set) => ({
   unreadCount: 0,
   setUnreadCount: (count) => set({ unreadCount: count }),
   resetUnreadCount: () => set({ unreadCount: 0 }),
-  incrementUnreadCount: () =>
-    set((state) => ({ unreadCount: state.unreadCount + 1 })),
+  incrementUnreadCount: () => set((state) => ({ unreadCount: state.unreadCount + 1 })),
 }));
 
 export default useNotificationStore;

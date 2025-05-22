@@ -1,61 +1,60 @@
-import { fetchData } from "../utils/axiosHelpers";
+import { fetchData } from '../utils/axiosHelpers';
 
 export const commentService = {
   createComment: (postId: string, content: string, token: string) =>
     fetchData(
       `/post/${postId}/comment`,
       {
-        method: "POST",
+        method: 'POST',
         data: { content },
       },
-      "Failed to add comment"
+      'Failed to add comment',
     ),
 
-  getComments: (postId: string, page: number = 1, limit: number = 10,) =>
- 
+  getComments: (postId: string, page: number = 1, limit: number = 10) =>
     fetchData(
       `users/posts/${postId}/comments`,
       {
-        method: "GET",
+        method: 'GET',
         params: { page, limit },
       },
-      "Failed to fetch comments"
+      'Failed to fetch comments',
     ),
 
   updateComment: (commentId: string, content: string, token: string) =>
     fetchData(
       `/comment/${commentId}`,
       {
-        method: "PATCH",
+        method: 'PATCH',
         data: { content },
       },
-      "Failed to update comment"
+      'Failed to update comment',
     ),
 
   deleteComment: (commentId: string, token: string) =>
     fetchData(
       `/comment/${commentId}`,
       {
-        method: "DELETE",
+        method: 'DELETE',
       },
-      "Failed to delete comment"
+      'Failed to delete comment',
     ),
 
   likeComment: (commentId: string, token: string) =>
     fetchData(
       `/comment/${commentId}/like`,
       {
-        method: "PATCH",
+        method: 'PATCH',
       },
-      "Failed to like comment"
+      'Failed to like comment',
     ),
 
   unLikeComment: (commentId: string, token: string) =>
     fetchData(
       `/comment/${commentId}/unlike`,
       {
-        method: "PATCH",
+        method: 'PATCH',
       },
-      "Failed to unlike comment"
+      'Failed to unlike comment',
     ),
 };

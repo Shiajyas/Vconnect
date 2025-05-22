@@ -1,6 +1,6 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuthContext } from "../appStore/AuthStore";
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuthContext } from '../appStore/AuthStore';
 
 interface Props {
   children: React.ReactNode;
@@ -9,7 +9,7 @@ interface Props {
 const ProUserPrivateRoute: React.FC<Props> = ({ children }) => {
   const { userRole } = useAuthContext();
 
-  return userRole === "proUser" ? <>{children}</> : <Navigate to="/home" replace />;
+  return userRole === 'proUser' ? <>{children}</> : <Navigate to="/home" replace />;
 };
 
 export default ProUserPrivateRoute;

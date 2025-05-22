@@ -1,9 +1,15 @@
-import React, { useState } from "react";
-import Picker from "@emoji-mart/react";
-import { Smile } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState } from 'react';
+import Picker from '@emoji-mart/react';
+import { Smile } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
-const CommentInput = ({ newComment, setNewComment }: { newComment: string; setNewComment: React.Dispatch<React.SetStateAction<string>> }) => {
+const CommentInput = ({
+  newComment,
+  setNewComment,
+}: {
+  newComment: string;
+  setNewComment: React.Dispatch<React.SetStateAction<string>>;
+}) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleEmojiSelect = (emoji: any) => {

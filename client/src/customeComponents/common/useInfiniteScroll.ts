@@ -1,11 +1,10 @@
-
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from 'react';
 
 export const useInfiniteScroll = (
   ref: React.RefObject<HTMLDivElement>,
   fetchMessages: () => void,
   hasMore: boolean,
-  loading: boolean
+  loading: boolean,
 ) => {
   const isFetchingRef = useRef(false); // Prevent duplicate API calls
   const prevScrollHeightRef = useRef(0); // Store previous scroll height
@@ -15,7 +14,8 @@ export const useInfiniteScroll = (
 
     const chatContainer = ref.current;
 
-    if (chatContainer.scrollTop <= 10) {  // When scrolled to the top, load older messages
+    if (chatContainer.scrollTop <= 10) {
+      // When scrolled to the top, load older messages
       isFetchingRef.current = true;
       prevScrollHeightRef.current = chatContainer.scrollHeight; // Store current height
 
@@ -27,8 +27,8 @@ export const useInfiniteScroll = (
     const chatContainer = ref.current;
     if (!chatContainer) return;
 
-    chatContainer.addEventListener("scroll", handleScroll);
-    return () => chatContainer.removeEventListener("scroll", handleScroll);
+    chatContainer.addEventListener('scroll', handleScroll);
+    return () => chatContainer.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
   // Restore scroll position after new messages are added

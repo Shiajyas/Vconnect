@@ -1,9 +1,7 @@
-import React from 'react'
+import React from 'react';
 
 const AdminManagement = () => {
-  return (
-    <div>AdminManagement</div>
-  )
-}
+  return <div>AdminManagement</div>;
+};
 
-export default AdminManagement
+export default AdminManagement;

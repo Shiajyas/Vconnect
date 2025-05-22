@@ -1,5 +1,4 @@
-
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface IncomingCallData {
   caller: {
@@ -8,7 +7,7 @@ interface IncomingCallData {
     avatar?: string;
   };
   chatId: string;
-  callType: "voice" | "video";
+  callType: 'voice' | 'video';
 }
 
 interface IncomingCallStore {
@@ -20,8 +19,6 @@ interface IncomingCallStore {
   clearActiveCall: () => void;
 }
 
-
-
 export const useIncomingCallStore = create<IncomingCallStore>((set) => ({
   incomingCall: null,
   activeCall: null,
@@ -31,6 +28,6 @@ export const useIncomingCallStore = create<IncomingCallStore>((set) => ({
   clearActiveCall: () => set({ activeCall: null }),
 }));
 
-  export type { IncomingCallData };
+export type { IncomingCallData };
 
-export type { IncomingCallStore };                              
+export type { IncomingCallStore };

@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { IUser } from "@/types/userTypes";
-import { authService } from "@/services/authService";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { IUser } from '@/types/userTypes';
+import { authService } from '@/services/authService';
 
 interface AuthState {
   user: IUser | null;
@@ -10,7 +10,7 @@ interface AuthState {
   isAdminAuthenticated: boolean;
   setUser: (user: IUser | null) => void;
   setAdmin: (admin: IUser | null) => void;
-  logout: (role?: "user" | "admin") => void;
+  logout: (role?: 'user' | 'admin') => void;
 }
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async (role) => {
-        if (role === "admin") {
+        if (role === 'admin') {
           set({ admin: null, isAdminAuthenticated: false });
         } else {
           set({ user: null, isUserAuthenticated: false });
@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authService.logout();
         } catch (error) {
-          console.error("Logout error (background):", error);
+          console.error('Logout error (background):', error);
         }
 
         // ✅ Clear persisted storage on logout
@@ -48,8 +48,8 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "auth-storage", // Key name in localStorage
+      name: 'auth-storage', // Key name in localStorage
       storage: createJSONStorage(() => localStorage), // Persist to localStorage
-    }
-  )
+    },
+  ),
 );

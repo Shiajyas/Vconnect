@@ -1,22 +1,35 @@
-import { useState } from "react";
-import { CheckCircleIcon, XCircleIcon, ClockIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import SubscriptionPlanPreview from "./SubscriptionPlanPreview";
-import StripePayment from "@/features/StripePayment";
-import { useSubscriptionHistory } from "@/hooks/stripeHooks/useSubscriptionHistory";
-import clsx from "clsx";
+import { useState } from 'react';
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from '@heroicons/react/24/solid';
+import SubscriptionPlanPreview from './SubscriptionPlanPreview';
+import StripePayment from '@/features/StripePayment';
+import { useSubscriptionHistory } from '@/hooks/stripeHooks/useSubscriptionHistory';
+import clsx from 'clsx';
 
 interface Props {
-  subscription: {
-    isSubscribed: boolean;
-    endDate: string;
-  } | undefined;
+  subscription:
+    | {
+        isSubscribed: boolean;
+        endDate: string;
+      }
+    | undefined;
   isLoading: boolean;
   userId: string;
   refreshSubscription: () => void;
 }
 
-const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, refreshSubscription }) => {
-  const [step, setStep] = useState<"plan" | "payment" | "success">("plan");
+const SubscriptionStatus: React.FC<Props> = ({
+  subscription,
+  isLoading,
+  userId,
+  refreshSubscription,
+}) => {
+  const [step, setStep] = useState<'plan' | 'payment' | 'success'>('plan');
   const [showHistory, setShowHistory] = useState(false);
 
   const {
@@ -25,8 +38,8 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
     refetch: fetchHistory,
   } = useSubscriptionHistory(userId); // fetch only on toggle
 
-  console.log("subscription", subscription);
-  console.log("history", history);
+  console.log('subscription', subscription);
+  console.log('history', history);
 
   const now = new Date();
   const isExpired = subscription && new Date(subscription.endDate) < now;
@@ -42,10 +55,14 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
         className="flex items-center gap-1 text-sm text-purple-600 hover:underline mt-4"
         onClick={handleToggleHistory}
       >
-        {showHistory ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-        {showHistory ? "Hide Subscription History" : "View Subscription History"}
+        {showHistory ? (
+          <ChevronUpIcon className="w-4 h-4" />
+        ) : (
+          <ChevronDownIcon className="w-4 h-4" />
+        )}
+        {showHistory ? 'Hide Subscription History' : 'View Subscription History'}
       </button>
-  
+
       {showHistory && (
         <div className="mt-2 border border-gray-200 rounded-md p-2 bg-gray-50 shadow-inner text-sm relative max-h-48 overflow-y-auto scrollbar-hide">
           {isHistoryLoading ? (
@@ -58,10 +75,16 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
                   className="flex justify-between border-b border-dashed border-gray-200 pb-1"
                 >
                   <span>
-                    {new Date(sub.startDate).toLocaleDateString()} → {new Date(sub.endDate).toLocaleDateString()}
+                    {new Date(sub.startDate).toLocaleDateString()} →{' '}
+                    {new Date(sub.endDate).toLocaleDateString()}
                   </span>
-                  <span className={clsx("font-semibold", sub.isSubscribed ? "text-green-500" : "text-red-500")}>
-                    {sub.isSubscribed ? "Active" : "Expired"}
+                  <span
+                    className={clsx(
+                      'font-semibold',
+                      sub.isSubscribed ? 'text-green-500' : 'text-red-500',
+                    )}
+                  >
+                    {sub.isSubscribed ? 'Active' : 'Expired'}
                   </span>
                 </li>
               ))}
@@ -73,7 +96,7 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
       )}
     </div>
   );
-  
+
   if (isLoading) {
     return (
       <div className="h-[500px] flex items-center justify-center text-gray-600">
@@ -108,17 +131,17 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
 
   return (
     <div className="h-[500px] overflow-y-auto p-6 bg-white shadow-md  rounded-lg space-y-6">
-      {step === "plan" && (
+      {step === 'plan' && (
         <>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-red-600 font-medium">
               <XCircleIcon className="h-6 w-6" />
-              <p>{subscription ? "Subscription expired" : "Not Subscribed"}</p>
+              <p>{subscription ? 'Subscription expired' : 'Not Subscribed'}</p>
             </div>
             <p className="text-gray-700 text-sm">
               {subscription
-                ? "Renew your subscription to continue enjoying premium features."
-                : "Subscribe to access premium features."}
+                ? 'Renew your subscription to continue enjoying premium features.'
+                : 'Subscribe to access premium features.'}
             </p>
           </div>
 
@@ -126,32 +149,28 @@ const SubscriptionStatus: React.FC<Props> = ({ subscription, isLoading, userId, 
 
           <button
             className="w-full py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
-            onClick={() => setStep("payment")}
+            onClick={() => setStep('payment')}
           >
-            {subscription ? "Renew Subscription" : "Subscribe Now"}
+            {subscription ? 'Renew Subscription' : 'Subscribe Now'}
           </button>
 
           {renderHistory()}
         </>
       )}
 
-      {step === "payment" && (
+      {step === 'payment' && (
         <StripePayment
           userId={userId}
-          onSuccess={() => setStep("success")}
+          onSuccess={() => setStep('success')}
           refreshSubscription={refreshSubscription}
         />
       )}
 
-      {step === "success" && (
+      {step === 'success' && (
         <div className="flex flex-col items-center justify-center text-center space-y-4">
           <CheckCircleIcon className="h-10 w-10 text-green-500" />
-          <p className="text-xl font-semibold text-green-700">
-            🎉 Subscription successful!
-          </p>
-          <p className="text-gray-600 text-sm">
-            Enjoy all the premium features right away.
-          </p>
+          <p className="text-xl font-semibold text-green-700">🎉 Subscription successful!</p>
+          <p className="text-gray-600 text-sm">Enjoy all the premium features right away.</p>
         </div>
       )}
     </div>

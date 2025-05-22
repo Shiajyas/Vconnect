@@ -1,4 +1,4 @@
-import { jwtDecode} from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 
 interface DecodedToken {
   id: string;
@@ -8,7 +8,7 @@ interface DecodedToken {
     startDate: Date | null;
     endDate: Date | null;
   };
-  exp: number; 
+  exp: number;
 }
 
 // Decode the token and extract role
@@ -19,20 +19,19 @@ export const decodeToken = (token: string): object | null => {
     if (decoded.exp * 1000 < Date.now()) {
       return null;
     }
-    return decoded; 
+    return decoded;
   } catch (error) {
-    console.error("Invalid token:", error);
+    console.error('Invalid token:', error);
     return null;
   }
 };
-
 
 export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: DecodedToken = jwtDecode(token);
     return decoded.exp * 1000 < Date.now();
   } catch (error) {
-    console.error("Invalid token:", error);
+    console.error('Invalid token:', error);
     return true;
   }
 };

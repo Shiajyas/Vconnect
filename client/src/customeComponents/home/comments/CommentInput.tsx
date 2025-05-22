@@ -1,21 +1,21 @@
-import React, { useState } from "react";
-import { socket } from "@/utils/Socket";
-import { useAuthStore } from "@/appStore/AuthStore";
-import { Send, Smile, X } from "lucide-react";
-import Picker from "@emoji-mart/react";
-import { useQueryClient } from "@tanstack/react-query";
+import React, { useState } from 'react';
+import { socket } from '@/utils/Socket';
+import { useAuthStore } from '@/appStore/AuthStore';
+import { Send, Smile, X } from 'lucide-react';
+import Picker from '@emoji-mart/react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const CommentInput = ({
   postId,
   parentId,
-  onReplySent
+  onReplySent,
 }: {
   postId: string;
   parentId?: string;
   onReplySent?: () => void;
 }) => {
   const { user } = useAuthStore();
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const queryClient = useQueryClient();
 
@@ -31,25 +31,27 @@ const CommentInput = ({
       parentId: parentId,
       userId: {
         _id: user?._id,
-        avatar: user?.avatar || "/default-avatar.png",
-        name: user?.fullname || "Anonymous",
+        avatar: user?.avatar || '/default-avatar.png',
+        name: user?.fullname || 'Anonymous',
       },
       likes: [],
       createdAt: new Date().toISOString(),
     };
 
- 
-    queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    queryClient.invalidateQueries({ queryKey: ['comments', postId] });
 
-    socket.emit("addComment", { postId, content: comment, userId: user?._id, parentId }, (serverComment: any) => {
-      if (serverComment) {
+    socket.emit(
+      'addComment',
+      { postId, content: comment, userId: user?._id, parentId },
+      (serverComment: any) => {
+        if (serverComment) {
+          queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+          if (onReplySent) onReplySent();
+        }
+      },
+    );
 
-         queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-        if (onReplySent) onReplySent();
-      }
-    });
-
-    setComment("");
+    setComment('');
   };
 
   return (

@@ -1,18 +1,18 @@
-import { useState } from "react";
-import MediaPreview from "../../media/MediaPreview";
-import MediaCapture from "../../media/MediaCapture";
-import { socket } from "@/utils/Socket";
-import { useUploadPost } from "@/hooks/usePost";
-import { useParams } from "react-router-dom";
-import { Camera, Upload, Loader2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { useState } from 'react';
+import MediaPreview from '../../media/MediaPreview';
+import MediaCapture from '../../media/MediaCapture';
+import { socket } from '@/utils/Socket';
+import { useUploadPost } from '@/hooks/usePost';
+import { useParams } from 'react-router-dom';
+import { Camera, Upload, Loader2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const PostUpload = () => {
   const [media, setMedia] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
-  const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [caption, setCaption] = useState('');
+  const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
 
   const [errors, setErrors] = useState<{ caption?: string; media?: string }>({});
 
@@ -33,8 +33,8 @@ const PostUpload = () => {
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    if (!media) newErrors.media = "Please select or capture a file.";
-    if (!caption.trim()) newErrors.caption = "Caption is required.";
+    if (!media) newErrors.media = 'Please select or capture a file.';
+    if (!caption.trim()) newErrors.caption = 'Caption is required.';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -44,28 +44,28 @@ const PostUpload = () => {
     if (!validateForm()) return;
 
     const formData = new FormData();
-    formData.append("mediaUrls", media!);
-    formData.append("title", caption);
-    formData.append("description", description);
-    formData.append("userId", userId || "");
-    formData.append("visibility", visibility);
+    formData.append('mediaUrls', media!);
+    formData.append('title', caption);
+    formData.append('description', description);
+    formData.append('userId', userId || '');
+    formData.append('visibility', visibility);
 
     uploadPost(formData, {
       onSuccess: (data) => {
         const postId = data.post._id;
 
-        toast.success("Post uploaded successfully!");
-        socket.emit("postUploaded", { userId, postId });
+        toast.success('Post uploaded successfully!');
+        socket.emit('postUploaded', { userId, postId });
 
         // Reset form
         handleRemoveMedia();
-        setCaption("");
-        setDescription("");
-        setVisibility("public");
+        setCaption('');
+        setDescription('');
+        setVisibility('public');
         setErrors({});
       },
       onError: () => {
-        toast.error("Upload failed!");
+        toast.error('Upload failed!');
       },
     });
   };
@@ -118,7 +118,7 @@ const PostUpload = () => {
         <div className="relative">
           <select
             value={visibility}
-            onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+            onChange={(e) => setVisibility(e.target.value as 'public' | 'private')}
             className="w-full p-3 rounded-lg border border-gray-300 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="public">Public</option>
@@ -131,7 +131,12 @@ const PostUpload = () => {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
@@ -140,15 +145,15 @@ const PostUpload = () => {
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        disabled={status === "pending"}
+        disabled={status === 'pending'}
         className={`w-full py-3 rounded-lg font-semibold text-white flex items-center justify-center space-x-2 transition-all duration-200
           ${
-            status === "pending"
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-purple-600 hover:bg-purple-700 active:bg-purple-800"
+            status === 'pending'
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-purple-600 hover:bg-purple-700 active:bg-purple-800'
           }`}
       >
-        {status === "pending" ? (
+        {status === 'pending' ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" />
             <span>Uploading...</span>

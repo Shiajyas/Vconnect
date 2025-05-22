@@ -1,5 +1,5 @@
-import { create } from "zustand";
-const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3001";
+import { create } from 'zustand';
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:3001';
 
 interface MessageStore {
   unreadCounts: Record<string, number>;
@@ -13,7 +13,7 @@ interface MessageStore {
 const useMessageStore = create<MessageStore>((set) => ({
   unreadCounts: {},
   setUnreadCount: (chatId, count) => {
-    console.log("setUnreadCount called with:", chatId, count);
+    console.log('setUnreadCount called with:', chatId, count);
     set((state) => ({
       unreadCounts: {
         ...state.unreadCounts,
@@ -22,7 +22,7 @@ const useMessageStore = create<MessageStore>((set) => ({
     }));
   },
   resetUnreadCount: (chatId) => {
-    console.log("resetUnreadCount called with:", chatId);
+    console.log('resetUnreadCount called with:', chatId);
     set((state) => ({
       unreadCounts: {
         ...state.unreadCounts,
@@ -34,7 +34,7 @@ const useMessageStore = create<MessageStore>((set) => ({
     set((state) => {
       const currentCount = state.unreadCounts[chatId] || 0;
       const newCount = currentCount + 1;
-      console.log("incrementUnreadCount called for chatId:", chatId, "new count:", newCount);
+      console.log('incrementUnreadCount called for chatId:', chatId, 'new count:', newCount);
       return {
         unreadCounts: {
           ...state.unreadCounts,
@@ -44,12 +44,12 @@ const useMessageStore = create<MessageStore>((set) => ({
     }),
   currentlyOpenChatId: null,
   setCurrentlyOpenChatId: (chatId) => {
-    if (typeof window !== "undefined" && window.location.href === `${BASE_URL}/home/messages`) {
-      console.log("setCurrentlyOpenChatId called with:", chatId);
+    if (typeof window !== 'undefined' && window.location.href === `${BASE_URL}/home/messages`) {
+      console.log('setCurrentlyOpenChatId called with:', chatId);
       set({ currentlyOpenChatId: chatId });
     } else {
       set({ currentlyOpenChatId: null });
-      console.log("Skipping setCurrentlyOpenChatId due to different URL:", window.location.href);
+      console.log('Skipping setCurrentlyOpenChatId due to different URL:', window.location.href);
     }
   },
 }));

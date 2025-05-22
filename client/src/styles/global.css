@@ -7,7 +7,6 @@
 /* Import Tailwind utility styles */
 @tailwind utilities;
 
-
 body {
   @apply bg-gray-100 text-gray-800;
 }
@@ -33,6 +32,10 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

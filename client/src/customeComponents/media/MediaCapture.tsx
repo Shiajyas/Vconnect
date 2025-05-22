@@ -1,12 +1,19 @@
-import { useState, useRef, useEffect } from "react";
-import Webcam from "react-webcam";
-import { FaCamera, FaVideo, FaMicrophone, FaTimes, FaStop ,FaUpload} from "react-icons/fa";
+import { useState, useRef, useEffect } from 'react';
+import Webcam from 'react-webcam';
+import { FaCamera, FaVideo, FaMicrophone, FaTimes, FaStop, FaUpload } from 'react-icons/fa';
 
 interface MediaCaptureProps {
   onMediaCaptured: (file: File, previewUrl: string) => void;
 }
 
-const filters = ["none", "grayscale(100%)", "sepia(80%)", "brightness(1.5)", "contrast(1.5)", "saturate(2)"];
+const filters = [
+  'none',
+  'grayscale(100%)',
+  'sepia(80%)',
+  'brightness(1.5)',
+  'contrast(1.5)',
+  'saturate(2)',
+];
 
 const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
@@ -26,8 +33,8 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
   useEffect(() => {
     const fetchDevices = async () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter((d) => d.kind === "videoinput");
-      const audioDevices = devices.filter((d) => d.kind === "audioinput");
+      const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+      const audioDevices = devices.filter((d) => d.kind === 'audioinput');
 
       setCameras(videoDevices);
       setMicrophones(audioDevices);
@@ -66,7 +73,7 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
       fetch(imageSrc)
         .then((res) => res.blob())
         .then((blob) => {
-          const file = new File([blob], "captured-image.jpg", { type: "image/jpeg" });
+          const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
           const objectURL = URL.createObjectURL(file);
           setPreviewUrl(objectURL);
           onMediaCaptured(file, objectURL);
@@ -91,8 +98,8 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
     };
 
     mediaRecorderRef.current.onstop = () => {
-      const blob = new Blob(recordedChunks.current, { type: "video/webm" });
-      const file = new File([blob], "recorded-video.webm", { type: "video/webm" });
+      const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
+      const file = new File([blob], 'recorded-video.webm', { type: 'video/webm' });
       const objectURL = URL.createObjectURL(file);
       setPreviewUrl(objectURL);
       onMediaCaptured(file, objectURL);
@@ -112,12 +119,17 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
   return (
     <div className="flex flex-col items-center p-4 border rounded-lg bg-white shadow  relative  w-full max-w-sm mx-auto">
       {/* Webcam View */}
-      <div className="w-full max-w-xs h-72 bg-gray-200 flex justify-center items-center rounded-lg overflow-hidden relative mt-4" style={{ filter: selectedFilter }}>
+      <div
+        className="w-full max-w-xs h-72 bg-gray-200 flex justify-center items-center rounded-lg overflow-hidden relative mt-4"
+        style={{ filter: selectedFilter }}
+      >
         <Webcam
           key={webcamKey}
           ref={webcamRef}
           videoConstraints={selectedCamera ? { deviceId: { exact: selectedCamera } } : undefined}
-          audioConstraints={selectedMicrophone ? { deviceId: { exact: selectedMicrophone } } : undefined}
+          audioConstraints={
+            selectedMicrophone ? { deviceId: { exact: selectedMicrophone } } : undefined
+          }
           screenshotFormat="image/jpeg"
           className="w-full h-full"
         />
@@ -128,33 +140,53 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
         {filters.map((filter, index) => (
           <button
             key={index}
-            className={`px-3 py-1 border rounded text-xs ${selectedFilter === filter ? "bg-blue-500 text-white" : "bg-gray-100"}`}
+            className={`px-3 py-1 border rounded text-xs ${
+              selectedFilter === filter ? 'bg-blue-500 text-white' : 'bg-gray-100'
+            }`}
             onClick={() => setSelectedFilter(filter)}
           >
-            {filter.replace(/\(.*\)/, "")}
+            {filter.replace(/\(.*\)/, '')}
           </button>
         ))}
       </div>
 
       {/* Actions */}
       <div className="flex gap-4 mt-4">
-        <button onClick={captureImage} className="bg-blue-500 text-white p-2 rounded flex items-center text-sm">
+        <button
+          onClick={captureImage}
+          className="bg-blue-500 text-white p-2 rounded flex items-center text-sm"
+        >
           <FaCamera className="mr-2" /> Capture
         </button>
         {isRecording ? (
-          <button onClick={stopRecording} className="bg-red-500 text-white p-2 rounded flex items-center text-sm">
+          <button
+            onClick={stopRecording}
+            className="bg-red-500 text-white p-2 rounded flex items-center text-sm"
+          >
             <FaStop className="mr-2" /> Stop
           </button>
         ) : (
-          <button onClick={startRecording} className="bg-green-500 text-white p-2 rounded flex items-center text-sm">
+          <button
+            onClick={startRecording}
+            className="bg-green-500 text-white p-2 rounded flex items-center text-sm"
+          >
             <FaVideo className="mr-2" /> Record
           </button>
         )}
       </div>
 
       <div className="mt-4">
-        <input type="file" accept="image/*,video/*" onChange={handleFileSelect} className="hidden" id="file-upload" />
-        <label htmlFor="file-upload" className="bg-gray-500 text-white p-2 rounded flex items-center text-sm cursor-pointer">
+        <input
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="file-upload"
+        />
+        <label
+          htmlFor="file-upload"
+          className="bg-gray-500 text-white p-2 rounded flex items-center text-sm cursor-pointer"
+        >
           <FaUpload className="mr-2" /> Select from Device
         </label>
       </div>
@@ -162,16 +194,28 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
       {/* Device Selection - At Bottom */}
       <div className="w-full mt-4 p-2 border rounded shadow-lg">
         <label className="block text-gray-700 text-sm mb-1">Camera:</label>
-        <select value={selectedCamera || ""} onChange={(e) => handleCameraChange(e.target.value)} className="border p-2 w-full rounded">
+        <select
+          value={selectedCamera || ''}
+          onChange={(e) => handleCameraChange(e.target.value)}
+          className="border p-2 w-full rounded"
+        >
           {cameras.map((c) => (
-            <option key={c.deviceId} value={c.deviceId}>{c.label || "Camera"}</option>
+            <option key={c.deviceId} value={c.deviceId}>
+              {c.label || 'Camera'}
+            </option>
           ))}
         </select>
 
         <label className="block text-gray-700 text-sm mt-2 mb-1">Microphone:</label>
-        <select value={selectedMicrophone || ""} onChange={(e) => handleMicrophoneChange(e.target.value)} className="border p-2 w-full rounded">
+        <select
+          value={selectedMicrophone || ''}
+          onChange={(e) => handleMicrophoneChange(e.target.value)}
+          className="border p-2 w-full rounded"
+        >
           {microphones.map((m) => (
-            <option key={m.deviceId} value={m.deviceId}>{m.label || "Microphone"}</option>
+            <option key={m.deviceId} value={m.deviceId}>
+              {m.label || 'Microphone'}
+            </option>
           ))}
         </select>
       </div>
@@ -179,7 +223,10 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
       {/* Media Preview */}
       {previewUrl && (
         <div className="relative mt-4 w-full max-w-xs">
-          <button onClick={() => setPreviewUrl(null)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full text-xs">
+          <button
+            onClick={() => setPreviewUrl(null)}
+            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full text-xs"
+          >
             <FaTimes />
           </button>
           <video src={previewUrl} controls className="w-full h-72 rounded"></video>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { socket } from "@/utils/Socket";
-import { NormalizedChat, normalizeChat } from "@/utils/normalizeChat";
+import { useState, useEffect } from 'react';
+import { socket } from '@/utils/Socket';
+import { NormalizedChat, normalizeChat } from '@/utils/normalizeChat';
 
 interface SharePostOptions {
   senderId: string;
@@ -17,8 +17,8 @@ export const useChat = (userId: string | null) => {
       if (!socket || !userId || !selectedUserId) return resolve(null);
 
       const timeout = setTimeout(() => {
-        console.warn("⏰ Timeout waiting for chatCreated");
-        socket.off("chatCreated", handleChatCreated);
+        console.warn('⏰ Timeout waiting for chatCreated');
+        socket.off('chatCreated', handleChatCreated);
         resolve(null);
       }, 5000);
 
@@ -26,19 +26,18 @@ export const useChat = (userId: string | null) => {
         const normalized = normalizeChat(data.chat);
 
         const userIds = normalized.users.map((u) => u._id);
-        const isCorrectChat =
-          userIds.includes(userId) && userIds.includes(selectedUserId);
+        const isCorrectChat = userIds.includes(userId) && userIds.includes(selectedUserId);
 
         if (!isCorrectChat) return;
 
         clearTimeout(timeout);
-        socket.off("chatCreated", handleChatCreated);
+        socket.off('chatCreated', handleChatCreated);
         resolve(normalized);
       };
 
-      socket.on("chatCreated", handleChatCreated);
+      socket.on('chatCreated', handleChatCreated);
 
-      socket.emit("createChat", {
+      socket.emit('createChat', {
         senderId: userId,
         receiverId: selectedUserId,
       });
@@ -46,25 +45,25 @@ export const useChat = (userId: string | null) => {
   };
 
   const sharePostWithUser = async ({ senderId, receiverId, postContent }: SharePostOptions) => {
-    console.log("🔔 sharePostWithUser triggered", { senderId, receiverId, postContent });
+    console.log('🔔 sharePostWithUser triggered', { senderId, receiverId, postContent });
 
     try {
       const chat = await createChatWithUser(receiverId);
-      console.log("💬 Chat returned:", chat);
+      console.log('💬 Chat returned:', chat);
 
-      if (!chat) throw new Error("Failed to get or create chat");
+      if (!chat) throw new Error('Failed to get or create chat');
 
-      socket.emit("joinChat", chat._id);
-      socket.emit("sendMessage", {
+      socket.emit('joinChat', chat._id);
+      socket.emit('sendMessage', {
         chatId: chat._id,
         message: postContent,
         senderId,
-        type:"link",
+        type: 'link',
       });
 
-      console.log("✅ Post shared successfully in chat:", chat._id);
+      console.log('✅ Post shared successfully in chat:', chat._id);
     } catch (err) {
-      console.error("❌ Error sharing post:", err);
+      console.error('❌ Error sharing post:', err);
     }
   };
 
@@ -73,7 +72,7 @@ export const useChat = (userId: string | null) => {
 
     const handleNewChat = (newChat: any) => {
       const normalizedChat = normalizeChat(newChat.chat);
-      console.log("📥 chatCreated event received globally:", normalizedChat);
+      console.log('📥 chatCreated event received globally:', normalizedChat);
 
       setChats((prevChats) => {
         if (prevChats.some((chat) => chat._id === normalizedChat._id)) return prevChats;
@@ -81,13 +80,13 @@ export const useChat = (userId: string | null) => {
       });
 
       setSelectedChat((prevChat) =>
-        prevChat?._id === normalizedChat._id ? prevChat : normalizedChat
+        prevChat?._id === normalizedChat._id ? prevChat : normalizedChat,
       );
     };
 
-    socket.on("chatCreated", handleNewChat);
+    socket.on('chatCreated', handleNewChat);
     return () => {
-      socket.off("chatCreated", handleNewChat);
+      socket.off('chatCreated', handleNewChat);
     };
   }, [userId]);
 

@@ -1,13 +1,13 @@
-import React from 'react'
-import { Spinner } from './spinner'
-import { cn } from '@/lib/utils'
+import React from 'react';
+import { Spinner } from './spinner';
+import { cn } from '@/lib/utils';
 
 type Props = {
-  state: boolean
-  className?: string
-  color?: string
-  children?: React.ReactNode
-}
+  state: boolean;
+  className?: string;
+  color?: string;
+  children?: React.ReactNode;
+};
 
 const Loader = ({ state, className, color, children }: Props) => {
   return state ? (
@@ -16,7 +16,7 @@ const Loader = ({ state, className, color, children }: Props) => {
     </div>
   ) : (
     children
-  )
-}
+  );
+};
 
-export default Loader
+export default Loader;

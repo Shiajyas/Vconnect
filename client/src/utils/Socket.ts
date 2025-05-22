@@ -1,56 +1,58 @@
-import { io } from "socket.io-client";
-import useNotificationStore from "@/store/notificationStore"; // Import the store
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { io } from 'socket.io-client';
+import useNotificationStore from '@/store/notificationStore'; // Import the store
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const SOCKET_URL = "http://localhost:3009";;
+const SOCKET_URL = 'http://localhost:3009';
+
+// const MEDIA_SOCKET_URL = "http://localhost:30010";
 
 export const socket = io(SOCKET_URL, {
   withCredentials: true,
-  transports: ["websocket"],
+  transports: ['websocket'],
 });
 
 // Log when connected
-socket.on("connect", () => {
+socket.on('connect', () => {
   console.log(
     `%c[${new Date().toISOString()}] ✅ Connected to Socket.IO server with ID: ${socket.id}`,
-    "color: green; font-weight: bold;"
+    'color: green; font-weight: bold;',
   );
 });
 
 // Log when disconnected
-socket.on("disconnect", (reason) => {
+socket.on('disconnect', (reason) => {
   console.log(
     `%c[${new Date().toISOString()}] ❌ Disconnected from Socket.IO. Reason: ${reason}`,
-    "color: red; font-weight: bold;"
+    'color: red; font-weight: bold;',
   );
 });
 
 // Log connection errors
-socket.on("connect_error", (error) => {
+socket.on('connect_error', (error) => {
   console.error(
     `%c[${new Date().toISOString()}] ⚠️ Connection error`,
-    "color: orange; font-weight: bold;",
-    error
+    'color: orange; font-weight: bold;',
+    error,
   );
 });
 
 // Listen for new notifications and update the store
-socket.on("newNotification", (notification) => {
+socket.on('newNotification', (notification) => {
   try {
     console.log(
       `%c[${new Date().toISOString()}] 📩 New Notification Received`,
-      "color: cyan; font-weight: bold;"
+      'color: cyan; font-weight: bold;',
     );
-    console.log("🔔 Notification Details:", notification);
+    console.log('🔔 Notification Details:', notification);
 
     // Update Zustand store
     useNotificationStore.getState().incrementUnreadCount();
-    toast.success(notification.message)
+    toast.success(notification.message);
   } catch (error) {
     console.error(
       `%c[${new Date().toISOString()}] ❌ Error processing notification`,
-      "color: red; font-weight: bold;"
+      'color: red; font-weight: bold;',
     );
     console.error(error);
   }

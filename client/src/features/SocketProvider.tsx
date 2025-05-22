@@ -1,7 +1,6 @@
-import React, { createContext, useEffect, useState, useContext } from "react";
-import { socket } from "@/utils/Socket";
-import useMessageStore from "@/appStore/useMessageStore";
-
+import React, { createContext, useEffect, useState, useContext } from 'react';
+import { socket } from '@/utils/Socket';
+import useMessageStore from '@/appStore/useMessageStore';
 
 interface SocketContextType {
   unreadNotifications: number;
@@ -15,39 +14,39 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     const handleNewNotification = (notification: any) => {
-      console.log("📩 New Notification Received:", notification);
+      console.log('📩 New Notification Received:', notification);
       setUnreadNotifications((prev) => prev + 1);
     };
 
-    socket.on("newNotification", handleNewNotification);
+    socket.on('newNotification', handleNewNotification);
 
     return () => {
-      socket.off("newNotification", handleNewNotification);
+      socket.off('newNotification', handleNewNotification);
     };
   }, []);
 
   useEffect(() => {
     const handleMessage = (newMessage: any) => {
       const { currentlyOpenChatId, incrementUnreadCount } = useMessageStore.getState();
-  
+
       // console.log("📩 Global listener: New message received:", newMessage);
 
       // console.log("📩 Global listener: Currently open chat ID:", currentlyOpenChatId);
 
       // console.log("📩 Global listener: newMessage i:",newMessage.chatId);
-  
+
       if (newMessage.chatId !== currentlyOpenChatId) {
         incrementUnreadCount(newMessage.chatId);
       }
     };
-  
-    socket.on("chatUpdated", handleMessage);
-  
+
+    socket.on('chatUpdated', handleMessage);
+
     return () => {
-      socket.off("chatUpdated", handleMessage);
+      socket.off('chatUpdated', handleMessage);
     };
   }, []);
-  
+
   return (
     <SocketContext.Provider value={{ unreadNotifications, setUnreadNotifications }}>
       {children}
@@ -59,7 +58,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
-    throw new Error("useSocket must be used within a SocketProvider");
+    throw new Error('useSocket must be used within a SocketProvider');
   }
   return context;
 };

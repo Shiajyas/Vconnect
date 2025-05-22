@@ -1,13 +1,13 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from 'react';
 
-const LiveVideoPlayer = ({ stream, isHost }: { stream: MediaStream | null, isHost: boolean }) => {
-  const videoRef = useRef<HTMLVideoElement>(null)
+const LiveVideoPlayer = ({ stream, isHost }: { stream: MediaStream | null; isHost: boolean }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream
+      videoRef.current.srcObject = stream;
     }
-  }, [stream])
+  }, [stream]);
 
   return (
     <div className="relative w-full aspect-video">
@@ -19,7 +19,7 @@ const LiveVideoPlayer = ({ stream, isHost }: { stream: MediaStream | null, isHos
         className="rounded-xl w-full h-full object-cover"
       />
     </div>
-  )
-}
+  );
+};
 
-export default LiveVideoPlayer
+export default LiveVideoPlayer;

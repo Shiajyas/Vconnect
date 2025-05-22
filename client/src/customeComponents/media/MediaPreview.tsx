@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FaDownload, FaTrash } from "react-icons/fa";
+import { useEffect, useState } from 'react';
+import { FaDownload, FaTrash } from 'react-icons/fa';
 
 interface MediaPreviewProps {
   previewUrl: string;
@@ -10,24 +10,23 @@ const MediaPreview = ({ previewUrl, onRemove }: MediaPreviewProps) => {
   const [isVideo, setIsVideo] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (previewUrl.startsWith("blob:")) {
+    if (previewUrl.startsWith('blob:')) {
       const checkMediaType = async () => {
         try {
           const response = await fetch(previewUrl);
           const blob = await response.blob();
-          setIsVideo(blob.type.startsWith("video/"));
+          setIsVideo(blob.type.startsWith('video/'));
         } catch (error) {
-          console.error("Error checking media type:", error);
+          console.error('Error checking media type:', error);
         }
       };
       checkMediaType();
     } else {
-      setIsVideo(previewUrl.endsWith(".mp4") || previewUrl.endsWith(".mov")); // 🔹 Detect videos by extension
+      setIsVideo(previewUrl.endsWith('.mp4') || previewUrl.endsWith('.mov')); // 🔹 Detect videos by extension
     }
   }, [previewUrl]);
 
-  
-console.log(previewUrl,".............................")
+  console.log(previewUrl, '.............................');
   return (
     <div className="p-4 bg-white shadow-md rounded-lg flex-grow h-full flex flex-col items-center">
       {isVideo === null ? (
@@ -38,10 +37,17 @@ console.log(previewUrl,".............................")
         <img src={previewUrl} alt="Preview" className="w-full h-96 rounded object-cover" />
       )}
       <div className="flex justify-center gap-4 mt-4">
-        <a href={previewUrl} download className="bg-blue-500 text-white p-2 rounded flex items-center gap-2">
+        <a
+          href={previewUrl}
+          download
+          className="bg-blue-500 text-white p-2 rounded flex items-center gap-2"
+        >
           <FaDownload /> Download
         </a>
-        <button onClick={onRemove} className="bg-red-500 text-white p-2 rounded flex items-center gap-2">
+        <button
+          onClick={onRemove}
+          className="bg-red-500 text-white p-2 rounded flex items-center gap-2"
+        >
           <FaTrash /> Remove
         </button>
       </div>

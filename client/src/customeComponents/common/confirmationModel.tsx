@@ -1,5 +1,5 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -15,10 +15,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  title = "Are you sure?",
-  message = "Do you really want to proceed with this action?",
-  confirmText = "Yes, Delete",
-  cancelText = "Cancel",
+  title = 'Are you sure?',
+  message = 'Do you really want to proceed with this action?',
+  confirmText = 'Yes, Delete',
+  cancelText = 'Cancel',
 }) => {
   if (!isOpen) return null;
 

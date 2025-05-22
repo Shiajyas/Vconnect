@@ -1,8 +1,8 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
-import "react-toastify/dist/ReactToastify.css";
-import { useUserAuth } from "../../hooks/useUserAuth";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, Link } from 'react-router-dom';
+import 'react-toastify/dist/ReactToastify.css';
+import { useUserAuth } from '../../hooks/useUserAuth';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -18,9 +18,9 @@ const RegisterPage = () => {
   const onSubmit = async (data: any) => {
     try {
       await registerMutation.mutateAsync(data);
-      navigate("/verify-otp");
+      navigate('/verify-otp');
     } catch (error) {
-      console.error("Error during registration:", error);
+      console.error('Error during registration:', error);
     }
   };
 
@@ -35,9 +35,7 @@ const RegisterPage = () => {
           <img src="/logo.png" alt="Logo" className="w-24 h-24" />
         </div>
 
-        <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">
-          Register
-        </h3>
+        <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Register</h3>
 
         {/* Loading Indicator */}
         {isRegisterLoading && (
@@ -52,12 +50,11 @@ const RegisterPage = () => {
           <input
             type="text"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
-              errors.fullname ? "border-red-500" : "border-gray-300"
+              errors.fullname ? 'border-red-500' : 'border-gray-300'
             }`}
-            {...register("fullname", {
-              required: "Full name is required",
-              validate: (value) =>
-                value.trim() !== "" || "Full name cannot be just spaces",
+            {...register('fullname', {
+              required: 'Full name is required',
+              validate: (value) => value.trim() !== '' || 'Full name cannot be just spaces',
             })}
           />
           {errors.fullname && (
@@ -71,12 +68,11 @@ const RegisterPage = () => {
           <input
             type="text"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
-              errors.username ? "border-red-500" : "border-gray-300"
+              errors.username ? 'border-red-500' : 'border-gray-300'
             }`}
-            {...register("username", {
-              required: "Username is required",
-              validate: (value) =>
-                value.trim() !== "" || "Username cannot be just spaces",
+            {...register('username', {
+              required: 'Username is required',
+              validate: (value) => value.trim() !== '' || 'Username cannot be just spaces',
             })}
           />
           {errors.username && (
@@ -90,13 +86,13 @@ const RegisterPage = () => {
           <input
             type="email"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
-              errors.email ? "border-red-500" : "border-gray-300"
+              errors.email ? 'border-red-500' : 'border-gray-300'
             }`}
-            {...register("email", {
-              required: "Email is required",
+            {...register('email', {
+              required: 'Email is required',
               pattern: {
                 value: /^[^@ ]+@[^@ ]+\.[^@ .]{2,}$/,
-                message: "Invalid email address",
+                message: 'Invalid email address',
               },
             })}
           />
@@ -111,13 +107,13 @@ const RegisterPage = () => {
           <input
             type="password"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
-              errors.password ? "border-red-500" : "border-gray-300"
+              errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
-            {...register("password", {
-              required: "Password is required",
+            {...register('password', {
+              required: 'Password is required',
               minLength: {
                 value: 6,
-                message: "Password must be at least 6 characters long",
+                message: 'Password must be at least 6 characters long',
               },
             })}
           />
@@ -132,12 +128,11 @@ const RegisterPage = () => {
           <input
             type="password"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none ${
-              errors.confirmPassword ? "border-red-500" : "border-gray-300"
+              errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
             }`}
-            {...register("confirmPassword", {
-              required: "Confirm Password is required",
-              validate: (value) =>
-                value === getValues("password") || "Passwords do not match",
+            {...register('confirmPassword', {
+              required: 'Confirm Password is required',
+              validate: (value) => value === getValues('password') || 'Passwords do not match',
             })}
           />
           {errors.confirmPassword && (
@@ -153,7 +148,7 @@ const RegisterPage = () => {
               <input
                 type="radio"
                 value="male"
-                {...register("gender", { required: "Gender is required" })}
+                {...register('gender', { required: 'Gender is required' })}
               />
               <span>Male</span>
             </label>
@@ -161,7 +156,7 @@ const RegisterPage = () => {
               <input
                 type="radio"
                 value="female"
-                {...register("gender", { required: "Gender is required" })}
+                {...register('gender', { required: 'Gender is required' })}
               />
               <span>Female</span>
             </label>
@@ -177,11 +172,11 @@ const RegisterPage = () => {
           className="w-full py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-200"
           disabled={isRegisterLoading}
         >
-          <span className="text-black">{isRegisterLoading ? "Registering..." : "Register"}</span>
+          <span className="text-black">{isRegisterLoading ? 'Registering...' : 'Register'}</span>
         </button>
 
         <p className="text-center mt-4">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link to="/login" className="text-blue-500 hover:underline">
             Login Now
           </Link>

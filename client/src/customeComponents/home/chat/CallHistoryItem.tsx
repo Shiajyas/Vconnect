@@ -1,14 +1,8 @@
-import { motion } from "framer-motion";
-import {
-  Video,
-  Phone,
-  Clock,
-  ArrowUpRight,
-  ArrowDownLeft,
-} from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { motion } from 'framer-motion';
+import { Video, Phone, Clock, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
 
-type CallType = "video" | "voice" | "text";
+type CallType = 'video' | 'voice' | 'text';
 
 interface User {
   id: string;
@@ -62,12 +56,12 @@ export const CallHistoryItem: React.FC<CallHistoryItemProps> = ({
       {/* Avatars */}
       <div className="relative w-14 h-12">
         <img
-          src={fromUser.avatar || "/default-avatar.png"}
+          src={fromUser.avatar || '/default-avatar.png'}
           alt={fromUser.name}
           className="absolute left-0 top-0 w-8 h-8 rounded-full border-2 border-white dark:border-gray-900 object-cover"
         />
         <img
-          src={toUser.avatar || "/default-avatar.png"}
+          src={toUser.avatar || '/default-avatar.png'}
           alt={toUser.name}
           className="absolute left-5 top-2 w-8 h-8 rounded-full border-2 border-white dark:border-gray-900 object-cover"
         />
@@ -78,7 +72,7 @@ export const CallHistoryItem: React.FC<CallHistoryItemProps> = ({
         <div className="flex justify-between items-center">
           <p className="font-semibold text-base truncate">{targetUser.name}</p>
           <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
-            {format(startTime, "p")}
+            {format(startTime, 'p')}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
@@ -101,20 +95,18 @@ export const CallHistoryItem: React.FC<CallHistoryItemProps> = ({
               <span>{formatDuration(duration)}</span>
             </>
           )}
-          <span className="whitespace-nowrap text-xs">
-            • {formatDistanceToNow(startTime)} ago
-          </span>
+          <span className="whitespace-nowrap text-xs">• {formatDistanceToNow(startTime)} ago</span>
         </div>
       </div>
 
       {/* Call Button */}
-      {(type === "video" || type === "voice") && onCall && (
+      {(type === 'video' || type === 'voice') && onCall && (
         <button
           onClick={() => onCall(targetUser, type)}
           className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
           title={`Call ${targetUser.name}`}
         >
-          {type === "video" ? (
+          {type === 'video' ? (
             <Video className="w-5 h-5 text-blue-600" />
           ) : (
             <Phone className="w-5 h-5 text-green-600" />
