@@ -31,6 +31,8 @@ const MediaCapture = ({ onMediaCaptured }: MediaCaptureProps) => {
   const recordedChunks = useRef<Blob[]>([]);
 
   useEffect(() => {
+
+    console.log('Fetching devices...');
     const fetchDevices = async () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((d) => d.kind === 'videoinput');

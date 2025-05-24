@@ -22,8 +22,11 @@ setupRedisAdapter(io);
   // Setup Mediasoup
   await setupMediasoup();
 
+  console.log('Mediasoup setup complete',);
+
   // Register socket handlers
   io.on('connection', (socket) => {
+    console.log('A user connected', socket.id);
     registerSocketHandlers(io, socket);
   });
 
@@ -32,3 +35,4 @@ setupRedisAdapter(io);
     console.log(`Server is running on port ${PORT}`);
   });
 })();
+ 

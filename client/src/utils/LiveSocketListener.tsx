@@ -13,7 +13,7 @@ const LiveSocketListener = () => {
       clearComments,
       addLiveStream,
       removeLiveStream,
-    } = useLiveStore.getState();
+    } = useLiveStore.getState();  
 
     // Viewer joins a stream you're in
     const handleViewerJoined = (data: { streamId: string; userId: string }) => {

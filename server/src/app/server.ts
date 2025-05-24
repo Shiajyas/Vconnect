@@ -14,11 +14,7 @@ import cookieParser from "cookie-parser";
 // === SocketIO Chat/Call ===
 import { initializeSocket } from "../infrastructure/socket/SocketServer";
 
-// === Media Streaming ===
-import { setupRedisAdapter } from "../infrastructure/media/redisStore";
-import { registerMediaHandlers } from "../infrastructure/media/mediaSocketHandlers";
 import { Server as IOServer } from "socket.io";
-import { createWorker } from "mediasoup";
 
 export class App {
   public app: Application;
@@ -93,12 +89,10 @@ export class App {
       },
     });
 
-    await setupRedisAdapter(io); // Redis pub/sub adapter setup
 
-    io.on("connection", async (socket) => {
-      await registerMediaHandlers(io, socket); // Register handlers for media streaming
-    });
   }
+
+  //write the start method
 
   public start(): void {
     this.server.listen(this.port, () => {

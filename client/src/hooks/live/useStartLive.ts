@@ -1,24 +1,62 @@
-import useLiveStream from './useLiveStream';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveStore } from '@/appStore/useLiveStore';
-import { useState } from 'react';
+import mediaSocket from '@/utils/mediaSocket';
+import { v4 as uuidv4 } from 'uuid';
 
-export const useStartLive = (streamId: string) => {
-  const isActive = useLiveStore((s) => s.isActive);
-  const setIsActive = useLiveStore((s) => s.setIsActive);
+export const useStartLive = (userId?: string) => {
+  const [isStarting, setIsStarting] = useState(false);
   const navigate = useNavigate();
-  const setIsHost = useLiveStore((s) => s.setIsHost);
+  const setLiveStreamId = useLiveStore((state) => state.setLiveStreamId);
+  const setIsLive = useLiveStore((state) => state.setIsLive);
 
-  const live = useLiveStream(true, streamId, isActive);
+  const startLive = async () => {
+    if (!userId) {
+      console.error('Cannot start live: userId is required');
+      return;
+    }
 
-  const startLive = () => {
-    setIsHost(true); // ✅ mark as host before navigating
-    setIsActive(true);
-    navigate(`/home/live/${streamId}`);
+    if (isStarting) {
+      console.log('Live stream is already starting...');
+      return;
+    }
+
+    setIsStarting(true);
+
+    try {
+      // Generate a unique stream ID
+      const streamId = `stream_${userId}_${uuidv4()}`;
+      
+      console.log('Starting live stream with ID:', streamId);
+
+      // Set the stream ID in the store
+      setLiveStreamId(streamId);
+
+      // Emit live:start event to the server
+      mediaSocket.emit('live:start', {
+        streamId,
+        userId
+      });
+
+      // Set live state
+      setIsLive(true);
+
+      // Navigate to the live stream page
+      navigate(`/home/live/${streamId}`);
+
+      console.log('Live stream started successfully');
+    } catch (error) {
+      console.error('Failed to start live stream:', error);
+      setIsLive(false);
+      setLiveStreamId('');
+      throw error;
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return {
-    ...live,
     startLive,
+    isStarting
   };
 };

@@ -1,11 +1,13 @@
 import * as mediasoupTypes from 'mediasoup/node/lib/types';
 import { WebRtcTransport } from 'mediasoup/node/lib/types';
 
-import { 
+import {
   getOrCreateRouterForRoom,
   createWebRtcTransport,
   produce,
   consume,
+  roomRouterMap,
+  localTransportCache,
 } from '../config/mediasoup.config';
 
 class MediaService {
@@ -13,10 +15,9 @@ class MediaService {
     return await getOrCreateRouterForRoom(roomId);
   }
 
-async createTransport(router: mediasoupTypes.Router, roomId: string): Promise<WebRtcTransport> {
-  return await createWebRtcTransport(router, roomId);
-}
-
+  async createTransport(router: mediasoupTypes.Router, roomId: string): Promise<WebRtcTransport> {
+    return await createWebRtcTransport(router, roomId);
+  }
 
   async createProducer(
     transportId: string,
@@ -33,6 +34,15 @@ async createTransport(router: mediasoupTypes.Router, roomId: string): Promise<We
     rtpCapabilities: mediasoupTypes.RtpCapabilities
   ) {
     return await consume(router, transportId, producerId, rtpCapabilities);
+  }
+
+  // Expose the internal Maps for external usage (optional)
+  get roomRouterMap() {
+    return roomRouterMap;
+  }
+
+  get localTransportCache() {
+    return localTransportCache;
   }
 }
 
