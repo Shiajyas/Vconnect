@@ -38,7 +38,13 @@ export const setupMediasoup = async () => {
   const numWorkers = require('os').cpus().length;
 
   for (let i = 0; i < numWorkers; i++) {
-    const worker = await mediasoup.createWorker();
+    const worker = await mediasoup.createWorker({
+      rtcMinPort: 40000,  // Restrict UDP port range start
+      rtcMaxPort: 40100,  // Restrict UDP port range end
+      logLevel: 'warn',
+      logTags: ['info', 'ice', 'dtls', 'rtp', 'srtp', 'rtcp'],
+    });
+
     const workerId = await registerWorker(worker, i);
 
     worker.on('died', () => {
@@ -86,14 +92,39 @@ export async function getOrCreateRouterForRoom(roomId: string): Promise<Router> 
 }
 
 // Create a WebRtcTransport for a router and room, caching locally and persisting minimal metadata in Redis
-export async function createWebRtcTransport(router: Router, roomId: string): Promise<WebRtcTransport> {
-  const transport = await router.createWebRtcTransport({
-    listenIps: [{ ip: '127.0.0.1', announcedIp: undefined }],
-    enableUdp: true,
-    enableTcp: true,
-    preferUdp: true,
-  });
 
+// Get ICE servers for client-side configuration
+export const getIceServers = () => [
+  {
+    urls: [
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302',
+      'stun:stun2.l.google.com:19302'
+    ]
+  },
+
+];
+export async function createWebRtcTransport(router: Router, roomId: string): Promise<WebRtcTransport> {
+
+const transport = await router.createWebRtcTransport({
+  listenIps: [{ ip: '127.0.0.1', announcedIp: process.env.ANNOUNCED_IP || undefined }],
+  enableUdp: true,
+  enableTcp: true,
+  preferUdp: true,
+  webRtcServer: undefined
+});
+// const transport = await router.createWebRtcTransport({
+//   listenIps: [
+//     {
+//       ip: '0.0.0.0', // listen on all interfaces inside the container/host
+//       announcedIp: process.env.ANNOUNCED_IP || '192.168.1.11/24' // publicly reachable IP or domain for clients
+//     }
+//   ],
+//   enableUdp: true,
+//   enableTcp: true,
+//   preferUdp: true,
+//   webRtcServer: undefined
+// });
   transport.appData = { roomId };
 
   localTransportCache.set(transport.id, transport);
@@ -102,8 +133,6 @@ export async function createWebRtcTransport(router: Router, roomId: string): Pro
 
   return transport;
 }
-
-// Helper to get Transport instance from local cache (not Redis)
 export function getTransportInstance(transportId: string): Transport | undefined {
   return localTransportCache.get(transportId);
 }
@@ -143,32 +172,43 @@ export async function consume(
   producerId: string,
   rtpCapabilities: RtpCapabilities
 ) {
-  const transport = getTransportInstance(transportId);
-  if (!transport) throw new Error('Transport not found');
+  try {
+    const transport = getTransportInstance(transportId);
+    if (!transport) throw new Error(`Transport not found: ${transportId}`);
 
-  const producer = producers.get(producerId);
-  if (!producer) throw new Error('Producer not found');
+    const producer = producers.get(producerId);
+    if (!producer) throw new Error(`Producer not found: ${producerId}`);
 
-  if (!consumerRouter.canConsume({ producerId, rtpCapabilities })) {
-    throw new Error('Router cannot consume this producer');
-  }
+    if (!consumerRouter.canConsume({ producerId, rtpCapabilities })) {
+      // console.error('Router cannot consume this producer - incompatible RTP capabilities');
+      // console.log('Producer codecs:', producer.rtpParameters.codecs);
+      // console.log('Consumer RTP capabilities:', rtpCapabilities.codecs);
+      throw new Error('Router cannot consume this producer - incompatible RTP capabilities');
+    }
 
-  // Cross-router pipeToRouter for multi-router setup (if needed)
-  const producerRouterId = producer.appData?.routerId;
-  const producerRouter = Array.from(roomRouterMap.values()).find(r => r.id === producerRouterId);
+    // Cross-router pipeToRouter for multi-router setup (if needed)
+    const producerRouterId = producer.appData?.routerId;
+    const producerRouter = Array.from(roomRouterMap.values()).find(r => r.id === producerRouterId);
 
-  if (producerRouter && consumerRouter.id !== producerRouter.id) {
-    await consumerRouter.pipeToRouter({
-      producerId: producer.id,
-      router: producerRouter,
+    if (producerRouter && consumerRouter.id !== producerRouter.id) {
+      // console.log(`Piping producer ${producerId} from router ${producerRouter.id} to router ${consumerRouter.id}`);
+      await consumerRouter.pipeToRouter({
+        producerId: producer.id,
+        router: producerRouter,
+      });
+    }
+
+    // console.log(`Creating consumer for producer ${producerId} on transport ${transportId}`);
+    
+    return await transport.consume({
+      producerId,
+      rtpCapabilities,
+      paused: false,
     });
+  } catch (error) {
+    console.error('Error in consume function:', error);
+    throw error;
   }
-
-  return await transport.consume({
-    producerId,
-    rtpCapabilities,
-    paused: false,
-  });
 }
 
 // Helper to find router id by transport id, using local cache for transport, Redis for router metadata

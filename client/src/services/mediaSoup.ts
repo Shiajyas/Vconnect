@@ -1,11 +1,23 @@
 import { Device } from 'mediasoup-client';
 import { Socket } from 'socket.io-client';
 import { useLiveStore } from '@/appStore/useLiveStore';
+import { Consumer } from 'mediasoup-client/types';
+
 
 let device: Device;
 let producerTransport: any;
 let consumerTransport: any;
 let consumer: any;
+
+
+interface ConsumeResponse {
+  consumers: {
+    id: string;
+    producerId: string;
+    kind: 'video' | 'audio';
+    rtpParameters: any;
+  }[];
+}
 
 // Utility for request-response via socket.io
 const request = <T extends object>(
@@ -35,34 +47,57 @@ const request = <T extends object>(
 };
 
 // Load Mediasoup Device with server capabilities
-export const loadDevice = async (socket: Socket, streamId?: string): Promise<void> => {
+
+
+export const loadDevice = async (
+  socket: Socket,
+  streamId?: string
+): Promise<void> => {
   try {
-    console.log('Loading device with streamId:', streamId);
-    
+    console.log('[DeviceLoader] Loading device with streamId:', streamId);
+
+    if (device && device.loaded) {
+      console.log('[DeviceLoader] Device already loaded — skipping reinit.');
+      return;
+    }
+
     const requestData = streamId ? { streamId } : {};
-    const response = await request<{ routerRtpCapabilities: any }>(
-      socket, 
-      'get-rtp-capabilities', 
-      requestData
-    );
-    
-    console.log('Router RTP capabilities received:', response.routerRtpCapabilities);
-    
-    if (!response.routerRtpCapabilities || !response.routerRtpCapabilities.codecs) {
-      throw new Error('Invalid RTP capabilities received from server');
+    const { routerRtpCapabilities } = await request<{
+      routerRtpCapabilities: import('mediasoup-client').types.RtpCapabilities;
+    }>(socket, 'get-rtp-capabilities', requestData);
+
+    if (!routerRtpCapabilities || !routerRtpCapabilities.codecs?.length) {
+      throw new Error('[DeviceLoader] Invalid or empty RTP capabilities received from server');
     }
 
     device = new Device();
-    await device.load({ routerRtpCapabilities: response.routerRtpCapabilities });
-    
-    console.log('Device loaded successfully');
+    await device.load({ routerRtpCapabilities });
+
+    console.log('[DeviceLoader] Device loaded successfully');
   } catch (error) {
-    console.error('Error loading device:', error);
+    console.error('[DeviceLoader] Failed to load device:', error);
     throw error;
   }
 };
 
-// Host: Create send transport and produce tracks
+
+const getIceServers = () => [
+  {
+    urls: [
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302'
+    ]
+  },
+{
+  urls: ['turn:137.59.87.137:3478', 'turns:137.59.87.137:5349'],
+  username: 'webrtcuser',
+  credential: 'securepassword'
+}
+
+];
+
+
+
 export const createSendTransport = async (
   socket: Socket, 
   stream: MediaStream, 
@@ -84,67 +119,79 @@ export const createSendTransport = async (
 
     console.log('Send transport options received:', transportOptions);
 
-    producerTransport = device.createSendTransport(transportOptions);
+    // ✅ Create transport with ICE servers
+    producerTransport = device.createSendTransport({
+      ...transportOptions,
+      iceServers: getIceServers()
+    });
 
-    interface ConnectTransportParams {
-      dtlsParameters: any;
-    }
-
-    producerTransport.on(
-      'connect',
-      async (
-        { dtlsParameters }: ConnectTransportParams,
-        callback: () => void,
-        errback: (error: any) => void
-      ) => {
-        try {
-          await request(socket, 'connect-transport', {
-            transportId: producerTransport.id,
-            dtlsParameters,
-          });
-          callback();
-        } catch (err) {
-          console.error('Error connecting send transport:', err);
-          errback(err);
-        }
+    // ✅ Required MediaSoup event handlers
+    producerTransport.on('connect', async ({ dtlsParameters }: { dtlsParameters: any }, callback:({id}:{id : string})=> void, errback: (error: Error) => void) => {
+      try {
+        console.log('Connecting send transport',dtlsParameters);
+        await request(socket, 'connect-transport', {
+          transportId: producerTransport.id,
+          dtlsParameters,
+        });
+        console.log('Send transport connected');
+        callback({ id: producerTransport.id });
+      } catch (err) {
+        console.error('Error connecting send transport:', err);
+        errback(err instanceof Error ? err : new Error(String(err)));
       }
-    );
-
-    interface ProduceParams {
-      kind: string;
-      rtpParameters: any;
-    }
-
-    interface ProduceResponse {
-      id: string;
-    }
-
+    });
     producerTransport.on(
       'produce',
-      async (
-        { kind, rtpParameters }: ProduceParams,
-        callback: (response: ProduceResponse) => void,
-        errback: (error: any) => void
-      ) => {
+      async ({ kind, rtpParameters }: { kind: string, rtpParameters: unknown }, callback: (params: { id: string }) => void, errback: (error: Error) => void) => {
         try {
-          const { id } = await request<ProduceResponse>(socket, 'produce', {
+          console.log('🎬 Producing track:', kind);
+          
+          // ✅ Enhanced logging of RTP parameters
+          console.log('📊 RTP Parameters summary:', {
+            kind,
+            mid: (rtpParameters as any)?.mid,
+            codecsCount: (rtpParameters as any)?.codecs?.length || 0,
+            encodingsCount: (rtpParameters as any)?.encodings?.length || 0
+          });
+          
+          const produceData = {
             transportId: producerTransport.id,
             kind,
             rtpParameters,
+            // ✅ Add transport state for debugging
+            transportState: {
+              connectionState: producerTransport.connectionState,
+              iceState: producerTransport.iceState,
+              iceGatheringState: producerTransport.iceGatheringState,
+              dtlsState: (producerTransport as any).dtlsState // May not be available on client
+            }
+          };
+          
+          console.log('🎬 Sending produce request with data:', {
+            transportId: produceData.transportId,
+            kind: produceData.kind,
+            transportState: produceData.transportState
           });
-          callback({ id });
+          
+          const response = await request<{ id: string; error?: string }>(socket, 'produce', produceData);
+          
+          if (response.error) {
+            throw new Error(`Server error: ${response.error}`);
+          }
+          
+          if (!response.id) {
+            throw new Error('No producer ID received from server');
+          }
+          
+          console.log('✅ Producer created with ID:', response.id);
+          callback({ id: response.id });
+          
         } catch (err) {
-          console.error('Error producing:', err);
-          errback(err);
+          console.error('❌ Error producing:', err);
+          errback(err instanceof Error ? err : new Error(String(err)));
         }
       }
-    );
-
-    // Connect the transport first
-    await producerTransport.connect();
-    console.log('Send transport connected');
-
-    // Then produce tracks
+    );    // Produce tracks
     const producers = [];
     for (const track of stream.getTracks()) {
       console.log(`Producing ${track.kind} track`);
@@ -160,188 +207,122 @@ export const createSendTransport = async (
   }
 };
 
-// Viewer: Create receive transport and play video
+
 export const createRecvTransport = async (
   socket: Socket,
   streamId: string,
-  videoRef: React.RefObject<HTMLVideoElement>
-) => {
+  videoRef: React.RefObject<HTMLVideoElement>,
+  setStream: (stream: MediaStream) => void   // New parameter to set stream in Zustand
+): Promise<Consumer> => {
   try {
-    console.log('Creating receive transport for streamId:', streamId);
-    
-    if (!device) {
+    console.log('[RecvTransport] Creating receive transport for streamId:', streamId);
+
+    if (!device || !device.loaded) {
+      console.log('[RecvTransport] Loading device...');
       await loadDevice(socket, streamId);
     }
 
-    const requestData = streamId ? { streamId } : {};
     const { transportOptions } = await request<{ transportOptions: any }>(
-      socket, 
+      socket,
       'create-transport',
-      requestData
+      { streamId }
     );
 
-    console.log('Receive transport options received:', transportOptions);
-
-    if (!transportOptions) {
-      throw new Error('No transport options received from server');
-    }
-
-    consumerTransport = device.createRecvTransport(transportOptions);
-
-    interface ConnectTransportParams {
-      dtlsParameters: any;
-    }
-
-    // Store connection promise to wait for it
-    let connectPromise: Promise<void>;
-    let connectResolve: () => void;
-    let connectReject: (error: any) => void;
-
-    connectPromise = new Promise<void>((resolve, reject) => {
-      connectResolve = resolve;
-      connectReject = reject;
+    consumerTransport = device.createRecvTransport({
+      ...transportOptions,
+      iceServers: getIceServers()
     });
 
     consumerTransport.on(
       'connect',
       async (
-        { dtlsParameters }: ConnectTransportParams,
+        { dtlsParameters }: { dtlsParameters: unknown },
         callback: () => void,
-        errback: (error: any) => void
+        errback: (error: Error) => void
       ) => {
         try {
           await request(socket, 'connect-transport', {
             transportId: consumerTransport.id,
-            dtlsParameters,
+            dtlsParameters
           });
+          console.log('[RecvTransport] Transport connected');
           callback();
-          connectResolve();
-          console.log('Receive transport connected');
         } catch (err) {
-          console.error('Error connecting receive transport:', err);
-          errback(err);
-          connectReject(err);
+          console.error('[RecvTransport] Failed to connect transport:', err);
+          errback(err instanceof Error ? err : new Error(String(err)));
         }
       }
     );
 
-    // Get available producers for this stream
-    const producersResponse = await request<{
-      producers: Array<{
-        id: string;
-        kind: 'audio' | 'video';
-        rtpParameters: any;
-      }>
-    }>(socket, 'get-producers', {
+    const consumerInfo = await request<{
+      id: string;
+      producerId: string;
+      kind: 'video' | 'audio';
+      rtpParameters: any;
+    }>(socket, 'consume', {
       streamId,
+      transportId: consumerTransport.id,
+      rtpCapabilities: device.rtpCapabilities
     });
 
-    console.log('Available producers:', producersResponse);
-
-    if (!producersResponse.producers || producersResponse.producers.length === 0) {
-      throw new Error('No producers available for this stream');
+    if (!consumerInfo.id) {
+      throw new Error('[RecvTransport] No consumer received from server.');
     }
 
+    console.log('[RecvTransport] Received consumer info:', consumerInfo);
+
+    const consumer = await consumerTransport.consume({
+      id: consumerInfo.id,
+      producerId: consumerInfo.producerId,
+      kind: consumerInfo.kind,
+      rtpParameters: consumerInfo.rtpParameters,
+    });
+
+    // Create a new MediaStream and add the track
     const mediaStream = new MediaStream();
-    const consumers: any[] = [];
+    mediaStream.addTrack(consumer.track);
 
-    // Consume each available producer
-    for (const producer of producersResponse.producers) {
-      try {
-        console.log(`Consuming ${producer.kind} track from producer:`, producer.id);
+    // Set the stream in Zustand immediately
+    setStream(mediaStream);
 
-        // Validate producer data
-        if (!producer.id || !producer.kind || !producer.rtpParameters) {
-          console.warn('Invalid producer data:', producer);
-          continue;
-        }
+    console.log('[RecvTransport] Media stream created and set in Zustand', mediaStream);
 
-        // Request to consume this specific producer
-        const consumeResponse = await request<{
-          producerId: string;
-          id: string;
-          kind: 'audio' | 'video';
-          rtpParameters: any;
-        }>(socket, 'consume', {
-          transportId: consumerTransport.id,
-          producerId: producer.id,
-          rtpCapabilities: device.rtpCapabilities,
-        });
-
-        console.log(`Consume response for ${producer.kind}:`, consumeResponse);
-
-        // Validate consume response
-        if (!consumeResponse.id || !consumeResponse.kind || !consumeResponse.rtpParameters) {
-          console.error('Invalid consume response:', consumeResponse);
-          continue;
-        }
-
-        // Create consumer
-        const newConsumer = await consumerTransport.consume({
-          id: consumeResponse.id,
-          producerId: consumeResponse.producerId,
-          kind: consumeResponse.kind,
-          rtpParameters: consumeResponse.rtpParameters,
-        });
-
-        console.log(`Consumer created for ${consumeResponse.kind}:`, newConsumer.id);
-
-        // Add track to media stream
-        mediaStream.addTrack(newConsumer.track);
-        consumers.push(newConsumer);
-
-        // Resume consumer (important for some MediaSoup setups)
-        await request(socket, 'resume-consumer', {
-          consumerId: newConsumer.id,
-        });
-
-      } catch (err) {
-        console.error(`Error consuming ${producer.kind} track:`, err);
-        // Continue with other tracks even if one fails
-      }
-    }
-
-    // Wait for connection to complete
-    await connectPromise;
-
-    if (consumers.length === 0) {
-      throw new Error('Failed to create any consumers');
-    }
-
-    console.log(`Successfully created ${consumers.length} consumers`);
-
-    // Set up video element
-    if (videoRef.current && mediaStream.getTracks().length > 0) {
+    if (videoRef.current) {
       videoRef.current.srcObject = mediaStream;
-      
-      // Handle video element events
-      videoRef.current.onloadedmetadata = () => {
-        console.log('Video metadata loaded');
-      };
-
-      videoRef.current.oncanplay = () => {
-        console.log('Video can start playing');
-      };
+      videoRef.current.muted = false; // Unmute for viewer
+      videoRef.current.volume = 1.0;
 
       try {
-        await videoRef.current.play();
-        console.log('Video playback started');
-      } catch (err) {
-        console.error('Video playback failed:', err);
-        // Don't throw here, audio might still work
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('[RecvTransport] Stream playing successfully');
+            })
+            .catch(e => {
+              console.warn('[RecvTransport] Autoplay blocked, user interaction required.', e);
+              setTimeout(() => {
+                videoRef.current?.play()
+                  .catch(err => console.error('[RecvTransport] Second play attempt failed:', err));
+              }, 1000);
+            });
+        }
+      } catch (e) {
+        console.warn('[RecvTransport] Error during play:', e);
       }
+    } else {
+      console.error('[RecvTransport] Video element reference is null');
     }
 
-    // Store all consumers globally (you might want to use an array)
-    consumer = consumers[0]; // Keep backward compatibility
+    return consumer;
 
-    return consumers;
   } catch (error) {
-    console.error('Error creating receive transport:', error);
+    console.error('[RecvTransport] Error:', error);
     throw error;
   }
 };
-// Cleanup resources
+
+
 export const closeTransports = () => {
   try {
     console.log('Cleaning up transports...');

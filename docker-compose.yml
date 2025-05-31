@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - vconnect-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: main-backend
+    restart: always
+    ports:
+      - "3009:3009"  # ⬅ matches your requirement
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - vconnect-net
+
+  media:
+    build:
+      context: ./media
+      dockerfile: Dockerfile
+    container_name: media-backend
+    restart: always
+    ports:
+      - "3000:3000"  # ⬅ matches your requirement
+      - "40000-40100:40000-40100//udp"
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - vconnect-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev  # Assuming dev mode with Vite
+    container_name: frontend
+    restart: always
+    ports:
+      - "3001:5173"  # ⬅ maps Vite dev server port to localhost:3001
+    depends_on:
+      - server
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - vconnect-net
+
+volumes:
+  redis-data:
+
+networks:
+  vconnect-net:
+    driver: bridge

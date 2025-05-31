@@ -8,7 +8,6 @@ interface LiveStream {
 }
 
 type LiveStore = {
-  // Self state
   isLive: boolean;
   setIsLive: (live: boolean) => void;
 
@@ -30,12 +29,14 @@ type LiveStore = {
   addComment: (comment: any) => void;
   clearComments: () => void;
 
-  // Global live streams
   liveStreams: LiveStream[];
   setLiveStreams: (streams: LiveStream[]) => void;
   addLiveStream: (stream: LiveStream) => void;
-  removeLiveStream: (userId: string) => void;
+  removeLiveStream: (streamId: string) => void;
   clearLiveStreams: () => void;
+
+  stream: MediaStream | null;
+  setStream: (stream: MediaStream | null) => void;
 };
 
 export const useLiveStore = create<LiveStore>((set) => ({
@@ -65,19 +66,31 @@ export const useLiveStore = create<LiveStore>((set) => ({
   setIsHost: (isHost) => set({ isHost }),
 
   comments: [],
-  addComment: (comment) => set((state) => ({ comments: [...state.comments, comment] })),
+  addComment: (comment) =>
+    set((state) => ({ comments: [...state.comments, comment] })),
   clearComments: () => set({ comments: [] }),
 
   liveStreams: [],
   setLiveStreams: (streams) => set({ liveStreams: streams }),
+
   addLiveStream: (stream) =>
     set((state) => {
-      if (state.liveStreams.find((s) => s.userId === stream.userId)) return state;
+      const exists = state.liveStreams.some(
+        (s) => s.streamId === stream.streamId
+      );
+      if (exists) return state;
       return { liveStreams: [...state.liveStreams, stream] };
     }),
-  removeLiveStream: (userId) =>
+
+  removeLiveStream: (streamId) =>
     set((state) => ({
-      liveStreams: state.liveStreams.filter((s) => s.userId !== userId),
+      liveStreams: state.liveStreams.filter(
+        (s) => s.streamId !== streamId
+      ),
     })),
+
   clearLiveStreams: () => set({ liveStreams: [] }),
+
+  stream: null,
+  setStream: (stream) => set({ stream }),
 }));

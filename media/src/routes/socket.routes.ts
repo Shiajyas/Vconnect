@@ -3,13 +3,15 @@ import { ServerToClientEvents } from '../types/socket.types';
 import { ClientToServerEvents } from '../types/socket.types';
 import {CreateTransportResponse } from '../types/socket.types';
 import { Server, Socket } from 'socket.io';
-import { ClientToServerEvents as SocketClientToServerEvents, ServerToClientEvents as SocketServerToClientEvents } from '../types/socket.types';import { mediaService } from '../services/media.service';
+import { ClientToServerEvents as SocketClientToServerEvents, ServerToClientEvents as SocketServerToClientEvents } from '../types/socket.types';
+import { mediaService } from '../services/media.service';
 import { streamService } from '../services/stream.service';
 import { onlineUserService } from '../services/online-user.service';
 import { UserRepository } from '../models/user.repository';
 import { localTransportCache, producers } from '../config/mediasoup.config';
 import { redisClient } from '../config/redis.config';
-import { RtpCapabilities } from 'mediasoup/node/lib/rtpParametersTypes';
+import { RtpCapabilities, RtpParameters } from 'mediasoup/node/lib/rtpParametersTypes';
+import { getIceServers } from '../config/mediasoup.config';
 
 const userRepository = new UserRepository();
 
@@ -69,7 +71,7 @@ export function registerSocketHandlers(
         }
       }
 
-      console.log(`Cleaned up media and session data for socket ${socket.id}`);
+      // console.log(`Cleaned up media and session data for socket ${socket.id}`);
     } catch (err) {
       console.error(`Error cleaning up user data for socket ${socket.id}:`, err);
     }
@@ -82,7 +84,7 @@ export function registerSocketHandlers(
   
   socket.on('live:start', async ({ streamId, userId }) => {    
     try {      
-      console.log('live:start', { streamId, userId, socketId: socket.id });
+      // console.log('live:start', { streamId, userId, socketId: socket.id });
       hostUserId = userId;
       socket.data.streamId = streamId;
 
@@ -207,11 +209,11 @@ export function registerSocketHandlers(
         callbackFn = callback;
       }
 
-      console.log('get-rtp-capabilities', { 
-        socketData: socket?.data, 
-        providedStreamId: typeof data === 'object' ? data?.streamId : undefined,
-        targetStreamId: streamId 
-      });
+      // console.log('get-rtp-capabilities', { 
+      //   socketData: socket?.data, 
+      //   providedStreamId: typeof data === 'object' ? data?.streamId : undefined,
+      //   targetStreamId: streamId 
+      // });
       
       if (!streamId) {
         console.warn('No streamId available for get-rtp-capabilities');
@@ -248,11 +250,11 @@ export function registerSocketHandlers(
         callbackFn = callback!;
       }
 
-      console.log('create-transport', { 
-        socketData: socket?.data, 
-        providedStreamId: typeof data === 'object' ? data?.streamId : undefined,
-        targetStreamId: streamId 
-      });
+      // console.log('create-transport', { 
+      //   socketData: socket?.data, 
+      //   providedStreamId: typeof data === 'object' ? data?.streamId : undefined,
+      //   targetStreamId: streamId 
+      // });
 
       if (!streamId) {
         console.error('Missing streamId in socket data and not provided in request');
@@ -263,6 +265,7 @@ export function registerSocketHandlers(
             iceCandidates: [],
             dtlsParameters: { fingerprints: [] },
           },
+          iceServers: []
         });
       }
 
@@ -284,6 +287,7 @@ export function registerSocketHandlers(
           iceCandidates: transport.iceCandidates,
           dtlsParameters: transport.dtlsParameters,
         },
+        iceServers: getIceServers()
       });
     } catch (error) {
       console.error('Error in create-transport:', error);
@@ -295,18 +299,24 @@ export function registerSocketHandlers(
           iceCandidates: [],
           dtlsParameters: { fingerprints: [] },
         },
+        iceServers: []
       });
     }
   });
-  socket.on('connect-transport', async ({ transportId, dtlsParameters }, callback) => {
-    try {
+
+socket.on('connect-transport', async ({ transportId, dtlsParameters }, callback: (result: { success: boolean, error?: string }) => void) => {
+  try {
+      // console.log(`Connecting transport: ${transportId}`, dtlsParameters);
       await streamService.connectTransport(transportId, dtlsParameters);
-      callback();
+      callback({ success: true });
     } catch (error) {
       console.error('Error in connect-transport:', error);
+      callback({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
-  });
-
+});
   socket.on('produce', async ({ transportId, kind, rtpParameters }, callback) => {
     try {
       const producer = await mediaService.createProducer(transportId, kind as any, rtpParameters);
@@ -326,35 +336,66 @@ export function registerSocketHandlers(
     }
   });
 
-  socket.on('consume', async ({ streamId, transportId }, callback) => {
-    try {
-      const stream = await streamService.getStream(streamId);
-      if (!stream) throw new Error('Stream not found');
 
-      const router = await mediaService.getOrCreateRouter(streamId);
-      const consumer = await mediaService.createConsumer(
-        router,
-        transportId,
-        stream.producerId,
-        router.rtpCapabilities
-      );
+socket.on('consume', async (
+  {
+    streamId,
+    transportId,
+    rtpCapabilities
+  }: {
+    streamId: string;
+    transportId: string;
+    rtpCapabilities: RtpCapabilities;
+  },
+  callback: (response: {
+    id: string;
+    producerId: string;
+    kind: string;
+    rtpParameters: RtpParameters;
+  }) => void
+) => {
+  try {
+    const stream = await streamService.getStream(streamId);
+    if (!stream) throw new Error('Stream not found');
+    if (!stream.producerId) throw new Error('No producer found for stream');
 
-      callback({
-        id: consumer.id,
-        producerId: stream.producerId,
-        kind: consumer.kind,
-        rtpParameters: consumer.rtpParameters,
-      });
-    } catch (error) {
-      console.error('Error in consume:', error);
-      callback({
-        id: '',
-        producerId: '',
-        kind: '',
-        rtpParameters: { codecs: [] } as any,
-      });
+    const router = await mediaService.getOrCreateRouter(streamId);
+
+    if (!rtpCapabilities) {
+      throw new Error('No RTP capabilities provided');
     }
-  });
+
+    const consumer = await mediaService.createConsumer(
+      router,
+      transportId,
+      stream.producerId,
+      rtpCapabilities
+    );
+
+    // console.log(`Created consumer: ${consumer.id} for producer: ${stream.producerId}`);
+
+    callback({
+      id: consumer.id,
+      producerId: stream.producerId,
+      kind: consumer.kind,
+      rtpParameters: consumer.rtpParameters,
+    });
+  } catch (error) {
+    console.error('Error in consume:', error);
+    callback({
+      id: '',
+      producerId: '',
+      kind: 'video',
+      rtpParameters: {
+        codecs: [],
+        headerExtensions: [],
+        encodings: [],
+        rtcp: { cname: '', reducedSize: true },
+      }
+    });
+  }
+});
+
 
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);

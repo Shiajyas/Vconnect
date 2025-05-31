@@ -38,6 +38,7 @@ class MediaService {
 
   // Expose the internal Maps for external usage (optional)
   get roomRouterMap() {
+    console.log("roomRouterMap",roomRouterMap)
     return roomRouterMap;
   }
 

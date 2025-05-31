@@ -10,6 +10,7 @@ export async function saveTransportMetadata(transportId: string, routerId: strin
 }
 
 export async function getRouterIdByTransport(transportId: string): Promise<string | undefined> {
+  // console.log("transportId from sharerd state", transportId);
   const result = await redisClient.hget(`transport:${transportId}`, 'routerId');
   return result === null ? undefined : result;
 }

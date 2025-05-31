@@ -7,6 +7,7 @@ import { useUserStore } from '@/appStore/useUserStore';
 import { useAuthStore } from '@/appStore/AuthStore';
 import mediaSocket from '@/utils/mediaSocket';
 
+
 const Status = () => {
   const navigate = useNavigate();
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -99,6 +100,7 @@ const Status = () => {
     const handleLiveEnded = (data: { streamId: string }) => {
       console.log('[Socket] Live stream ended:', data);
       removeLiveStream(data.streamId);
+      navigate('/home');
     };
 
     const handleLiveNotify = (data: { hostId: string; streamId: string }) => {
@@ -179,8 +181,11 @@ const Status = () => {
   }
 
   const availableStreams = liveStreams.filter(
+   
     (stream) => stream.userId !== currentUser._id
   );
+
+  console.log('Available streams:', availableStreams);
 
   return (
     <div className="flex space-x-4 overflow-x-auto p-2">
@@ -199,7 +204,7 @@ const Status = () => {
           key={stream.streamId}
           avatarUrl={stream.avatar}
           username={stream.username}
-          isLive={true}
+          isLive={!!stream.streamId}
           onClick={() => handleJoinStream(stream)}
         />
       ))}

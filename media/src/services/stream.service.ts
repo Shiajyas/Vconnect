@@ -52,15 +52,18 @@ class StreamService {
     transportId: string,
     dtlsParameters: mediasoupTypes.DtlsParameters
   ) {
+
+    // console.log("transportId", transportId);
+    // console.log("dtlsParameters", dtlsParameters);
     // Get transport metadata from Redis (you might have a function in transportService for this)
     const transportMeta = await transportService.getTransport(transportId);
     if (!transportMeta) throw new Error('Transport metadata not found');
 
     // Get routerId associated with this transport
     // You can get routerId directly from transportMeta.routerId or use Redis helper for safety
-    const routerId = transportMeta.routerId ?? await getRouterIdByTransport(transportId);
+    const routerId = transportMeta.roomId ?? await getRouterIdByTransport(transportId);
     if (!routerId) throw new Error('Router ID not found for transport');
-
+      console.log("routerId", routerId);
     // Get Router instance from your local map
     const router = mediaService.roomRouterMap.get(routerId);
     if (!router) throw new Error(`Router instance not found for routerId ${routerId}`);
@@ -86,7 +89,7 @@ async removeStreamByHostSocket(hostSocketId: string): Promise<void> {
 
       // Remove from Redis
       await this.removeStream(streamId);
-      console.log(`Stream ${streamId} removed for hostSocketId ${hostSocketId}`);
+      // console.log(`Stream ${streamId} removed for hostSocketId ${hostSocketId}`);
 
       // Cleanup mediasoup resources (example)
       const router = mediaService.roomRouterMap.get(stream.routerId);

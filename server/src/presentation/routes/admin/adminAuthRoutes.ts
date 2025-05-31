@@ -7,7 +7,7 @@ import { IUserRepository } from "../../../data/interfaces/IUserRepository";
 import { AuthService } from "../../../useCase/authOperations";
 import { IAuthService} from "../../../useCase/interfaces/IAuthService";
 import adminAuthMiddleware from "../../middleware/adminAuthMiddleware";
-
+import { getAdminOverview } from "../../controllers/AdminOverviewController";
 const router = Router();
 
 
@@ -24,7 +24,7 @@ router.get("/user",adminAuthMiddleware.authenticate,authController.getUser.bind(
 router.post("/users/:id/block", authController.blockUser.bind(authController));
 router.post("/users/:id/unblock", authController.unblockUser.bind(authController));
 router.post("/logout",authController.adminLogout.bind(authController))
-
+router.get("/overview",adminAuthMiddleware.authenticate, getAdminOverview.bind(authController));
 
 
 export default router;

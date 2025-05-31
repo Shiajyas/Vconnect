@@ -6,67 +6,62 @@ import { useLiveStore } from '@/appStore/useLiveStore';
 const useLiveStream = (isHost: boolean, streamId: string, active: boolean) => {
   const [comments, setComments] = useState<string[]>([]);
   const [viewers, setViewers] = useState<number>(0);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const streamRef = useRef<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const setLive = useLiveStore((s) => s.setIsLive);
 
-  // Stream lifecycle events
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Zustand setters & getters
+  const setLive = useLiveStore((s) => s.setIsLive);
+  const setStream = useLiveStore((s) => s.setStream);
+
+  // Lifecycle: join/leave stream room & socket listeners
   useEffect(() => {
     if (!active || !streamId) return;
 
-    console.log(`Setting up live stream - Host: ${isHost}, StreamId: ${streamId}`);
+    console.log(`[LiveStream] Joining stream room (Host: ${isHost}) StreamID: ${streamId}`);
 
-    // Join the stream room
-    const joinPayload = { streamId };
-    mediaSocket.emit(isHost ? 'live:join' : 'live:join', joinPayload);
+    mediaSocket.emit('live:join', { streamId });
 
-    if (isHost) {
-      setLive(true);
-    }
+    if (isHost) setLive(true);
 
-    const handleComment = (msg: string) => {
-      console.log('Received comment:', msg);
+    const onComment = (msg: string) => {
+      console.log('[LiveStream] New comment:', msg);
       setComments((prev) => [...prev, msg]);
     };
 
-    const handleViewers = (count: number) => {
-      console.log('Viewer count updated:', count);
+    const onViewers = (count: number) => {
+      console.log('[LiveStream] Viewer count:', count);
       setViewers(count);
     };
 
-    const handleStreamEnded = () => {
-      console.log('Stream ended by host');
+    const onStreamEnded = () => {
+      console.log('[LiveStream] Stream ended by host');
       setLive(false);
       setError('Stream has ended');
       cleanup();
     };
 
-    // Use correct event names that match your socket implementation
-    mediaSocket.on('live:comment', handleComment);
-    mediaSocket.on('live:viewers', handleViewers);
-    mediaSocket.on('live:ended', handleStreamEnded);
+    mediaSocket.on('live:comment', onComment);
+    mediaSocket.on('live:viewers', onViewers);
+    mediaSocket.on('live:ended', onStreamEnded);
 
     return () => {
-      console.log('Cleaning up live stream');
-      
-      // Leave the stream room
+      console.log('[LiveStream] Leaving stream room & cleaning up');
+
       mediaSocket.emit('live:leave', { streamId });
-      
-      // Remove event listeners
-      mediaSocket.off('live:comment', handleComment);
-      mediaSocket.off('live:viewers', handleViewers);
-      mediaSocket.off('live:ended', handleStreamEnded);
-      
+
+      mediaSocket.off('live:comment', onComment);
+      mediaSocket.off('live:viewers', onViewers);
+      mediaSocket.off('live:ended', onStreamEnded);
+
       setLive(false);
       cleanup();
     };
   }, [isHost, streamId, active, setLive]);
 
-  // Media stream setup
+  // Setup or receive MediaStream depending on role
   useEffect(() => {
     if (!active || !streamId) return;
 
@@ -76,117 +71,110 @@ const useLiveStream = (isHost: boolean, streamId: string, active: boolean) => {
 
       try {
         if (isHost) {
-          console.log('Setting up host stream...');
-          
-          // Get user media first
+          console.log('[LiveStream] Host getting user media...');
           const localStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30 }
-            },
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            },
+            video: { width: 1280, height: 720, frameRate: 30 },
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
           });
 
-          console.log('Local stream obtained:', localStream);
-          
-          setStream(localStream);
+          console.log('[LiveStream] Local stream obtained');
           streamRef.current = localStream;
+          setStream(localStream);
 
-          // Display local video
           if (videoRef.current) {
             videoRef.current.srcObject = localStream;
-            videoRef.current.muted = true; // Mute local video to prevent feedback
+            videoRef.current.muted = true; // mute self to avoid echo
             await videoRef.current.play();
           }
 
-          // Create send transport and start producing
           await createSendTransport(mediaSocket, localStream, streamId);
-          console.log('Send transport created successfully');
-          
+          console.log('[LiveStream] Send transport created');
+
         } else {
-          console.log('Setting up viewer stream...');
-          
-          // Create receive transport and start consuming
-          await createRecvTransport(mediaSocket, streamId, videoRef);
-          console.log('Receive transport created successfully');
+          console.log('[LiveStream] Viewer creating receive transport...');
+          await createRecvTransport(mediaSocket, streamId, videoRef, setStream);
+
+          // createRecvTransport should internally set the videoRef.srcObject to the remote MediaStream
+          // If you want to track this stream globally:
+          if (videoRef.current?.srcObject) {
+            streamRef.current = videoRef.current.srcObject as MediaStream;
+            setStream(streamRef.current);
+          }
+          console.log('[LiveStream] Receive transport created');
         }
-      } catch (error) {
-        console.error('Error setting up stream:', error);
-        setError(error instanceof Error ? error.message : 'Failed to setup stream');
+      } catch (err) {
+        console.error('[LiveStream] Error setting up stream:', err);
+        setError(err instanceof Error ? err.message : 'Failed to setup stream');
       } finally {
         setIsLoading(false);
       }
     };
 
     setupStream();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHost, streamId, active]);
 
+  // Cleanup function stops media tracks, resets state, and closes transports
   const cleanup = () => {
-    console.log('Performing cleanup...');
-    
-    // Stop all tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
         track.stop();
-        console.log(`Stopped ${track.kind} track`);
+        console.log(`[LiveStream] Stopped ${track.kind} track`);
       });
       streamRef.current = null;
     }
 
-    // Clear video element
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
 
-    // Close MediaSoup transports
     closeTransports();
-    
     setStream(null);
+
+    useLiveStore.getState().removeLiveStream(streamId);
+
   };
 
+  // Send chat comment to server
   const sendComment = (text: string) => {
     if (!text.trim()) return;
-    
-    console.log('Sending comment:', text);
+    console.log('[LiveStream] Sending comment:', text);
     mediaSocket.emit('live:comment', { streamId, message: text });
   };
 
+  // Host ends the stream
   const endStream = () => {
     if (isHost) {
-      console.log('Ending stream...');
+      console.log('[LiveStream] Host ending stream...');
       mediaSocket.emit('live:end', { streamId });
       setLive(false);
       cleanup();
     }
   };
 
+  // Mute/unmute audio track
   const toggleMute = () => {
-    if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        console.log('Audio muted:', !audioTrack.enabled);
-      }
+    if (!streamRef.current) return;
+    const audioTrack = streamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      console.log(`[LiveStream] Audio ${audioTrack.enabled ? 'unmuted' : 'muted'}`);
     }
   };
 
+  // Enable/disable video track
   const toggleVideo = () => {
-    if (streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        console.log('Video disabled:', !videoTrack.enabled);
-      }
+    if (!streamRef.current) return;
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      console.log(`[LiveStream] Video ${videoTrack.enabled ? 'enabled' : 'disabled'}`);
     }
   };
 
   return {
-    stream,
+    stream: streamRef.current,
     viewers,
     comments,
     isLoading,

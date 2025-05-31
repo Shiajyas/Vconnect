@@ -99,11 +99,7 @@ export class App {
       console.log(`Main server running on http://localhost:${this.port}`);
     });
 
-    // Optional: choose separate port for media server
-    const mediaPort = Number(process.env.MEDIA_PORT) || this.port + 1;
-    this.mediaServer.listen(mediaPort, () => {
-      console.log(`Media server running on http://localhost:${mediaPort}`);
-    });
+
   }
 }
 

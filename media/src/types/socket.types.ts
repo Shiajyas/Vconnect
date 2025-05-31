@@ -21,6 +21,7 @@ export interface CreateTransportResponse {
 export interface ConsumeParams {
   streamId: string;
   transportId: string;
+  rtpCapabilities: RtpCapabilities;
 }
 
 export interface ConsumeResponse {
@@ -96,6 +97,7 @@ export interface TransportOptions {
 
 export interface CreateTransportResponse {
   transportOptions: TransportOptions;
+  iceServers : any
 }
 
 export interface ConsumeParams {

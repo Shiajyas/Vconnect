@@ -32,7 +32,7 @@ class TransportService {
     const key = `transport:${transportId}`;
     const data = await redisClient.hgetall(key);
     if (Object.keys(data).length === 0) return null;
-
+  console.log("data from transport service",data)
     return {
       transportId: data.transportId,
       roomId: data.roomId,
