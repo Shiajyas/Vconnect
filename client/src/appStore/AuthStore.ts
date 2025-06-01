@@ -9,6 +9,7 @@ interface AuthState {
   isUserAuthenticated: boolean;
   isAdminAuthenticated: boolean;
   setUser: (user: IUser | null) => void;
+   updateUserFields: (fields: Partial<IUser>) => void;
   setAdmin: (admin: IUser | null) => void;
   logout: (role?: 'user' | 'admin') => void;
 }
@@ -28,6 +29,13 @@ export const useAuthStore = create<AuthState>()(
         set({ admin, isAdminAuthenticated: !!admin });
       },
 
+
+           updateUserFields: (fields) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...fields } : null,
+        }));
+      },
+      
       logout: async (role) => {
         if (role === 'admin') {
           set({ admin: null, isAdminAuthenticated: false });

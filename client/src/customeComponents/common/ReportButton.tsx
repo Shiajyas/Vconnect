@@ -1,15 +1,25 @@
 import { useState } from "react";
 import { Flag } from "lucide-react";
-import { toast } from "react-toastify"
-import { Button } from "@/components/ui/button"; // or wherever your Button is
+import { toast } from "react-toastify";
+import { Button } from "@/components/ui/button";
+import { socket } from "@/utils/Socket";
+const REPORT_REASONS = [
+  "Spam",
+  "Harassment",
+  "Hate Speech",
+  "Inappropriate Content",
+  "Misinformation",
+  "Nudity or Sexual Content",
+  "Violence",
+  "Other",
+];
 
 interface ReportButtonProps {
   postId: string;
   userId: string;
-  onReport: (postId: string, userId: string, reason: string) => Promise<void>;
 }
 
-export default function ReportButton({ postId, userId, onReport }: ReportButtonProps) {
+export default function ReportButton({ postId, userId }: ReportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,17 +29,24 @@ export default function ReportButton({ postId, userId, onReport }: ReportButtonP
       toast.error("Please select a reason.");
       return;
     }
+
     setLoading(true);
-    try {
-      await onReport(postId, userId, reason);
+  socket.emit(
+  "report:post",
+  { postId, userId, reason },
+  (response: { success: boolean; message?: string }) => {
+    setLoading(false);
+
+    if (response.success) {
       toast.success("Report submitted.");
       setIsOpen(false);
       setReason("");
-    } catch {
-      toast.error("Failed to submit report.");
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(response.message || "Failed to submit report.");
     }
+  }
+);
+
   };
 
   return (
@@ -41,28 +58,32 @@ export default function ReportButton({ postId, userId, onReport }: ReportButtonP
           setIsOpen(true);
         }}
       >
-        <Flag    className="w-5 mt-1 h-5 text-gray-500"  />
+        <Flag className="w-5 h-5 mt-1 text-gray-500" />
       </Button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-80">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-[22rem] max-w-full">
             <h2 className="text-lg font-semibold mb-4">Report Post</h2>
-            <select
-              className="w-full border border-gray-300 rounded-md p-2 mb-4"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">Select reason</option>
-              <option value="Spam">Spam</option>
-              <option value="Harassment">Harassment</option>
-              <option value="Hate Speech">Hate Speech</option>
-              <option value="Inappropriate Content">Inappropriate Content</option>
-              <option value="Other">Other</option>
-            </select>
 
-            <div className="flex justify-end gap-2">
+            <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+              {REPORT_REASONS.map((item) => (
+                <button
+                  key={item}
+                  className={`w-full text-left px-4 py-2 rounded-md border ${
+                    reason === item
+                      ? "bg-yellow-500 text-white border-yellow-600"
+                      : "bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800"
+                  }`}
+                  onClick={() => setReason(item)}
+                  disabled={loading}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}

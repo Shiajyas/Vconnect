@@ -18,7 +18,8 @@ const handleMutationError = (error: any, message: string) => {
 // Default function to manage success for mutations
 const handleMutationSuccess = (data: any, queryClient: any, navigate: any, setUser: any) => {
   const { user } = data;
-  queryClient.setQueryData(['user'], user);
+  // queryClient.setQueryData(['user'], user);
+    queryClient.setQueryData(['user', user.id], user);
   setUser(user); // Setting user in context
   navigate('/home');
 };

@@ -22,7 +22,7 @@ export const useAdminOverview = (range: "7d" | "1m" | "1y", likeRange: LikeRange
 
   let {admin} = useAdminAuth();
 
-  console.log(admin.user._id,">>admin  ");
+  // console.log(admin?.user?._id,">>admin  ");  
 
   // 2. Most liked posts with like filter
   const {
@@ -35,17 +35,14 @@ export const useAdminOverview = (range: "7d" | "1m" | "1y", likeRange: LikeRange
     staleTime: 0,
   });
 
-  // useEffect(() => {
-  //   adminSocket.emit("admin:join",admin?.user?._id);
+  useEffect(() => {
+    adminSocket.emit("admin:join",admin?.user?._id);
 
-  //   adminSocket.on("admin:updateOverview", (newBaseData: unknown) => {
-  //     queryClient.setQueryData(["adminOverview", range], newBaseData);
-  //   });
 
-  //   return () => {
-  //     adminSocket.off("admin:updateOverview");
-  //   };
-  // }, [queryClient, range]);
+    return () => {
+      adminSocket.off("admin:updateOverview");
+    };
+  }, [admin?.user?._id]);
 
   return {
     data: baseData && likedData

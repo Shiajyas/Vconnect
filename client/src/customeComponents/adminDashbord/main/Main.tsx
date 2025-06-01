@@ -1,7 +1,7 @@
 import React, { useState ,useEffect} from "react";
 import { useAdminOverview } from "@/hooks/admin/useAdminOverview";
 import { socket } from "@/utils/Socket";
-
+import { useReportStore } from "@/appStore/useReportStore";
 import {
   LineChart,
   Line,
@@ -24,6 +24,7 @@ const Main = () => {
   const [range, setRange] = useState<"7d" | "1m" | "1y">("7d");
   const [likeRange, setLikeRange] = useState({ min: 0, max: 100 });
   const [onlineUserCount, setOnlineUserCount] = useState<number>(0);
+  const {reportCount} = useReportStore();
 
   const { data, isLoading, refetch } = useAdminOverview(range, likeRange);
 
@@ -130,7 +131,7 @@ useEffect(() => {
           title="Posts"
           data={[
             `Total: ${data.posts.total}`,
-            `Reported: ${data.posts.reported}`,
+            `Reported: ${reportCount}`,
           ]}
         />
         <StatsCard title="Comments" data={[`Total: ${data.comments.total}`]} />
