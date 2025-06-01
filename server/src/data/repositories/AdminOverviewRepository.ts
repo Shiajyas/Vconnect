@@ -132,7 +132,7 @@ async fetchMostLikedPosts(
   return filteredPosts.map((post) => ({
     title: post.title,
     likes: post.likesCount,
-    owner: post.userId.fullname, // or username
+    owner: post.userId?.fullname, // or username
   }));
 }
 

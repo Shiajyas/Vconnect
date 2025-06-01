@@ -62,7 +62,7 @@ export const initializeSocket = (server: ReturnType<typeof createServer>): Serve
   const postSocketService = new PostSocketService(io, userRepository, postRepository, notificationService);
   const commentSocketService = new CommentSocketService(io, commentRepository, userRepository, notificationService, postRepository);
   const callSocketService = new CallSocketService(mainUserRepository, userRepository, callHistoryRepository);
-  const adminSocketService = new AdminSocketService(io, new AdminOverviewService(), mainUserRepository,reportRepository) 
+  const adminSocketService = new AdminSocketService(io, new AdminOverviewService(), mainUserRepository,reportRepository,notificationService) 
   const userSocketService = new UserSocketService(io, userRepository, mainUserRepository, notificationService, adminSocketService);
 
   // Handle socket connection

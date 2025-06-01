@@ -12,7 +12,7 @@ export class ReportRepository implements IReportRepository {
 
   async getByPostId(postId: Types.ObjectId | string): Promise<IReport[]> {
     return await ReportModel.find({ postId })
-      .populate("reporter", "username email")
+      .populate("reporter", "_id username email")
       .exec();
   }
 
@@ -24,6 +24,10 @@ export class ReportRepository implements IReportRepository {
 
   async deleteById(reportId: Types.ObjectId | string): Promise<void> {
     await ReportModel.findByIdAndDelete(reportId).exec();
+  }
+
+  async deleteByPostId(postId: Types.ObjectId | string): Promise<void> {
+    await ReportModel.deleteMany({ postId }).exec();
   }
 
   async fetchReportedPosts(
@@ -79,36 +83,46 @@ export class ReportRepository implements IReportRepository {
     });
   }
 
-async fetchSingleReportedPost(postId: string, userId: string): Promise<any> {
-  const report = await ReportModel.findOne({ postId, reporter: userId })
-    .populate("reporter", "username email")
-    .populate({
-      path: "postId",
-      select: "title description mediaUrls userId",
-      populate: { path: "userId", select: "username email" },
-    })
-    .lean()
-    .exec();
+  async fetchSingleReportedPost(postId: string, userId: string): Promise<any> {
+    const report = await ReportModel.findOne({ postId, reporter: userId })
+      .populate("reporter", "username email")
+      .populate({
+        path: "postId",
+        select: "title description mediaUrls userId",
+        populate: { path: "userId", select: "username email" },
+      })
+      .lean()
+      .exec();
 
-  if (!report) return null;
+    if (!report) return null;
 
-  const post = await Post.findById(report.postId)  .populate("userId", "username email")
+    const post = await Post.findById(report.postId)
+      .populate("userId", "username email")
       .lean();
 
-  return {
-    ...report,
-    post: {
-      _id: post?._id,
-      title: post?.title,
-      description: post?.description,
-      mediaUrls: post?.mediaUrls,
-      owner: post?.userId,
-    },
-  };
-}
+    return {
+      ...report,
+      post: {
+        _id: post?._id,
+        title: post?.title,
+        description: post?.description,
+        mediaUrls: post?.mediaUrls,
+        owner: post?.userId,
+      },
+    };
+  }
 
-async getTotalReportedPostsCount(): Promise<number> {
-  return await ReportModel.countDocuments().exec();
-}
+  async getTotalReportedPostsCount(): Promise<number> {
+    return await ReportModel.countDocuments().exec();
+  }
 
+  async blockPostById(postId: Types.ObjectId | string): Promise<void> {
+try {
+        await Post.findOneAndDelete({ _id: postId });
+    // Optionally remove associated reports
+    await this.deleteByPostId(postId);
+} catch (error) {
+    console.log("delete post error", error);
+}
+  }
 }
