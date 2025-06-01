@@ -1,10 +1,35 @@
+import { get } from "mongoose";
 import { AdminOverviewRepository } from "../data/repositories/AdminOverviewRepository";
-import { IAdminOverview } from "../data/interfaces/IAdminOverview";
+import { ReportRepository } from "../data/repositories/ReportRepository";
+import { getReportedPosts } from "../presentation/controllers/AdminOverviewController";
 
 export class AdminOverviewService {
-  private repo = new AdminOverviewRepository();
+  private repository = new AdminOverviewRepository();
 
-  async getOverview(): Promise<IAdminOverview> {
-    return await this.repo.fetchOverview();
+  private reportRepository = new ReportRepository();
+
+  async getOverview(
+    range: "7d" | "1m" | "1y" = "7d",
+    likeRange: { min: number; max: number } = { min: 0, max: Infinity }
+  ) {
+    return this.repository.fetchOverview(range, likeRange);
   }
+
+  // ✅ New method to fetch only most liked posts
+  async getMostLikedPosts(
+    range: "7d" | "1m" | "1y" = "7d",
+    likeRange: { min: number; max: number } = { min: 0, max: Infinity }
+  ) {
+    return this.repository.fetchMostLikedPosts(range, likeRange);
+  }
+async getReportedPosts(range: "7d" | "1m" | "1y", page: number, limit: number) {
+  return this.reportRepository.fetchReportedPosts(range, page, limit);
 }
+
+async getReportedPostsCount(){
+  return this.reportRepository.getTotalReportedPostsCount();
+}
+
+}
+
+

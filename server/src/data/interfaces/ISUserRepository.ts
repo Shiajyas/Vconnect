@@ -8,4 +8,7 @@ export interface ISUserRepository {
   getActiveUsers(): SUser[];
   removeUserById(userId: string): void;
   logActiveUsers(): { userId: string; socketId: string }[];
+  getActiveUserCount(): number 
+
+
 }

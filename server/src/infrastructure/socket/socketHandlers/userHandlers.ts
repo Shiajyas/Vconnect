@@ -27,4 +27,9 @@ export const userHandlers = (socket: Socket, userSocketHandlers: IUserSocketServ
     
   });
 
+  socket.on("disconnect", () => {
+    console.log(`🔌 User disconnected with socket ${socket.id}`);
+    userSocketHandlers.removeUser(socket, "");
+  }); 
+
 };

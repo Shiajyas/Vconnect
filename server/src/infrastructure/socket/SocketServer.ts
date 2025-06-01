@@ -18,6 +18,7 @@ import { ChatService } from "../../useCase/socket/socketServices/ChatService";
 import { CallSocketService } from "../../useCase/socket/CallSocketService";
 import { AdminSocketService } from "../../useCase/socket/socketServices/adminSocketService";
 import { AdminOverviewService } from "../../useCase/AdminOverviewService";
+import { ReportRepository } from "../../data/repositories/ReportRepository";
 
 // Handlers
 import { postHandlers } from "./socketHandlers/postHandlers";
@@ -53,20 +54,22 @@ export const initializeSocket = (server: ReturnType<typeof createServer>): Serve
   const commentRepository = new CommentRepository();
   const chatRepository = new ChatRepository();
   const callHistoryRepository = new CallHistoryRepository();
+  const reportRepository = new ReportRepository()
 
   // Instantiate services
   const notificationService = new NotificationService(io, mainUserRepository, userRepository);
   const chatService = new ChatService(chatRepository, mainUserRepository, io);
-  const userSocketService = new UserSocketService(io, userRepository, mainUserRepository, notificationService);
   const postSocketService = new PostSocketService(io, userRepository, postRepository, notificationService);
   const commentSocketService = new CommentSocketService(io, commentRepository, userRepository, notificationService, postRepository);
   const callSocketService = new CallSocketService(mainUserRepository, userRepository, callHistoryRepository);
-  const adminSocketService = new AdminSocketService(io,new AdminOverviewService()); 
+  const adminSocketService = new AdminSocketService(io, new AdminOverviewService(), mainUserRepository,reportRepository) 
+  const userSocketService = new UserSocketService(io, userRepository, mainUserRepository, notificationService, adminSocketService);
 
   // Handle socket connection
   io.on("connection", (socket: Socket) => {
     console.log(`[${new Date().toISOString()}] 🔌 Client connected: ${socket.id}`);
 
+socket.emit("onlineUsers", { users: mainUserRepository.getActiveUsers() });
     // Register socket event handlers
     userHandlers(socket, userSocketService);
     postHandlers(socket, postSocketService);

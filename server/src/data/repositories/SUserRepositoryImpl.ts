@@ -65,8 +65,15 @@ export class SUserRepositoryImpl implements ISUserRepository {
       userId: user.id,
       socketId: user.socketId,
     }));
+   
+
 
     console.log("📢 Currently Active Users:", activeUsers);
     return activeUsers;
   }
+
+      getActiveUserCount(): number {
+  return this.users.size;
+}
+
 }
