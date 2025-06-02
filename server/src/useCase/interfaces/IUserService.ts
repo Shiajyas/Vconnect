@@ -11,4 +11,5 @@ export interface IUserService {
     getUserPost(userId: string): Promise<any>
     updateUserProfile(userId: string, updatedData: any): Promise <IUser|null>
     getUserSavedPost(userId: string, page: number, limit: number):  Promise<{posts : IPost[]; nextPage: number | null}>
+    searchUsers(query: string): Promise<IUser[] | any> 
   }

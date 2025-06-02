@@ -254,5 +254,23 @@ async confirmSubscription(req: Request, res: Response) {
             res.status(500).json({ message: "Internal server error" });
         }
       }
+
+     async searchUsers(req: Request, res: Response) {
+  try {
+    const query = req.query.query as string;
+
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ error: 'Empty search query' });
+    }
+
+    const result = await this.userService.searchUsers(query);
+    console.log(result, "result");
+    res.status(200).json(result); 
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
       
 }

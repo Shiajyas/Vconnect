@@ -92,5 +92,15 @@ export function userRoutes() {
         }
     })
 
+    router.get("/search", userAuthMiddleware.authenticate, async (req, res, next) => {
+        try {
+            console.log(req.query);
+            await userController.searchUsers(req, res);
+            next();
+        } catch (error) {
+            next(error);
+        }
+    });
+
     return router;
 }

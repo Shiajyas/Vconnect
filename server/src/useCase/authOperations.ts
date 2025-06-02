@@ -190,47 +190,6 @@ export class AuthService implements IAuthService {
 }
 
 
-  async requestOtp(email: string): Promise<void> {
-    try {
-      if (!email) throw new Error("Email is required");
-  
-      const normalizedEmail = email.trim().toLowerCase();
-      
-      const user = await this.userRepository.findByEmail(normalizedEmail);
-  
-      if (user) {
-        const otp = this.otpService.generateOtp(normalizedEmail);
-        console.log("OTP for forgot password: ", otp);
-  
-        const userData: IUser = { ...user, otp } as unknown as IUser;
-  
-        const isOtpSent = await this.otpService.sendOtpEmail(normalizedEmail, otp);
-        if (!isOtpSent) {
-          throw new Error("Failed to send OTP via email.");
-        }
-        this.otpService.storeOtp(normalizedEmail, otp, userData);
-        return;
-      }
-      else {
-        const otp = this.otpService.generateOtp(normalizedEmail);
-        console.log("OTP for registration: ", otp);
-  
-        const userData: IUser = { email: normalizedEmail, otp } as unknown as IUser; 
-  
-        const isOtpSent = await this.otpService.sendOtpEmail(normalizedEmail, otp);
-        if (!isOtpSent) {
-          throw new Error("Failed to send OTP via email.");
-        }
-        this.otpService.storeOtp(normalizedEmail, otp, userData);
-  
-       
-        return;
-      }
-    } catch (error) {
-      throw new Error("Internal server error");
-    }
-  }
-  
 
 
   async verify_Otp(
@@ -282,12 +241,13 @@ async resendOtp(email: string): Promise<boolean> {
     try {
         // Check if the user exists
         const user = await this.userRepository.findByEmail(email);
-        if (!user) {
-            throw new Error("User not found.");
+        if (user) {
+            throw new Error("User already exists.");
         }
 
         // Generate and send OTP
         const otp = this.otpService.generateOtp(email);
+        console.log("OTP for registration resend: ", otp);
         const isOtpSent = await this.otpService.sendOtpEmail(email, otp);
 
         if (!isOtpSent) {
@@ -306,6 +266,49 @@ async resendOtp(email: string): Promise<boolean> {
         }
     }
 }
+
+
+  async requestOtp(email: string): Promise<void> {
+    try {
+      if (!email) throw new Error("Email is required");
+  
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      const user = await this.userRepository.findByEmail(normalizedEmail);
+  
+      if (user) {
+        const otp = this.otpService.generateOtp(normalizedEmail);
+        console.log("OTP for forgot password: ", otp);
+  
+        const userData: IUser = { ...user, otp } as unknown as IUser;
+  
+        const isOtpSent = await this.otpService.sendOtpEmail(normalizedEmail, otp);
+        if (!isOtpSent) {
+          throw new Error("Failed to send OTP via email.");
+        }
+        this.otpService.storeOtp(normalizedEmail, otp, userData);
+        return;
+      }
+      else {
+        const otp = this.otpService.generateOtp(normalizedEmail);
+        console.log("OTP for registration: ", otp);
+  
+        const userData: IUser = { email: normalizedEmail, otp } as unknown as IUser; 
+  
+        const isOtpSent = await this.otpService.sendOtpEmail(normalizedEmail, otp);
+        if (!isOtpSent) {
+          throw new Error("Failed to send OTP via email.");
+        }
+        this.otpService.storeOtp(normalizedEmail, otp, userData);
+  
+       
+        return;
+      }
+    } catch (error) {
+      throw new Error("Internal server error");
+    }
+  }
+  
 
 
     async resetPassword(email: string, password:string): Promise<boolean> {

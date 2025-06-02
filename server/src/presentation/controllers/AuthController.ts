@@ -156,6 +156,7 @@ export class AuthController {
     async resendOtp(req: Request, res: Response): Promise<void> {
         try {
             const { email } = req.body;
+            console.log(email, "email");
             const success = await this.userService.resendOtp(email);
             if (!success) {
                 res.status(400).json({ message: "Failed to send OTP." });

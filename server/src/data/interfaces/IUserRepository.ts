@@ -41,4 +41,5 @@ export interface IUserRepository {
   updateUserById(userId: string, updatedData: Partial<IUser>): Promise<IUser | null>
 
   savePost(userId: string, postId: string): Promise<boolean> 
+  searchUsers(query: string): Promise<IUser[]> 
 }

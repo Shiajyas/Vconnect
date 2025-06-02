@@ -204,5 +204,15 @@ async savePost(userId: string, postId: string): Promise<boolean> {
   }
 }
 
+async searchUsers(query: string): Promise<IUser[]> {
+   console.log(query, "searchquery user");
+  return await User.find({
+    $or: [
+      { username: { $regex: query, $options: 'i' } },
+      { fullname: { $regex: query, $options: 'i' } },
+    ],
+  }).limit(5);
+}
+
 
 }

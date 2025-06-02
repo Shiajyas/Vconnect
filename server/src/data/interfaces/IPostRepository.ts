@@ -19,4 +19,5 @@ updatePost(
     getPostOwner(postId: string): Promise<IPost | null> 
     savePost(userId: string, postId: string): Promise<boolean>
     getSavedPosts(userId: string, page :number, limit : number): Promise<{posts : IPost[]; nextPage: number | null}>
+    searchPosts(query: string): Promise<IPost[]> 
 }

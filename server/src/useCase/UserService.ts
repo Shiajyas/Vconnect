@@ -64,4 +64,15 @@ export class UserService implements IUserService {
               return {posts,nextPage};
           }
 
+        async searchUsers(query: string): Promise<{ users: IUser[]; posts: IPost[] }> {
+
+            console.log(query, "searchquery 2");
+  const users = await this.userRepository.searchUsers(query);
+  const posts = await this.postRepository.searchPosts(query);
+
+  console.log(users, posts, "users and posts");
+
+  return { users, posts };
+}
+
 }

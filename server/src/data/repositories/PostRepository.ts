@@ -3,6 +3,7 @@ import { IPost } from "../../core/domain/interfaces/IPost";
 import Post from "../../core/domain/models/postModel";
 import mongoose from "mongoose";
 import User from "../../core/domain/models/userModel";
+import { log } from "util";
 
 export class PostRepository implements IPostRepository {
   async createPost(userId: string, title: string, description: string, mediaUrls: string[], visibility: "public" | "private"): Promise<IPost> {
@@ -193,6 +194,20 @@ async getSavedPosts(
   }
 }
 
+async searchPosts(query: string): Promise<IPost[]> {
+  console.log(query, "searchquery post");
+  // return await Post.find({
+  //   description: { $regex: query, $options: 'i' },
+
+  // }).limit(5);
+
+  return await Post.find({
+    $or: [
+      { description: { $regex: query, $options: 'i' } },
+      { title: { $regex: query, $options: 'i' } },
+    ],
+  }).limit(10);
+}
 
 
 }
