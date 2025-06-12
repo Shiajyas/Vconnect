@@ -6,7 +6,7 @@ services:
     ports:
       - "3009:3009"
     env_file:
-      - ./server/.env   # ✅ loads the server's env variables
+      - ./server/.env
     environment:
       REDIS_HOST: my-redis
       REDIS_PORT: 6379
@@ -25,6 +25,15 @@ services:
     environment:
       REDIS_HOST: my-redis
       REDIS_PORT: 6379
+    networks:
+      - vconnect_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: my-redis
+    ports:
+      - "6379:6379"
     networks:
       - vconnect_net
     restart: unless-stopped
