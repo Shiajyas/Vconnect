@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { socket } from '@/utils/Socket';
+import { chatSocket as socket } from '@/utils/chatSocket';
 import { NormalizedChat, normalizeChat } from '@/utils/normalizeChat';
 
 interface SharePostOptions {

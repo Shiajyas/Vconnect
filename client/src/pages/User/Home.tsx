@@ -9,7 +9,7 @@ import Header from '@/customeComponents/home/Header';
 import useNotificationStore from '@/store/notificationStore';
 import { useAuthStore } from '@/appStore/AuthStore';
 import { socket } from '@/utils/Socket';
-import Status from '@/customeComponents/home/LIve/Status';
+import { chatSocket } from '@/utils/chatSocket';
 
 const HomeLayout: React.FC = () => {
   const { unreadCount } = useNotificationStore();
@@ -23,8 +23,10 @@ const HomeLayout: React.FC = () => {
   useEffect(() => {
     if (!userId) return;
     socket.emit('joinUser', userId);
+    chatSocket.emit('updateChatSocketId', {userId: user?._id});
     return () => {
       socket.emit('leaveUser', userId);
+      chatSocket.emit('updateChatSocketId', {userId: user?._id});
     };
   }, [userId]);
 
@@ -65,7 +67,9 @@ const HomeLayout: React.FC = () => {
             {/* ✅ Show Status only on Home Page */}
             {selectedItem === 'Home' && (
               <div className="m-2 border-b">
-                <Status />
+                {/* <Status /> */}
+
+           
               </div>
             )}
 

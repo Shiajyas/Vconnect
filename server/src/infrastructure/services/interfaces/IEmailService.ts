@@ -1,3 +1,3 @@
-export interface IEmailService{
-    sendOtp(email: string,otp:string) : Promise<Boolean>
+export interface IEmailService {
+  sendOtp(email: string, otp: string): Promise<boolean>;
 }

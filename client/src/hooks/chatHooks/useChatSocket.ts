@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { socket } from '@/utils/Socket';
+import { chatSocket as socket } from '@/utils/chatSocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { NormalizedChat } from '@/utils/normalizeChat';
 import { userService } from '@/services/userService';

@@ -1,70 +1,34 @@
-version: '3.9'
-
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - vconnect-net
-
-  server:
+  mainserver:
     build:
       context: ./server
-      dockerfile: Dockerfile
-    container_name: main-backend
-    restart: always
+    container_name: mainserver
     ports:
-      - "3009:3009"  # ⬅ matches your requirement
-    depends_on:
-      - redis
+      - "3009:3009"
+    env_file:
+      - ./server/.env   # ✅ loads the server's env variables
     environment:
-      REDIS_HOST: redis
+      REDIS_HOST: my-redis
       REDIS_PORT: 6379
     networks:
-      - vconnect-net
+      - vconnect_net
+    restart: unless-stopped
 
-  media:
+  chatserver:
     build:
-      context: ./media
-      dockerfile: Dockerfile
-    container_name: media-backend
-    restart: always
+      context: ./chatServer
+    container_name: chatserver
     ports:
-      - "3000:3000"  # ⬅ matches your requirement
-      - "40000-40100:40000-40100//udp"
-    depends_on:
-      - redis
+      - "3011:3011"
+    env_file:
+      - ./chatServer/.env
     environment:
-      REDIS_HOST: redis
+      REDIS_HOST: my-redis
       REDIS_PORT: 6379
     networks:
-      - vconnect-net
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev  # Assuming dev mode with Vite
-    container_name: frontend
-    restart: always
-    ports:
-      - "3001:5173"  # ⬅ maps Vite dev server port to localhost:3001
-    depends_on:
-      - server
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - vconnect-net
-
-volumes:
-  redis-data:
+      - vconnect_net
+    restart: unless-stopped
 
 networks:
-  vconnect-net:
-    driver: bridge
+  vconnect_net:
+    external: true

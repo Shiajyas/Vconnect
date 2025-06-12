@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuthStore } from '@/appStore/AuthStore';
 import { socket } from '@/utils/Socket';
+import { chatSocket } from '@/utils/chatSocket';
 
 const handleMutationError = (error: any, message: string) => {
   console.error(error);
@@ -127,6 +128,7 @@ export const useUserAuth = () => {
     onSuccess: (data) => {
       console.log(data.user._id, '>>>>>>>>>>>>>>>');
       socket.emit('joinUser', data.user._id);
+      chatSocket.emit('updateChatSocketId', {userId: data?.user?._id});
       handleMutationSuccess(data, queryClient, navigate, setUser);
       toast.success('User verified');
     },

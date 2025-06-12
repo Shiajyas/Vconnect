@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/appStore/AuthStore';
 import { NormalizedChat, normalizeChat } from '@/utils/normalizeChat';
 import { useQueryClient } from '@tanstack/react-query';
-import { socket } from '@/utils/Socket';
+import { chatSocket as socket } from '@/utils/chatSocket';
 import useMessageStore from '@/appStore/useMessageStore';
 
 interface ChatListProps {

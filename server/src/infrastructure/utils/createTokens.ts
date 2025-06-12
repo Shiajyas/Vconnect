@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 
 // Function to create an access token
 export const createAccessToken = (payload: {
@@ -10,7 +10,7 @@ export const createAccessToken = (payload: {
     endDate: Date | null;
   };
 }): string =>
-  jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "1d" });
+  jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: '1d' });
 
 // Function to create a refresh token
 export const createRefreshToken = (payload: {
@@ -22,4 +22,4 @@ export const createRefreshToken = (payload: {
     endDate: Date | null;
   };
 }): string =>
-  jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, { expiresIn: "7d" });
+  jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, { expiresIn: '7d' });

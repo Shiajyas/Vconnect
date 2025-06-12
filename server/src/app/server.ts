@@ -10,6 +10,7 @@ import postRoutes from "../presentation/routes/users/postRoutes";
 import { userRoutes } from "../presentation/routes/users/userRoutes";
 import http from "http";
 import cookieParser from "cookie-parser";
+import redis from "../infrastructure/utils/redisClient";
 
 // === SocketIO Chat/Call ===
 import { initializeSocket } from "../infrastructure/socket/SocketServer";
@@ -66,9 +67,25 @@ export class App {
   }
 
   private initializeRoutes(): void {
+
+        this.app.get('/health/redis', async (req: Request, res: Response) => {
+      console.log('🔁 /health/redis hit');
+      try {
+        const pong = await redis.ping();
+        console.log('✅ Redis ping:', pong);
+        res.json({ status: 'ok', redis: pong });
+      } catch (error) {        
+        console.error('❌ Redis health check failed', error);
+        res.status(500).json({ status: 'error', message: 'Redis not reachable' });
+      }
+    });
+  
+
     this.app.get("/test", (req, res) => {
       res.status(200).json({ message: "GET route is working!" });
     });
+
+    
 
     this.app.use("/api", userAuthRoutes);
     this.app.use("/api/admin", adminAuthRoutes);
@@ -92,6 +109,8 @@ export class App {
 
   }
 
+
+
   //write the start method
 
   public start(): void {
@@ -99,7 +118,7 @@ export class App {
       console.log(`Main server running on http://localhost:${this.port}`);
     });
 
-
+    
   }
 }
 

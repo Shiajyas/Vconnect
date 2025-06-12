@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState, useContext } from 'react';
 import { socket } from '@/utils/Socket';
+import { chatSocket } from '@/utils/chatSocket';
 import useMessageStore from '@/appStore/useMessageStore';
 
 interface SocketContextType {
@@ -19,7 +20,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     socket.on('newNotification', handleNewNotification);
-
     return () => {
       socket.off('newNotification', handleNewNotification);
     };
@@ -28,24 +28,27 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const handleMessage = (newMessage: any) => {
       const { currentlyOpenChatId, incrementUnreadCount } = useMessageStore.getState();
-
-      // console.log("📩 Global listener: New message received:", newMessage);
-
-      // console.log("📩 Global listener: Currently open chat ID:", currentlyOpenChatId);
-
-      // console.log("📩 Global listener: newMessage i:",newMessage.chatId);
+      console.log('📩 Global: New message received:', newMessage);
 
       if (newMessage.chatId !== currentlyOpenChatId) {
         incrementUnreadCount(newMessage.chatId);
       }
     };
 
-    socket.on('chatUpdated', handleMessage);
-
+    // ✅ Correct event name
+    socket.on("chatUpdated", handleMessage);
     return () => {
-      socket.off('chatUpdated', handleMessage);
+    socket.off("chatUpdated", handleMessage);
     };
   }, []);
+
+
+  useEffect(() => {
+socket.onAny((event, ...args) => {
+    console.log(`[📡 GlobalSocket] Event: ${event}`, args);
+  });
+}, []);
+
 
   return (
     <SocketContext.Provider value={{ unreadNotifications, setUnreadNotifications }}>
@@ -54,7 +57,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
-// Custom hook to use the socket context
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {

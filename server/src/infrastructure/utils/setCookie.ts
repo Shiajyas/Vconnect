@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Response } from 'express';
 
 export const setCookie = (
   res: Response,
@@ -7,14 +7,14 @@ export const setCookie = (
   options: {
     httpOnly?: boolean;
     secure?: boolean;
-    sameSite?: "strict" | "lax" | "none";
+    sameSite?: 'strict' | 'lax' | 'none';
     maxAge?: number;
-  } = {}
+  } = {},
 ) => {
   res.cookie(name, value, {
     httpOnly: true,
     secure: false,
-    sameSite: "lax",
+    sameSite: 'lax',
     maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, // 1 week expiration
   });
 };
