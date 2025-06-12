@@ -21,6 +21,7 @@ import ConfirmModal from '@/customeComponents/common/confirmationModel';
 import FriendsListModal from '@/customeComponents/home/chat/FriendsListModal';
 import { useChat } from '@/hooks/chatHooks/useChat';
 import { useQuery } from '@tanstack/react-query';
+import ReportButton from '@/customeComponents/common/ReportButton';
 
 interface Post {
   _id: string;
@@ -262,7 +263,25 @@ const PostCard = memo(
           <Button variant="ghost" onClick={handleSavePost}>
             <Bookmark className={`w-5 h-5 ${isSaved ? 'text-blue-500' : 'text-gray-500'}`} />
           </Button>
+
+          <ReportButton
+  postId={post._id}
+  userId={user?._id}
+  onReport={async (postId, userId, reason) => {
+    // Your API call here
+    await fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, userId, reason }),
+    });
+  }}
+/>
+
         </div>
+     
+
+        
+        
 
         {isCommentsOpen && <CommentSection postId={post._id} />}
 

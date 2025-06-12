@@ -1,401 +1,347 @@
-import { Device } from 'mediasoup-client';
+import { Device, SendTransport, Producer, Consumer, RecvTransport } from 'mediasoup-client';
 import { Socket } from 'socket.io-client';
-import { useLiveStore } from '@/appStore/useLiveStore';
+import React from 'react';
 
-let device: Device;
-let producerTransport: any;
-let consumerTransport: any;
-let consumer: any;
+// Global mediasoup-client device and transports references
+let device: Device | null = null;
+let isConnected = false;
 
-// Utility for request-response via socket.io
-const request = <T extends object>(
+let producerTransport: SendTransport 
+let consumerTransport: RecvTransport 
+
+// Track all active producers and consumers separately and consistently
+let producers: Producer[] = [];
+let consumers: Consumer[] = [];
+
+interface TransportOptions {
+  id: string;
+  iceParameters: any;
+  iceCandidates: any[];
+  dtlsParameters: any;
+  sctpParameters?: any;
+}
+
+// Generic request utility for socket.io request-response pattern
+const request = <T>(
   socket: Socket,
   event: string,
   data: object = {}
 ): Promise<T> => {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error(`Request timeout for event: ${event}`));
-    }, 10000);
+    const timeout = setTimeout(() => reject(new Error(`Request timeout: ${event}`)), 10000);
 
-    socket.emit(event, data, (response: T | { error: string }) => {
+    socket.emit(event, data, (response: T | { error?: string }) => {
       clearTimeout(timeout);
-      
-      if (!response) {
-        return reject(new Error(`No response for event: ${event}`));
-      }
-      
-      if ('error' in response) {
-        return reject(new Error(response.error as string));
-      }
-      
+      if (!response) return reject(new Error(`No response for ${event}`));
+      if ('error' in response && response.error) return reject(new Error(response.error));
       resolve(response as T);
     });
   });
 };
 
-// Load Mediasoup Device with server capabilities
-export const loadDevice = async (socket: Socket, streamId?: string): Promise<void> => {
-  try {
-    console.log('Loading device with streamId:', streamId);
-    
-    const requestData = streamId ? { streamId } : {};
-    const response = await request<{ routerRtpCapabilities: any }>(
-      socket, 
-      'get-rtp-capabilities', 
-      requestData
-    );
-    
-    console.log('Router RTP capabilities received:', response.routerRtpCapabilities);
-    
-    if (!response.routerRtpCapabilities || !response.routerRtpCapabilities.codecs) {
-      throw new Error('Invalid RTP capabilities received from server');
-    }
+const getIceServers = () => [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  {
+    urls: ['turn:137.59.87.137:3478', 'turns:137.59.87.137:5349'],
+    username: 'webrtcuser',
+    credential: 'securepassword',
+  },
+];
 
-    device = new Device();
-    await device.load({ routerRtpCapabilities: response.routerRtpCapabilities });
-    
-    console.log('Device loaded successfully');
-  } catch (error) {
-    console.error('Error loading device:', error);
-    throw error;
+// Load mediasoup device with RTP capabilities from server
+export const loadDevice = async (socket: Socket, streamId?: string): Promise<void> => {
+  if (device?.loaded) {
+    console.log('[DeviceLoader] Device already loaded, skipping');
+    return;
+  }
+
+  const { routerRtpCapabilities } = await request<{ routerRtpCapabilities: any }>(
+    socket,
+    'get-rtp-capabilities',
+    streamId ? { streamId } : {}
+  );
+
+  if (!routerRtpCapabilities || typeof routerRtpCapabilities !== 'object') {
+    throw new Error('[DeviceLoader] Invalid RTP Capabilities from server');
+  }
+
+  try {
+    const newDevice = new Device();
+    await newDevice.load({ routerRtpCapabilities });
+    device = newDevice;
+    console.log('[DeviceLoader] Device loaded successfully');
+  } catch (err) {
+    console.error('[DeviceLoader] Failed to load device:', err);
+    throw err;
   }
 };
 
-// Host: Create send transport and produce tracks
+// Create send transport and produce all tracks of the media stream
 export const createSendTransport = async (
-  socket: Socket, 
-  stream: MediaStream, 
+  socket: Socket,
+  stream: MediaStream,
   streamId: string
-) => {
+): Promise<Producer[]> => {
+  if (!device || !device.loaded) {
+    console.warn('[SendTransport] Device not loaded, loading now...');
+    await loadDevice(socket, streamId);
+  }
+
+  // Prevent duplicate creation
+  if (producerTransport && producerTransport.connectionState !== 'closed') {
+    console.warn('[SendTransport] Reusing existing producer transport.');
+    return producers;
+  }
+
+  const { transportOptions } = await request<{ transportOptions: TransportOptions }>(
+    socket,
+    'create-transport',
+    { streamId }
+  );
+
+  if (!transportOptions || !transportOptions.id) {
+    throw new Error('[SendTransport] Invalid transport options from server.');
+  }
+
   try {
-    console.log('Creating send transport for streamId:', streamId);
-    
-    if (!device) {
-      await loadDevice(socket, streamId);
+    producerTransport = device!.createSendTransport({
+      ...transportOptions,
+      iceServers: getIceServers(),
+    });
+
+    console.log('[SendTransport] Transport created with ID:', producerTransport.id);
+  } catch (err) {
+    console.error('[SendTransport] Failed to create send transport:', err);
+    throw err;
+  }
+
+  if (!producerTransport) {
+    throw new Error('[SendTransport] Producer transport creation returned null');
+  }
+
+  // Handle connect
+  producerTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+    try {
+      await request(socket, 'connect-transport', {
+        transportId: producerTransport.id,
+        dtlsParameters,
+      });
+      console.log('[SendTransport] Connected');
+      callback();
+    } catch (error) {
+      console.error('[SendTransport] Connect failed:', error);
+      errback(error);
     }
+  });
 
-    const requestData = streamId ? { streamId } : {};
-    const { transportOptions } = await request<{ transportOptions: any }>(
-      socket, 
-      'create-transport',
-      requestData
-    );
+  // Handle produce
+  producerTransport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+    try {
+      const { id, error } = await request<{ id: string; error?: string }>(socket, 'produce', {
+        transportId: producerTransport.id,
+        kind,
+        rtpParameters,
+        streamId,
+      });
 
-    console.log('Send transport options received:', transportOptions);
-
-    producerTransport = device.createSendTransport(transportOptions);
-
-    interface ConnectTransportParams {
-      dtlsParameters: any;
-    }
-
-    producerTransport.on(
-      'connect',
-      async (
-        { dtlsParameters }: ConnectTransportParams,
-        callback: () => void,
-        errback: (error: any) => void
-      ) => {
-        try {
-          await request(socket, 'connect-transport', {
-            transportId: producerTransport.id,
-            dtlsParameters,
-          });
-          callback();
-        } catch (err) {
-          console.error('Error connecting send transport:', err);
-          errback(err);
-        }
+      if (error || !id) {
+        throw new Error(error || '[SendTransport] No producer ID received from server');
       }
-    );
 
-    interface ProduceParams {
-      kind: string;
-      rtpParameters: any;
+      console.log(`[SendTransport] Producer confirmed by server with ID: ${id}`);
+      callback({ id });
+    } catch (err) {
+      console.error('[SendTransport] Error in produce event:', err);
+      errback(err);
     }
+  });
 
-    interface ProduceResponse {
-      id: string;
-    }
+  // Create producers for each track
+  try {
+    producers = [];
 
-    producerTransport.on(
-      'produce',
-      async (
-        { kind, rtpParameters }: ProduceParams,
-        callback: (response: ProduceResponse) => void,
-        errback: (error: any) => void
-      ) => {
-        try {
-          const { id } = await request<ProduceResponse>(socket, 'produce', {
-            transportId: producerTransport.id,
-            kind,
-            rtpParameters,
-          });
-          callback({ id });
-        } catch (err) {
-          console.error('Error producing:', err);
-          errback(err);
-        }
-      }
-    );
-
-    // Connect the transport first
-    await producerTransport.connect();
-    console.log('Send transport connected');
-
-    // Then produce tracks
-    const producers = [];
     for (const track of stream.getTracks()) {
-      console.log(`Producing ${track.kind} track`);
-      const producer = await producerTransport.produce({ track });
+      console.log(`[SendTransport] Producing track: ${track.kind}`);
+      const producer = await producerTransport.produce({
+        track,
+        appData: { streamId },
+      });
       producers.push(producer);
     }
 
-    console.log('All tracks produced successfully');
-    return producers;
-  } catch (error) {
-    console.error('Error creating send transport:', error);
-    throw error;
+    console.log('[SendTransport] All producers created:', producers.map(p => p.id));
+  } catch (err) {
+    console.error('[SendTransport] Failed while producing tracks:', err);
+    throw err;
   }
+
+  return producers;
 };
 
-// Viewer: Create receive transport and play video
+
+// Create receive transport and consume remote tracks
 export const createRecvTransport = async (
   socket: Socket,
   streamId: string,
-  videoRef: React.RefObject<HTMLVideoElement>
-) => {
-  try {
-    console.log('Creating receive transport for streamId:', streamId);
-    
-    if (!device) {
-      await loadDevice(socket, streamId);
-    }
-
-    const requestData = streamId ? { streamId } : {};
-    const { transportOptions } = await request<{ transportOptions: any }>(
-      socket, 
-      'create-transport',
-      requestData
-    );
-
-    console.log('Receive transport options received:', transportOptions);
-
-    if (!transportOptions) {
-      throw new Error('No transport options received from server');
-    }
-
-    consumerTransport = device.createRecvTransport(transportOptions);
-
-    interface ConnectTransportParams {
-      dtlsParameters: any;
-    }
-
-    // Store connection promise to wait for it
-    let connectPromise: Promise<void>;
-    let connectResolve: () => void;
-    let connectReject: (error: any) => void;
-
-    connectPromise = new Promise<void>((resolve, reject) => {
-      connectResolve = resolve;
-      connectReject = reject;
-    });
-
-    consumerTransport.on(
-      'connect',
-      async (
-        { dtlsParameters }: ConnectTransportParams,
-        callback: () => void,
-        errback: (error: any) => void
-      ) => {
-        try {
-          await request(socket, 'connect-transport', {
-            transportId: consumerTransport.id,
-            dtlsParameters,
-          });
-          callback();
-          connectResolve();
-          console.log('Receive transport connected');
-        } catch (err) {
-          console.error('Error connecting receive transport:', err);
-          errback(err);
-          connectReject(err);
-        }
-      }
-    );
-
-    // Get available producers for this stream
-    const producersResponse = await request<{
-      producers: Array<{
-        id: string;
-        kind: 'audio' | 'video';
-        rtpParameters: any;
-      }>
-    }>(socket, 'get-producers', {
-      streamId,
-    });
-
-    console.log('Available producers:', producersResponse);
-
-    if (!producersResponse.producers || producersResponse.producers.length === 0) {
-      throw new Error('No producers available for this stream');
-    }
-
-    const mediaStream = new MediaStream();
-    const consumers: any[] = [];
-
-    // Consume each available producer
-    for (const producer of producersResponse.producers) {
-      try {
-        console.log(`Consuming ${producer.kind} track from producer:`, producer.id);
-
-        // Validate producer data
-        if (!producer.id || !producer.kind || !producer.rtpParameters) {
-          console.warn('Invalid producer data:', producer);
-          continue;
-        }
-
-        // Request to consume this specific producer
-        const consumeResponse = await request<{
-          producerId: string;
-          id: string;
-          kind: 'audio' | 'video';
-          rtpParameters: any;
-        }>(socket, 'consume', {
-          transportId: consumerTransport.id,
-          producerId: producer.id,
-          rtpCapabilities: device.rtpCapabilities,
-        });
-
-        console.log(`Consume response for ${producer.kind}:`, consumeResponse);
-
-        // Validate consume response
-        if (!consumeResponse.id || !consumeResponse.kind || !consumeResponse.rtpParameters) {
-          console.error('Invalid consume response:', consumeResponse);
-          continue;
-        }
-
-        // Create consumer
-        const newConsumer = await consumerTransport.consume({
-          id: consumeResponse.id,
-          producerId: consumeResponse.producerId,
-          kind: consumeResponse.kind,
-          rtpParameters: consumeResponse.rtpParameters,
-        });
-
-        console.log(`Consumer created for ${consumeResponse.kind}:`, newConsumer.id);
-
-        // Add track to media stream
-        mediaStream.addTrack(newConsumer.track);
-        consumers.push(newConsumer);
-
-        // Resume consumer (important for some MediaSoup setups)
-        await request(socket, 'resume-consumer', {
-          consumerId: newConsumer.id,
-        });
-
-      } catch (err) {
-        console.error(`Error consuming ${producer.kind} track:`, err);
-        // Continue with other tracks even if one fails
-      }
-    }
-
-    // Wait for connection to complete
-    await connectPromise;
-
-    if (consumers.length === 0) {
-      throw new Error('Failed to create any consumers');
-    }
-
-    console.log(`Successfully created ${consumers.length} consumers`);
-
-    // Set up video element
-    if (videoRef.current && mediaStream.getTracks().length > 0) {
-      videoRef.current.srcObject = mediaStream;
-      
-      // Handle video element events
-      videoRef.current.onloadedmetadata = () => {
-        console.log('Video metadata loaded');
-      };
-
-      videoRef.current.oncanplay = () => {
-        console.log('Video can start playing');
-      };
-
-      try {
-        await videoRef.current.play();
-        console.log('Video playback started');
-      } catch (err) {
-        console.error('Video playback failed:', err);
-        // Don't throw here, audio might still work
-      }
-    }
-
-    // Store all consumers globally (you might want to use an array)
-    consumer = consumers[0]; // Keep backward compatibility
-
-    return consumers;
-  } catch (error) {
-    console.error('Error creating receive transport:', error);
-    throw error;
+  videoRef: React.RefObject<HTMLVideoElement>,
+  setStream: (stream: MediaStream) => void
+): Promise<Consumer> => {
+  if (!device || !device.loaded) {
+    await loadDevice(socket, streamId);
   }
-};
-// Cleanup resources
-export const closeTransports = () => {
-  try {
-    console.log('Cleaning up transports...');
-    
-    // Close all consumers
-    if (Array.isArray(consumer)) {
-      consumer.forEach((cons, index) => {
-        if (cons) {
-          cons.close();
-          console.log(`Consumer ${index} closed`);
-        }
-      });
-      consumer = [];
+
+  const { transportOptions } = await request<{ transportOptions: TransportOptions }>(
+    socket,
+    'create-transport',
+    { streamId }
+  );
+
+  consumerTransport = device.createRecvTransport({
+    ...transportOptions,
+    iceServers: getIceServers(),
+  });
+
+  consumerTransport.on(
+    'connect',
+    async ({ dtlsParameters }, callback, errback) => {
+      try {
+        await request(socket, 'connect-transport', {
+          transportId: consumerTransport!.id,
+          dtlsParameters,
+        });
+        console.log('[RecvTransport] Connected');
+        callback();
+      } catch (error) {
+        console.error('[RecvTransport] Connect failed:', error);
+        errback(error);
+      }
     }
-    
-    // Legacy consumer cleanup
-    if (consumer && !Array.isArray(consumer)) {
-      consumer.close();
-      consumer = null;
-      console.log('Legacy consumer closed');
-    }
-    
-    if (producerTransport) {
-      producerTransport.close();
-      producerTransport = null;
-      console.log('Producer transport closed');
-    }
-    
-    if (consumerTransport) {
-      consumerTransport.close();
-      consumerTransport = null;
-      console.log('Consumer transport closed');
-    }
-    
-    console.log('All transports cleaned up successfully');
-  } catch (err) {
-    console.error('Error during transport cleanup:', err);
-  }
-};
-// Helper function to get device info
-export const getDeviceInfo = () => {
-  if (!device) return null;
-  
-  return {
-    loaded: device.loaded,
+  );
+
+  const consumerInfo = await request<{
+    id: string;
+    producerId: string;
+    kind: 'video' | 'audio';
+    rtpParameters: any;
+  }>(socket, 'consume', {
+    streamId,
+    transportId: consumerTransport.id,
     rtpCapabilities: device.rtpCapabilities,
-    canProduce: {
-      audio: device.canProduce('audio'),
-      video: device.canProduce('video'),
-    },
-  };
+  });
+
+  if (!consumerInfo.id) {
+    throw new Error('[RecvTransport] No consumer received from server.');
+  }
+
+  console.log('[RecvTransport] Consumer info received:', consumerInfo);
+
+  const consumer = await consumerTransport.consume({
+    id: consumerInfo.id,
+    producerId: consumerInfo.producerId,
+    kind: consumerInfo.kind,
+    rtpParameters: consumerInfo.rtpParameters,
+  });
+
+  // Add to consumers list
+  consumers.push(consumer);
+
+  const mediaStream = new MediaStream();
+  mediaStream.addTrack(consumer.track);
+
+  setStream(mediaStream);
+
+  if (videoRef.current) {
+    const videoEl = videoRef.current;
+
+    // Assign stream only if changed to avoid repeated loads
+    if (videoEl.srcObject !== mediaStream) {
+      videoEl.srcObject = mediaStream;
+    }
+
+    // Mute to satisfy autoplay policy
+    videoEl.muted = true;
+    videoEl.volume = 0;
+
+    try {
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+        // Playback started, unmute
+        videoEl.muted = false;
+        videoEl.volume = 1.0;
+        console.log('[RecvTransport] Stream playing successfully');
+      }
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        console.warn('[RecvTransport] Autoplay aborted, user interaction might be needed.');
+
+        // Retry after delay
+        setTimeout(() => {
+          videoEl.play().catch(err => {
+            console.error('[RecvTransport] Play retry failed:', err);
+          });
+        }, 1000);
+      } else {
+        console.error('[RecvTransport] Error playing video:', e);
+      }
+    }
+  } else {
+    console.error('[RecvTransport] Video element ref is null');
+  }
+
+  return consumer;
 };
 
-// Helper function to check if device is ready
-export const isDeviceReady = (): boolean => {
-  return device && device.loaded;
+// Clean up all producers, consumers, and transports
+export const closeTransports = (): void => {
+  try {
+    console.log('[Transports] Closing all transports...');
+
+    // Close producers
+    producers.forEach((producer, idx) => {
+      try {
+        producer.close();
+        console.log(`[Transports] Producer ${idx} closed`);
+      } catch (e) {
+        console.warn(`[Transports] Failed to close producer ${idx}:`, e);
+      }
+    });
+    producers = [];
+
+    // Close consumers
+    consumers.forEach((consumer, idx) => {
+      try {
+        consumer.close();
+        console.log(`[Transports] Consumer ${idx} closed`);
+      } catch (e) {
+        console.warn(`[Transports] Failed to close consumer ${idx}:`, e);
+      }
+    });
+    consumers = [];
+
+    // Close producer transport
+    if (producerTransport) {
+      try {
+        producerTransport.close();
+        console.log('[Transports] Producer transport closed');
+      } catch (e) {
+        console.warn('[Transports] Failed to close producer transport:', e);
+      }
+      producerTransport = null;
+      isConnected = false;
+    }
+
+    // Close consumer transport
+    if (consumerTransport) {
+      try {
+        consumerTransport.close();
+        console.log('[Transports] Consumer transport closed');
+      } catch (e) {
+        console.warn('[Transports] Failed to close consumer transport:', e);
+      }
+      consumerTransport = null;
+    }
+  } catch (error) {
+    console.error('[Transports] Cleanup error:', error);
+  }
 };

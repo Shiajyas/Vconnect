@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/appStore/AuthStore';
-import { socket } from '@/utils/Socket';
+import { chatSocket as socket }from '@/utils/chatSocket';
 import { NormalizedChat } from '@/utils/normalizeChat';
 import { normalizeChat } from '@/utils/normalizeChat';
 

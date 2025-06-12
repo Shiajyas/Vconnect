@@ -67,8 +67,8 @@ const RightSideBar = () => {
               onClick={() => handleNavigate(user._id)}
             >
               <Avatar className="h-12 w-12">
-                <AvatarImage src={user.avatar} alt={user.username} />
-                <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={user?.avatar} alt={user.username} />
+                <AvatarFallback>{user?.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <span className="font-medium">{user.username}</span>

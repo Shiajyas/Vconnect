@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import MediaPreview from '../../media/MediaPreview';
-import MediaCapture from '../../media/MediaCapture';
+import MediaPreview from '@/customeComponents/common/MediaPreview';
+import MediaCapture from '@/customeComponents/common/MediaCapture';
 import { socket } from '@/utils/Socket';
 import { useUploadPost } from '@/hooks/usePost';
 import { useParams } from 'react-router-dom';

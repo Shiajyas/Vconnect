@@ -1,0 +1,23 @@
+# Use Node.js for dev server with hot reload
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the source code
+COPY . .
+
+# Vite default dev server port
+EXPOSE 3001
+
+# Enable polling for file watching in Docker
+ENV CHOKIDAR_USEPOLLING=true
+
+# Start Vite dev server
+CMD ["npm", "run", "dev"]

@@ -19,8 +19,8 @@ const PostDetails: React.FC = () => {
 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
-  console.log('🔍 Rendering PostDetails for postId:', postId);
-  console.log('👤 Logged-in User ID:', userId);
+  // console.log('🔍 Rendering PostDetails for postId:', postId);
+  // console.log('👤 Logged-in User ID:', userId);
 
   // ✅ Fetch Post Details
   const { data, isLoading } = useQuery({

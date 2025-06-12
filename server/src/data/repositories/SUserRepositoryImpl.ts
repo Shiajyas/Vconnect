@@ -1,72 +1,112 @@
-import { ISUserRepository } from "../interfaces/ISUserRepository";
-import { SUser } from "../../core/domain/interfaces/SUser";
+import { ISUserRepository } from '../interfaces/ISUserRepository';
+import { SUser } from '../../core/domain/interfaces/SUser';
+import redis from '../../infrastructure/utils/redisClient';
+
+const ONLINE_USERS_KEY = 'online_users';
+const SOCKET_TO_USER_KEY = 'socket_to_user';        
 
 export class SUserRepositoryImpl implements ISUserRepository {
-  private users: Map<string, SUser> = new Map(); // Using Map for fast lookups
-
-  findById(id: string): SUser | undefined {
-    // console.log(`🔍 Searching for user with ID: ${id}`);
-    // console.log(this.users);
-    // console.log(id,">>>>>>>>>>>")
-    let user = this.users.get(id?.toString());
-
-    if (!user) {
-      console.log(`⚠️ User not found: ${id}`);
+  async findById(id: string): Promise<SUser | undefined> {
+    try {         
+      const userJson = await redis.hget(ONLINE_USERS_KEY, id);
+      return userJson ? JSON.parse(userJson) : undefined;
+    } catch (error) {
+      console.error(`❌ Error finding user by ID ${id}:`, error);
       return undefined;
     }
-
-    // console.log(` User found:`, user);
-    return user;
   }
 
-  addUser(user: SUser): void {
-    console.log(`📌 Adding user: ${JSON.stringify(user)}`);
-    this.removeUser(user.socketId); // Ensure no duplicate socket IDs exist
-    this.users.set(user.id, user);
-    console.log(`✅ User added: ${user.id} (Socket ID: ${user.socketId})`);
-    // this.logActiveUsers();
+  async addUser(user: SUser): Promise<void> {
+    try {
+      await this.removeUser(user.socketId); // clean previous entry if any
+
+      await redis.hset(ONLINE_USERS_KEY, user.id, JSON.stringify(user));
+      await redis.hset(SOCKET_TO_USER_KEY, user.socketId, user.id);
+
+      console.log(`✅ User added: ${user.id} (Socket ID: ${user.socketId})`);
+    } catch (error) {
+      console.error(`❌ Failed to add user ${user.id}:`, error);
+    }
   }
 
-  removeUser(socketId: string): void {
-    let removedUserId: string | null = null;
 
-    for (const [id, user] of this.users) {
-      if (user.socketId === socketId) {
-        removedUserId = id;
-        this.users.delete(id);
-        break;
+   async updateChatSocketId(userId: string, chatSocketId: string): Promise<void> {
+    try {
+      const userJson = await redis.hget(ONLINE_USERS_KEY, userId);
+      const user: SUser = userJson ? JSON.parse(userJson) : { id: userId };
+
+      user.chatSocketId = chatSocketId;
+
+      await redis.hset(ONLINE_USERS_KEY, userId, JSON.stringify(user));
+      await redis.hset(SOCKET_TO_USER_KEY, chatSocketId, userId);
+
+    } catch (error) {
+      console.error(`❌ Failed to update chatSocketId for user ${userId}:`, error);
+    }
+  }
+  
+
+  async removeUser(socketId: string): Promise<void> {
+    try {
+      const userId = await redis.hget(SOCKET_TO_USER_KEY, socketId);
+      if (userId) {
+        await redis.hdel(ONLINE_USERS_KEY, userId);
+        await redis.hdel(SOCKET_TO_USER_KEY, socketId);
+        console.log(`🗑️ User removed: ${userId} (Socket ID: ${socketId})`);
+      } else {
+        console.warn(`⚠️ No user found for Socket ID: ${socketId}`);
       }
-    }
-
-    if (removedUserId) {
-      console.log(`❌ User removed: ${removedUserId} (Socket ID: ${socketId})`);
-    } else {
-      console.log(`⚠️ No user found for Socket ID: ${socketId}`);
-    }
-
-    this.logActiveUsers();
-  }
-
-  removeUserById(userId: string): void {
-    if (this.users.has(userId)) {
-      this.users.delete(userId);
-      console.log(`❌ User removed by ID: ${userId}`);
-    } else {
-      console.log(`⚠️ No user found with ID: ${userId}`);
+    } catch (error) {
+      console.error(`❌ Failed to remove user by socket ID ${socketId}:`, error);
     }
   }
 
-  getActiveUsers(): SUser[] {
-    return Array.from(this.users.values());
+  async removeUserById(userId: string): Promise<void> {
+    try {
+      const userJson = await redis.hget(ONLINE_USERS_KEY, userId);      
+      if (userJson) {
+        const user = JSON.parse(userJson) as SUser;
+        await redis.hdel(ONLINE_USERS_KEY, userId);
+        await redis.hdel(SOCKET_TO_USER_KEY, user.socketId);
+        console.log(`🗑️ User removed by ID: ${userId}`);
+      } else {
+        console.warn(`⚠️ No user found with ID: ${userId}`);
+      }       
+    } catch (error) {
+      console.error(`❌ Failed to remove user by ID ${userId}:`, error);
+    }
   }
 
-  logActiveUsers(): { userId: string; socketId: string }[] {
-    const activeUsers = this.getActiveUsers().map((user) => ({
-      userId: user.id,
-      socketId: user.socketId,
-    }));
+  async getActiveUsers(): Promise<SUser[]> {
+    try {
+      const userMap = await redis.hgetall(ONLINE_USERS_KEY);
+      const users = Object.values(userMap).map((json) => JSON.parse(json));
+      console.log(`📡 Active Users [${users.length}]:`, users);
+      return users;
+    } catch (error) {
+      console.error('❌ Failed to fetch active users:', error);
+      return [];
+    }
+  }
 
-    console.log("📢 Currently Active Users:", activeUsers);
-    return activeUsers;
+  async getActiveUserCount(): Promise<number> {
+    try {
+      return await redis.hlen(ONLINE_USERS_KEY);
+    } catch (error) {
+      console.error('❌ Failed to get active user count:', error);
+      return 0;
+    }
+  }
+
+  async logActiveUsers(): Promise<{ userId: string; socketId: string }[]> {
+    try {
+      const users = await this.getActiveUsers();
+      const active = users.map((u) => ({ userId: u.id, socketId: u.socketId }));
+      console.log('📋 Currently Active Users:', active);
+      return active;
+    } catch (error) {
+      console.error('❌ Failed to log active users:', error);
+      return [];
+    }
   }
 }

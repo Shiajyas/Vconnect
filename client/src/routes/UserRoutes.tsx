@@ -8,7 +8,7 @@ import PostUpload from '@/customeComponents/home/post/postUploadComponent';
 import EditPost from '@/customeComponents/home/post/EditPost';
 import ChatSection from '@/customeComponents/home/chat/ChatSection';
 import UserPrivateRoute from './UserPrivateRoute';
-import LiveRoom from '@/customeComponents/home/LIve/LiveRoom';
+import { SearchSection } from '@/customeComponents/home/search/SearchSection';
 
 const UserRoutes = () => (
   <Route
@@ -26,7 +26,7 @@ const UserRoutes = () => (
     <Route path="create/:userId" element={<PostUpload />} />
     <Route path="edit-post/:postId" element={<EditPost />} />
     <Route path="messages" element={<ChatSection />} />
-    <Route path="live/:id" element={<LiveRoom isHost={true} />} />
+    <Route path='search' element={<SearchSection/>} />
   </Route>
 );
 
