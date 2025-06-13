@@ -2,11 +2,9 @@ import { io } from 'socket.io-client';
 import 'react-toastify/dist/ReactToastify.css';
 import { useUserAuth } from '@/hooks/useUserAuth';
 
-const SOCKET_URL = 'http://localhost:3011';
+const CHAT_SOCKET_URL = import.meta.env.VITE_CHAT_SOCKET_URL;
 
-
-
-export const chatSocket = io(SOCKET_URL, {
+export const chatSocket = io(CHAT_SOCKET_URL, {
   withCredentials: true,
   transports: ['websocket'],
 });
