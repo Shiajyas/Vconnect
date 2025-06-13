@@ -13,7 +13,7 @@ export const setCookie = (
 ) => {
   res.cookie(name, value, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: 'lax',
     maxAge: options.maxAge ?? 7 * 24 * 60 * 60 * 1000, // 1 week expiration
   });
